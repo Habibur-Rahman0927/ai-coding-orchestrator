@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+import sys
+sys.dont_write_bytecode = True
+
 import argparse
 import ccx_platform as fcntl
 import hashlib

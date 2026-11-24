@@ -42,6 +42,12 @@ own narrower data rules; see [CLI reference](CLI.md).
 
 ## Limitations
 
+- Immutable 4.1.0 Codex delegation requires Python >= 3.11: its session script
+  imports `tomllib` unconditionally (the 4.0.0 fixture has the same defect).
+  Ubuntu 20.04/22.04 users with the default Python should evaluate 4.3.0 using
+  `--release 4.3.0 --allow-unverified`; its config-inheritance fallback supports
+  Python 3.8–3.10. This does not promote the candidate to VERIFIED.
+
 - Path checks leave residual time-of-check/time-of-use (TOCTOU) races. They are
   pathname checks, not complete protection against concurrent same-user swaps.
 - Locks are cooperative: engine operations use a directory-inode `flock`;

@@ -1,5 +1,13 @@
 # Claude-Codex Orchestrator CLI
 
+On non-Linux hosts, `init`, `adopt`, `update`, and `migrate-v3` refuse Linux-only payloads
+4.0.0 and 4.1.0 before any backup or write, including dry runs. The default
+4.1.0 therefore requires Linux. To evaluate the candidate explicitly, use
+`init --release 4.3.0 --allow-unverified` (or the same release flags with
+`update --apply --yes`). `verify` adds `runtime_compatible` to its JSON report
+without changing integrity status or exit codes. Inspection, removal, backup,
+and rollback remain available for legacy installations.
+
 For the unpublished 4.3.0 cross-platform candidate, see the
 [cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
 
@@ -90,7 +98,9 @@ orchestration and **"Use Claude only"** to pause it.
 `migrate-v3` requires exactly one of `--check`, `--dry-run`, or `--apply`; applying
 requires `--yes` (otherwise exit 4). Options: `--project DIR`, `--release V`,
 `--project-rules FILE` (replace the project-rules body), and `--report FILE`
-(write JSON outside project/engine/state). The target must be VERIFIED. V3
+(write JSON outside project/engine/state). The target must be VERIFIED unless `--allow-unverified` is explicitly given.
+On non-Linux hosts, evaluate V3 migration with `--release 4.3.0 --allow-unverified`;
+Linux-only targets are refused even for dry runs. V3
 integrity failure returns 6, active workflow 7, unsafe path 5, lock busy 75,
 and already-migrated/conflicting layout 3. The plan shows the full new and removed
 instruction text, settings changes, unapproved profiles and restart notice.

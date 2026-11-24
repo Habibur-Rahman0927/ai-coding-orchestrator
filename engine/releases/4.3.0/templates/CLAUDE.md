@@ -36,11 +36,11 @@ without requiring additional routine user prompts.
 
 Always delegate through:
 
-python3 .claude/scripts/codex-session.py --sandbox read-only "TASK"
+python3 -B .claude/scripts/codex-session.py --sandbox read-only "TASK"
 
 For implementation:
 
-python3 .claude/scripts/codex-session.py --sandbox workspace-write "TASK"
+python3 -B .claude/scripts/codex-session.py --sandbox workspace-write "TASK"
 
 One Claude session maps to one dedicated Codex session.
 
@@ -63,15 +63,15 @@ Use only options supported by the selected model.
 
 Examples:
 
-python3 .claude/scripts/codex-session.py --effort high --sandbox workspace-write "TASK"
+python3 -B .claude/scripts/codex-session.py --effort high --sandbox workspace-write "TASK"
 
-python3 .claude/scripts/codex-session.py --model MODEL --effort xhigh --sandbox read-only "TASK"
+python3 -B .claude/scripts/codex-session.py --model MODEL --effort xhigh --sandbox read-only "TASK"
 
-python3 .claude/scripts/codex-session.py --speed fast --sandbox read-only "TASK"
+python3 -B .claude/scripts/codex-session.py --speed fast --sandbox read-only "TASK"
 
 Reload saved terminal defaults when requested:
 
-python3 .claude/scripts/codex-session.py --sync-defaults --sandbox read-only "TASK"
+python3 -B .claude/scripts/codex-session.py --sync-defaults --sandbox read-only "TASK"
 
 Never silently downgrade the model, change effort,
 enable faster service tiers or reset context.
@@ -82,35 +82,35 @@ Report configuration incompatibilities accurately.
 
 Inspect existing task state:
 
-python3 .claude/scripts/task-state.py status
+python3 -B .claude/scripts/task-state.py status
 
 Start a new workflow when no unfinished workflow exists:
 
-python3 .claude/scripts/task-state.py start
+python3 -B .claude/scripts/task-state.py start
 
 Register every actionable task:
 
-python3 .claude/scripts/task-state.py add --id T001 --title "Task description"
+python3 -B .claude/scripts/task-state.py add --id T001 --title "Task description"
 
 Before delegation:
 
-python3 .claude/scripts/task-state.py update --id T001 --state IN_PROGRESS
+python3 -B .claude/scripts/task-state.py update --id T001 --state IN_PROGRESS
 
 After implementation:
 
-python3 .claude/scripts/task-state.py update --id T001 --state REVIEWING
+python3 -B .claude/scripts/task-state.py update --id T001 --state REVIEWING
 
 For corrections:
 
-python3 .claude/scripts/task-state.py update --id T001 --state CORRECTION_REQUIRED --retry --note "Reason"
+python3 -B .claude/scripts/task-state.py update --id T001 --state CORRECTION_REQUIRED --retry --note "Reason"
 
 After verification:
 
-python3 .claude/scripts/task-state.py update --id T001 --state VERIFIED --note "Evidence"
+python3 -B .claude/scripts/task-state.py update --id T001 --state VERIFIED --note "Evidence"
 
 For genuine blockers:
 
-python3 .claude/scripts/task-state.py update --id T001 --state BLOCKED --note "Evidence and required action"
+python3 -B .claude/scripts/task-state.py update --id T001 --state BLOCKED --note "Evidence and required action"
 
 Maximum three correction attempts per task.
 Do not use BLOCKED merely to bypass completion.
@@ -151,11 +151,11 @@ Profiles are defined per project in
 
 List profiles and their approval state:
 
-python3 .claude/scripts/managed-exec.py --list
+python3 -B .claude/scripts/managed-exec.py --list
 
 Inspect a profile before execution:
 
-python3 .claude/scripts/managed-exec.py PROFILE --dry-run
+python3 -B .claude/scripts/managed-exec.py PROFILE --dry-run
 
 A profile runs only after the user approves its exact
 command with: orchestrator profile-approve PROFILE --yes
@@ -178,7 +178,7 @@ Usage Guard classifies supported structured execution errors.
 
 Inspect context when necessary:
 
-python3 .claude/scripts/context-monitor.py
+python3 -B .claude/scripts/context-monitor.py
 
 Avoid redundant repository analysis and repeated long prompts.
 Use concise task-specific instructions and checkpoints.
@@ -201,11 +201,11 @@ managed execution is still active.
 
 Record the diagnosis:
 
-python3 .claude/scripts/task-state.py recover --note "Diagnostic evidence"
+python3 -B .claude/scripts/task-state.py recover --note "Diagnostic evidence"
 
 Explicitly resume a paused workflow when the user authorizes:
 
-python3 .claude/scripts/task-state.py resume
+python3 -B .claude/scripts/task-state.py resume
 
 Inspect partial implementation before continuing.
 Do not repeat previously verified work unnecessarily.
@@ -231,7 +231,7 @@ Respect cancellation, permissions and usage limits.
 When every registered task is independently VERIFIED or
 genuinely BLOCKED:
 
-python3 .claude/scripts/task-state.py finish
+python3 -B .claude/scripts/task-state.py finish
 
 Then provide the final consolidated report.
 
@@ -249,11 +249,11 @@ Include:
 
 Persist workflow activity:
 
-python3 .claude/scripts/task-state.py heartbeat
+python3 -B .claude/scripts/task-state.py heartbeat
 
 For centralized status:
 
-python3 .claude/scripts/orchestration-status.py
+python3 -B .claude/scripts/orchestration-status.py
 
 ## 12. User Control Commands
 

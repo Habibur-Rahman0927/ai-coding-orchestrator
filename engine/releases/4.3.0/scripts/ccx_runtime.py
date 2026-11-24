@@ -1,5 +1,9 @@
 """Runtime launch handoff and portable stream collection."""
+
+import sys
+sys.dont_write_bytecode = True
 import os
+import stat
 from pathlib import Path
 import queue
 import subprocess
@@ -115,6 +119,40 @@ def private_directory(directory):
     root = platform.state_root()
     if directory != root and root not in directory.parents:
         raise PermissionError('Runtime directory outside application state')
+    parts = directory.relative_to(root).parts
+    if '..' in parts:
+        raise PermissionError('Runtime directory outside application state')
+    if os.name != 'nt':
+        # Do not change permissions on HOME or its .local/state ancestors.
+        root.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        parent_fd = None
+        try:
+            for name in (str(root),) + parts:
+                try:
+                    os.mkdir(name, mode=0o700, dir_fd=parent_fd)
+                except FileExistsError:
+                    pass
+                info = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+                if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+                    raise PermissionError('State directory is a link or has a foreign owner: ' + name)
+                fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                             dir_fd=parent_fd)
+                try:
+                    opened = os.fstat(fd)
+                    if (opened.st_dev, opened.st_ino, opened.st_uid) != (
+                            info.st_dev, info.st_ino, os.getuid()):
+                        raise PermissionError('State directory changed while opening: ' + name)
+                    os.fchmod(fd, 0o700)
+                except BaseException:
+                    os.close(fd)
+                    raise
+                if parent_fd is not None:
+                    os.close(parent_fd)
+                parent_fd = fd
+        finally:
+            if parent_fd is not None:
+                os.close(parent_fd)
+        return directory
     current = root
     if platform.is_link(root):
         raise PermissionError('State root is a link/reparse point')

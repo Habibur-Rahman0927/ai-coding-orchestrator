@@ -11,6 +11,7 @@ sys.dont_write_bytecode = True
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -72,11 +73,11 @@ EXIT_BUSY = 75
 SAFE_ALLOW_RULE = re.compile(
     r"^Bash\((?:"
     r"git status|git branch --show-current"
-    r"|python3? \.claude/scripts/(?P<script>[a-z][a-z-]*\.py)(?: --?[a-z][a-z-]*)*(?: \*)?"
+    r"|python3? (?:-B )?\.claude/scripts/(?P<script>[a-z][a-z-]*\.py)(?: --?[a-z][a-z-]*)*(?: \*)?"
     r")\)$"
 )
 SAFE_HOOK_COMMAND = re.compile(
-    r'^python3? "\$CLAUDE_PROJECT_DIR/\.claude/hooks/[a-z][a-z-]*\.py"$'
+    r'^python3? (?:-B )?"\$CLAUDE_PROJECT_DIR/\.claude/hooks/[a-z][a-z-]*\.py"$'
 )
 
 
@@ -410,6 +411,20 @@ def current_release():
     return verified[-1] if verified else "4.1.0"
 
 
+def runtime_supported(version):
+    """Legacy payloads require Linux even when their integrity is verified."""
+    return sys.platform.startswith("linux") or version not in ("4.0.0", "4.1.0")
+
+
+def require_runtime_supported(version):
+    if not runtime_supported(version):
+        raise OrchestratorError(
+            f"Release {version} payload requires Linux. "
+            "Evaluate 4.3.0 explicitly with --release 4.3.0 --allow-unverified. "
+            "No files changed.", EXIT_CONFLICT
+        )
+
+
 def verify_release(version):
     directory = release_dir(version)
     if not directory.is_dir() or platform_api.is_link(directory):
@@ -489,7 +504,7 @@ def template_settings(version):
 def instruction_block(version, root, existing_text=None):
     body = (release_dir(version) / "templates/CLAUDE.md").read_text(encoding="utf-8").strip()
     if os.name == "nt" and version == "4.3.0" and shutil.which("python"):
-        body = body.replace("python3 .claude/", "python .claude/")
+        body = body.replace("python3 -B .claude/", "python -B .claude/").replace("python3 .claude/", "python .claude/")
     lines = [BLOCK_BEGIN]
     agents = root / "AGENTS.md"
     claude = root / "CLAUDE.md"
@@ -1072,6 +1087,7 @@ def run_transaction(action):
 def cmd_init(args):
     root = resolve_project(args)
     version = args.release or current_release()
+    require_runtime_supported(version)
     preflight(version)
     if release_metadata(version).get("status") != "VERIFIED" and not args.allow_unverified:
         raise OrchestratorError(f"Release {version} is not VERIFIED.", EXIT_CONFLICT)
@@ -1128,10 +1144,11 @@ def cmd_init(args):
 
 def cmd_adopt(args):
     root = resolve_project(args)
+    version = installed_version(root) or "3"
+    require_runtime_supported(version)
     code, output = run_project_integrity(root)
     if code != 0:
         raise OrchestratorError("Existing integrity verification failed:\n" + output, EXIT_INTEGRITY)
-    version = installed_version(root) or "3"
     register(root, version)
     print("EXISTING_PROJECT_REGISTERED")
     print("Project version:", version)
@@ -1165,6 +1182,7 @@ def cmd_update(args):
     root = resolve_project(args)
     config = require_managed_install(root)
     target = args.release or current_release()
+    require_runtime_supported(target)
     preflight(target)
     meta = release_metadata(target)
     conflicts = manifest_conflicts(root)
@@ -1355,6 +1373,37 @@ def install_backup_record(config):
     return read_json(Path(location) / "backup.json")
 
 
+def payload_bytecode(root, config):
+    """Only remove owned cache directories containing recognizable payload pyc files.
+
+    Mixed, foreign, linked or unrecognized caches remain user data. Never load
+    bytecode to inspect it; the source record, filename and magic suffice here.
+    """
+    result = []
+    for folder in ("scripts", "hooks"):
+        prefix = f".claude/{folder}/"
+        modules = {Path(rel).stem for rel in config.get("managed_files", {})
+                   if rel.startswith(prefix) and Path(rel).parent.as_posix() == prefix[:-1]
+                   and rel.endswith(".py")}
+        try:
+            cache = safe_target(root, prefix + "__pycache__")
+            if not cache.is_dir():
+                continue
+            entries = list(cache.iterdir())
+            for entry in entries:
+                safe_target(root, entry.relative_to(root).as_posix())
+                match = re.fullmatch(r"(.+)\.cpython-\d+(?:\.opt-[012])?\.pyc", entry.name)
+                if (not entry.is_file() or not match or match[1] not in modules
+                        or entry.read_bytes()[:4] != importlib.util.MAGIC_NUMBER
+                        or entry.stat().st_size < 16):
+                    break
+            else:
+                result.extend(entry.relative_to(root).as_posix() for entry in entries)
+        except (OSError, OrchestratorError):
+            continue
+    return result
+
+
 def cmd_uninstall(args):
     root = resolve_project(args)
     config = require_managed_install(root)
@@ -1363,6 +1412,8 @@ def cmd_uninstall(args):
         rel for rel in (read_json(state_dir(root) / "integrity/manifest.json", {}) or {}).get("files", {})
         if rel.startswith((".claude/scripts/", ".claude/hooks/"))
     } | set(MANAGED_CONFIG))
+    bytecode = payload_bytecode(root, config)
+    files = sorted(set(files) | set(bytecode))
     report = {
         "project": str(root), "installed": config.get("version"),
         "remove": files, "edit": list(USER_FILES),
@@ -1379,7 +1430,7 @@ def cmd_uninstall(args):
         raise OrchestratorError("CONFLICTS: " + "; ".join(conflicts) + "\nNo files changed.", EXIT_CONFLICT)
     with ProjectLocks(root):
         require_no_active_workflow(root)
-        backup, _ = create_backup(root, "pre-uninstall", config.get("version"))
+        backup, _ = create_backup(root, "pre-uninstall", config.get("version"), extra_files=bytecode)
         original = install_backup_record(config)
 
         def originally_absent(rel):
@@ -1423,6 +1474,11 @@ def cmd_uninstall(args):
 
         run_transaction(action)
         for folder in ("scripts", "hooks"):
+            try:
+                cache = safe_target(root, f".claude/{folder}/__pycache__")
+                cache.rmdir()
+            except (OSError, OrchestratorError):
+                pass
             try:
                 (root / ".claude" / folder).rmdir()
             except OSError:
@@ -1556,8 +1612,8 @@ def cmd_doctor(args):
     version = current_release()
     verify_release(version)
     print(f"Release integrity ({version}): PASS")
-    if not sys.platform.startswith("linux") and version in ("4.0.0", "4.1.0"):
-        print("Runtime compatibility: legacy payload requires Linux; evaluate 4.3.0 explicitly with --allow-unverified")
+    if not runtime_supported(version):
+        print("Runtime compatibility: legacy payload requires Linux; evaluate 4.3.0 explicitly with --release 4.3.0 --allow-unverified")
     if os.name == "nt":
         print("Claude hooks: Git Bash required; native Windows lifecycle NOT VERIFIED")
     for command in ("python3", "git", "claude", "codex", "gh", "ssh-keygen"):
@@ -1569,6 +1625,13 @@ def cmd_doctor(args):
 def cmd_verify(args):
     root = resolve_project(args)
     code, output = run_project_integrity(root)
+    try:
+        report = json.loads(output)
+    except ValueError:
+        report = None
+    if isinstance(report, dict):
+        report["runtime_compatible"] = runtime_supported(installed_version(root))
+        output = json.dumps(report, indent=2) + "\n"
     print(output, end="")
     return code
 
@@ -1713,6 +1776,7 @@ def build_parser():
         modes.add_argument('--' + option, action='store_true')
     migrate.add_argument('--yes', action='store_true')
     migrate.add_argument('--release')
+    migrate.add_argument('--allow-unverified', action='store_true')
     migrate.add_argument('--project-rules')
     migrate.add_argument('--report')
     archive = project_cmd('archive-legacy', 'Archive explicitly enumerated legacy development artifacts')

@@ -1,5 +1,29 @@
 # Team installation
 
+**macOS and Windows:** the commands and paths below describe Linux. Use the
+[cross-platform storage table](CROSS-PLATFORM.md#requirements-and-storage) for
+your platform's engine, state, and configuration locations. After verifying the
+`SHA256SUMS` signature against independently trusted signers, macOS can check
+archive checksums with:
+
+```sh
+shasum -a 256 -c SHA256SUMS
+```
+
+In PowerShell, compute the downloaded archive's checksum with:
+
+```powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath .\claude-codex-orchestrator-X.Y.Z.tar.gz
+```
+
+Compare `Hash` with the matching entry in the authenticated `SHA256SUMS`; stop
+on any mismatch. After verification and extraction, install from PowerShell:
+
+```powershell
+.\install.ps1 --dry-run
+.\install.ps1
+```
+
 For the unpublished 4.3.0 cross-platform candidate, see the
 [cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
 

@@ -3,6 +3,9 @@
 The CLI supplies its existing filesystem, transaction, backup and locking API.
 Legacy Python is parsed as data, never imported to discover profiles or variables.
 """
+
+import sys
+sys.dont_write_bytecode = True
 import ast
 import json
 import os
@@ -106,8 +109,9 @@ def validated_settings(c, path):
 
 def plan_migration(c, root, args):
     version = args.release or c.current_release()
+    c.require_runtime_supported(version)
     c.preflight(version)
-    if c.release_metadata(version).get('status') != 'VERIFIED':
+    if c.release_metadata(version).get('status') != 'VERIFIED' and not args.allow_unverified:
         reject(c, 'Target release is not VERIFIED')
     marker = c.safe_target(root, '.claude/orchestration.json')
     if marker.exists():
@@ -208,6 +212,8 @@ def emit(c, report, destination):
 
 def migrate(c, args):
     root = c.resolve_project(args)
+    # Refuse before ProjectLocks can create lock files (including on Windows).
+    c.require_runtime_supported(args.release or c.current_release())
     destination = report_path(c, args, root)
     if args.apply and not args.yes:
         reject(c, 'CONFIRMATION_REQUIRED: add --yes', 4)

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """Own execution lifetime, workflow locks, output draining and process cleanup."""
+
+import sys
+sys.dont_write_bytecode = True
 import argparse
 import json
 import os

@@ -136,6 +136,64 @@ class PortableInstall(unittest.TestCase):
                         self.fail('Unsafe archive accepted')
 
     @unittest.skipUnless(shutil.which('ssh-keygen'), 'OpenSSH signature support required')
+    def test_release_build_alias_roots_preserves_internal_link_checks(self):
+        real = self.base / 'real build parent'
+        real.mkdir()
+        alias = self.base / 'build parent alias'
+        try:
+            alias.symlink_to(real, target_is_directory=True)
+        except OSError as error:
+            self.skipTest('Host does not permit directory symlinks: ' + str(error))
+        source = real / 'source'
+        shutil.copytree(ROOT / 'engine', source / 'engine')
+        for name in ('install.sh', 'uninstall.sh', 'install.ps1', 'uninstall.ps1', 'VERSION'):
+            shutil.copy2(ROOT / name, source / name)
+        key = real / 'signing-key'
+        subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', str(key)],
+                       check=True, capture_output=True)
+        output = real / 'new/output'
+        command = [sys.executable, '-B', '-I', str(ROOT / 'tools/build_release.py'),
+                   '--source', str(alias / 'source'), '--output-dir', str(alias / 'new/output'),
+                   '--sign-key', str(alias / 'signing-key')]
+        result = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        archive = next(output.glob('*.tar.gz'))
+        allowed = real / 'allowed_signers'
+        allowed.write_text('alias-test ' + Path(str(key) + '.pub').read_text(), encoding='utf-8')
+        config = {'allowed_signers': str(allowed), 'signer_identity': 'alias-test',
+                  'require_signature': True}
+        with distribution.verify_artifact(archive, output / 'SHA256SUMS',
+                                           output / 'SHA256SUMS.sig', config, False) as extracted:
+            self.assertTrue((extracted / 'install.ps1').is_file())
+            self.assertTrue((extracted / 'uninstall.ps1').is_file())
+
+        before = {p.name: p.read_bytes() for p in output.iterdir()}
+        outside = real / 'outside'
+        outside.write_bytes(b'preserve')
+        planted = source / 'engine/lib/planted-link'
+        planted.symlink_to(outside)
+        result = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 6, result.stdout + result.stderr)
+        self.assertIn('Forbidden distribution path: engine/lib/planted-link', result.stderr)
+        self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+        planted.unlink()
+
+        # Artifact names are tool-controlled descendants, never canonicalized.
+        for name in before:
+            with self.subTest(output=name):
+                path = output / name
+                path.unlink()
+                path.symlink_to(outside)
+                result = subprocess.run(command, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 6, result.stdout + result.stderr)
+                self.assertIn('Refusing symlink', result.stderr)
+                self.assertTrue(path.is_symlink())
+                self.assertEqual(outside.read_bytes(), b'preserve')
+                path.unlink()
+                path.write_bytes(before[name])
+                self.assertEqual({p.name: p.read_bytes() for p in output.iterdir()}, before)
+
+    @unittest.skipUnless(shutil.which('ssh-keygen'), 'OpenSSH signature support required')
     def test_signed_release_round_trip_and_tamper(self):
         key = self.base / 'test-signing-key'
         subprocess.run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', str(key)],

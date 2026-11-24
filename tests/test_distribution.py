@@ -18,6 +18,11 @@ import io
 sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
+# Project runtime selection is separate from the engine version under test.
+PROJECT_RELEASE = os.environ.get('ORCH_TEST_RELEASE')
+if PROJECT_RELEASE is None and not sys.platform.startswith('linux'):
+    PROJECT_RELEASE = '4.3.0'
+INIT_FLAGS = ['--release', PROJECT_RELEASE, '--allow-unverified'] if PROJECT_RELEASE else []
 
 
 def snapshot(path):
@@ -71,7 +76,7 @@ class Distribution(unittest.TestCase):
             self.assertTrue((self.bin / 'orchestrator').is_symlink())
             project = self.tmp / name / 'project'
             subprocess.run(['git', 'init', '-q', str(project)], check=True, env=self.env)
-            result = subprocess.run([str(self.bin / 'orchestrator'), 'init'], cwd=project,
+            result = subprocess.run([str(self.bin / 'orchestrator'), 'init', *INIT_FLAGS], cwd=project,
                                     env=self.env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertTrue((project / '.claude').is_dir())

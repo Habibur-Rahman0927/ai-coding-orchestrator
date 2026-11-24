@@ -9,6 +9,7 @@ import gzip
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -16,16 +17,22 @@ import tarfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'engine/lib'))
 import ccx_platform as portable
-from ccx_install import InstallError, code_version, verify_source, atomic_write
+from ccx_install import InstallError, code_version, verify_source, atomic_write, safe, target
 
 
 def build(source, output, key=None):
-    source = source.resolve()
+    # Normalize caller-selected roots once, including macOS /var and /tmp.
+    # Descendants stay lexical so safe/target can still reject planted links.
+    source = safe(Path(os.path.realpath(source)))
+    output = safe(Path(os.path.realpath(output)))
     if key is not None:
-        # Check both paths before reading source content, including symlink aliases.
-        for candidate in (Path(key), Path(str(key) + '.pub')):
-            resolved = candidate.resolve()
-            if resolved == source or source in resolved.parents:
+        public = safe(Path(os.path.realpath(str(key) + '.pub')))
+        key = safe(Path(os.path.realpath(key)))
+        # Retain the caller's public-key alias check as well as the public key
+        # beside the normalized private key used by ssh-keygen.
+        effective_public = safe(Path(os.path.realpath(str(key) + '.pub')))
+        for candidate in (key, public, effective_public):
+            if candidate == source or source in candidate.parents:
                 raise InstallError('Signing key and public key must be outside the source tree', 6)
     payload = {}
     spellings = {}
@@ -66,8 +73,10 @@ def build(source, output, key=None):
     manifest = {'version': version, 'files': {r: hashlib.sha256(data).hexdigest() for r, data in sorted(payload.items())}}
     payload['MANIFEST.json'] = (json.dumps(manifest, sort_keys=True, indent=2) + '\n').encode()
     top = 'claude-codex-orchestrator-' + version
+    tarball = target(output, top + '.tar.gz')
+    sums = target(output, 'SHA256SUMS')
+    sig = target(output, 'SHA256SUMS.sig')
     output.mkdir(parents=True, exist_ok=True)
-    tarball = output / (top + '.tar.gz')
     # Empty gzip filename and zero timestamps make the complete archive reproducible.
     buffer = io.BytesIO()
     with gzip.GzipFile(filename='', mode='wb', fileobj=buffer, mtime=0) as zipped:
@@ -80,9 +89,8 @@ def build(source, output, key=None):
                 info.uname = info.gname = ''
                 archive.addfile(info, io.BytesIO(data))
     atomic_write(tarball, buffer.getvalue(), 0o644)
-    sums = output / 'SHA256SUMS'
     atomic_write(sums, hashlib.sha256(buffer.getvalue()).hexdigest() + '  ' + tarball.name + '\n', 0o644)
-    sig = output / 'SHA256SUMS.sig'
+    safe(sig)
     if sig.exists():
         sig.unlink()
     if key:

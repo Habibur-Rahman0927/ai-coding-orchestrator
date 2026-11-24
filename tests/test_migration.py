@@ -14,6 +14,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/legacy-v3'
+RELEASE = os.environ.get('ORCH_TEST_RELEASE', '4.1.0' if sys.platform.startswith('linux') else '4.3.0')
 
 
 def digest(path):
@@ -99,7 +100,26 @@ class Migration(unittest.TestCase):
         return json.loads((self.engine / 'registry/projects.json').read_text())['projects'][self.pid]
 
     def migrate(self, *args, **kwargs):
-        return self.cli('migrate-v3', *args, **kwargs)
+        flags = [] if RELEASE == '4.1.0' else ['--release', RELEASE, '--allow-unverified']
+        return self.cli('migrate-v3', *flags, *args, **kwargs)
+
+    @unittest.skipIf(sys.platform.startswith('linux'), 'requires a real non-Linux host')
+    def test_non_linux_default_refuses_and_candidate_migrates(self):
+        before = snapshot(self.tmp)
+        paths = sorted(str(p.relative_to(self.tmp)) for p in self.tmp.rglob('*'))
+        for mode in (['--check'], ['--dry-run'], ['--apply', '--yes']):
+            result = self.cli('migrate-v3', *mode, '--report', self.tmp / 'refused.json', expected=3)
+            self.assertIn('payload requires Linux', result.stderr)
+            self.assertIn('--release 4.3.0 --allow-unverified', result.stderr)
+            self.assertEqual(snapshot(self.tmp), before)
+            self.assertEqual(sorted(str(p.relative_to(self.tmp)) for p in self.tmp.rglob('*')), paths)
+        self.cli('migrate-v3', '--release', '4.3.0', '--apply', '--yes', expected=3)
+        self.assertEqual(snapshot(self.tmp), before)
+        self.cli('migrate-v3', '--release', '4.3.0', '--allow-unverified', '--apply', '--yes')
+        self.assertEqual(self.registry()['version'], '4.3.0')
+        report = json.loads(self.cli('verify').stdout)
+        self.assertEqual(report['status'], 'PASS')
+        self.assertTrue(report['runtime_compatible'])
 
     def test_check_dry_run_and_confirmation(self):
         before = snapshot(self.tmp)
@@ -123,7 +143,7 @@ class Migration(unittest.TestCase):
     def test_success_and_runtime_preservation(self):
         report = json.loads(self.migrate('--apply', '--yes').stdout)
         for folder in ('scripts', 'hooks'):
-            for source in (ROOT / 'engine/releases/4.1.0' / folder).glob('*.py'):
+            for source in (ROOT / 'engine/releases' / RELEASE / folder).glob('*.py'):
                 self.assertEqual(source.read_bytes(), (self.project / '.claude' / folder / source.name).read_bytes())
         self.assertFalse((self.project / '.claude/scripts/legacy-extra.py').exists())
         for rel in ('AGENTS.md', '.agents/skills/x/SKILL.md', 'app.txt'):
@@ -131,11 +151,11 @@ class Migration(unittest.TestCase):
         self.assertEqual({k: v for k, v in self.original_state.items() if k != 'integrity/manifest.json'},
                          snapshot(self.state, ('integrity/manifest.json',)))
         config = json.loads((self.project / '.claude/orchestration.json').read_text())
-        self.assertEqual(config['version'], '4.1.0')
-        self.assertEqual(self.registry()['version'], '4.1.0')
+        self.assertEqual(config['version'], RELEASE)
+        self.assertEqual(self.registry()['version'], RELEASE)
         self.assertEqual(self.registry()['registered_at'], self.registered_at)
         settings = json.loads((self.project / '.claude/settings.local.json').read_text())
-        new_template = json.loads((ROOT / 'engine/releases/4.1.0/templates/settings.template.json').read_text())
+        new_template = json.loads((ROOT / 'engine/releases' / RELEASE / 'templates/settings.template.json').read_text())
         self.assertEqual(settings['permissions']['allow'], ['Bash(make test)'] + new_template['permissions']['allow'])
         self.assertEqual(settings['permissions']['deny'], ['Bash(rm *)'])
         self.assertEqual(settings['permissions']['ask'], ['Bash(curl *)'])
@@ -199,13 +219,13 @@ class Migration(unittest.TestCase):
         self.assertEqual(before, snapshot(self.tmp))
 
     def test_unverified_release_and_cli_integrity(self):
-        meta = self.engine / 'releases/4.1.0/release.json'
+        meta = self.engine / 'releases' / RELEASE / 'release.json'
         original = meta.read_bytes()
         value = json.loads(original)
         value['status'] = 'TESTING'
         meta.write_text(json.dumps(value))
         before = snapshot(self.tmp)
-        self.migrate('--apply', '--yes', expected=3)
+        self.cli('migrate-v3', '--release', RELEASE, '--apply', '--yes', expected=3)
         self.assertEqual(before, snapshot(self.tmp))
         meta.write_bytes(original)
         cli = self.engine / 'orchestrator.py'
@@ -278,7 +298,7 @@ class Migration(unittest.TestCase):
                  env=dict(self.env, ORCHESTRATOR_FAULT='rollback:after-restore'), expected=1)
         self.assertEqual(project, snapshot(self.project))
         self.assertEqual(state, snapshot(self.state))
-        self.assertEqual(self.registry()['version'], '4.1.0')
+        self.assertEqual(self.registry()['version'], RELEASE)
         self.cli('rollback', '--apply', '--yes')
         self.assertEqual(self.original_project, snapshot(self.project))
 

@@ -5,6 +5,9 @@ No child instruction executes before successful Job assignment. Closing the
 non-inheritable Job handle terminates all contained processes, including when
 the supervising Python process is forcibly terminated.
 """
+
+import sys
+sys.dont_write_bytecode = True
 import ctypes
 from ctypes import wintypes as w
 import os

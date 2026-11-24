@@ -27,7 +27,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 ENGINE = Path(os.environ.get("ORCH_TEST_ENGINE", REPO / "engine"))
 CLI = Path(os.environ.get("ORCH_TEST_CLI", ENGINE / "orchestrator.py"))
-RELEASE = os.environ.get("ORCH_TEST_RELEASE", "4.1.0")
+RELEASE = os.environ.get("ORCH_TEST_RELEASE", "4.1.0" if sys.platform.startswith("linux") else "4.3.0")
 LEGACY = REPO / "tests/fixtures/legacy-4.0.0"
 LEGACY_CLI = [LEGACY / "orchestrator.py"] if (LEGACY / "orchestrator.py").is_file() else []
 
@@ -331,6 +331,10 @@ class RuntimeTests(Base):
                               env={"ORCHESTRATOR_CLAUDE_SESSION_ID": ""})
         self.assertNotEqual(missing.returncode, 0)
 
+    @unittest.skipIf(
+        RELEASE in ('4.0.0', '4.1.0') and sys.version_info < (3, 11),
+        "Known defect: 4.1.0 codex-session.py requires Python 3.11 (tomllib); fixed in 4.3.0"
+    )
     def test_codex_session_mapping_isolation_mocked(self):
         a, b = self.project("map-a"), self.project("map-b")
         self.install(a)
@@ -898,7 +902,10 @@ class ReviewRegressionTests(Base):
         self.install(root)
         settings_path = root / ".claude/settings.local.json"
         settings = json.loads(settings_path.read_text())
-        revoked = "Bash(python3 .claude/scripts/watchdog.py *)"
+        watchdog_rules = [rule for rule in settings["permissions"]["allow"]
+                          if rule.endswith(".claude/scripts/watchdog.py *)")]
+        self.assertEqual(len(watchdog_rules), 1)
+        revoked = watchdog_rules[0]
         settings["permissions"]["allow"].remove(revoked)
         settings_path.write_text(json.dumps(settings))
         self.make_release("9.9.9", "nine")

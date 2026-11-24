@@ -3,6 +3,9 @@
 Imported only on Windows. Errors deliberately propagate: unavailable security
 facilities are never interpreted as successful validation.
 """
+
+import sys
+sys.dont_write_bytecode = True
 import ctypes as C
 from ctypes import wintypes as W
 import os

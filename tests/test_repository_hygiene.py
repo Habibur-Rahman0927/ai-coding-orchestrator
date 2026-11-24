@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Scan all source files, including ignored files, without exposing their contents."""
+import ast
 import os
 from pathlib import Path
 import re
@@ -14,7 +15,8 @@ UUID_JSON = re.compile(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\.j
 def violations(relative, data):
     path = Path(relative)
     hits = []
-    if (path.name in ('auth.json', 'config.toml') or path.name.endswith('.jsonl')
+    if ('__pycache__' in path.parts or path.suffix == '.pyc'
+            or path.name in ('auth.json', 'config.toml') or path.name.endswith('.jsonl')
             or UUID_JSON.fullmatch(path.name)
             or any(part in ('registry', 'backups', 'engine-backups') for part in path.parts)):
         hits.append('forbidden data path')
@@ -43,6 +45,24 @@ class RepositoryHygiene(unittest.TestCase):
                 for reason in violations(relative, path.read_bytes()):
                     hits.append(str(relative) + ': ' + reason)
         self.assertEqual(hits, [], '\n'.join(hits))
+
+    def test_candidate_imports_disable_bytecode_before_shared_modules(self):
+        payload = ROOT / 'engine/releases/4.3.0'
+        for path in list((payload / 'scripts').glob('*.py')) + list((payload / 'hooks').glob('*.py')):
+            with self.subTest(path=path.name):
+                tree = ast.parse(path.read_text(encoding='utf-8'))
+                imports = [node.lineno for node in ast.walk(tree)
+                           if (isinstance(node, ast.Import) and any(a.name.startswith('ccx_') for a in node.names))
+                           or (isinstance(node, ast.ImportFrom) and (node.module or '').startswith('ccx_'))]
+                if not imports:
+                    continue
+                guards = [node.lineno for node in tree.body if isinstance(node, ast.Assign)
+                          and isinstance(node.value, ast.Constant) and node.value.value is True
+                          and any(isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name)
+                                  and t.value.id == 'sys' and t.attr == 'dont_write_bytecode'
+                                  for t in node.targets)]
+                self.assertTrue(guards, path)
+                self.assertLess(min(guards), min(imports))
 
     def test_detection_and_scoped_placeholders(self):
         home = b'/' + b'home/'

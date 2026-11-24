@@ -1,5 +1,13 @@
 # V4.3.0 candidate: installation, architecture and verification
 
+On non-Linux hosts, `init`, `adopt`, `update`, and `migrate-v3` refuse Linux-only payloads
+4.0.0 and 4.1.0 before any backup or write, including dry runs. The default
+4.1.0 therefore requires Linux. To evaluate the candidate explicitly, use
+`init --release 4.3.0 --allow-unverified` (or the same release flags with
+`update --apply --yes`). `verify` adds `runtime_compatible` to its JSON report
+without changing integrity status or exit codes. Inspection, removal, backup,
+and rollback remain available for legacy installations.
+
 This is an unpublished cross-platform candidate. The existing 4.1.0 project
 release is retained unchanged and remains the default. Do not use the old
 Linux-only runtime to claim macOS or Windows process supervision support.
@@ -9,6 +17,16 @@ See [audit and prioritized implementation plan](CROSS-PLATFORM-AUDIT.md) and
 [measured verification report](CROSS-PLATFORM-RESULTS.md). A Windows runner,
 Windows client machine, and Linux containers must pass before full verification.
 No platform is marked VERIFIED by copying Linux release metadata.
+
+## Known limitations
+
+The immutable 4.1.0 payload's Codex delegation requires Python >= 3.11 because
+`codex-session.py` imports `tomllib` unconditionally. The legacy 4.0.0 fixture
+has the same defect. The documented Python 3.8 floor applies to the engine and
+4.3.0 candidate, not legacy Codex delegation. Ubuntu 20.04/22.04 users running
+the default Python should evaluate 4.3.0 explicitly with
+`--release 4.3.0 --allow-unverified`. Without `tomllib`, the candidate lets Codex
+inherit its saved configuration instead of parsing it in the wrapper.
 
 ## Requirements and storage
 
@@ -135,8 +153,10 @@ orchestrator rollback --dry-run
 ```
 
 Do not migrate real team/client projects during candidate evaluation. Existing
-V3 migration and legacy archival commands are preserved; V3 migration still
-requires a VERIFIED target. Do not relabel the candidate merely to bypass this.
+V3 migration and legacy archival commands are preserved. V3 migration requires
+a VERIFIED target unless explicitly evaluating the candidate with
+`migrate-v3 --release 4.3.0 --allow-unverified --apply --yes`. Default V3 migration
+on non-Linux hosts refuses the Linux-only target, including dry runs.
 State, session mappings and project IDs are preserved; immutable payloads are
 not rewritten. Successful migration creates a backup before replacing scripts.
 

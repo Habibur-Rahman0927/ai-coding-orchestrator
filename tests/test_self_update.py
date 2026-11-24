@@ -19,6 +19,11 @@ from unittest import mock
 sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
+# Project runtime selection is separate from the engine version under test.
+PROJECT_RELEASE = os.environ.get('ORCH_TEST_RELEASE')
+if PROJECT_RELEASE is None and not sys.platform.startswith('linux'):
+    PROJECT_RELEASE = '4.3.0'
+INIT_FLAGS = ['--release', PROJECT_RELEASE, '--allow-unverified'] if PROJECT_RELEASE else []
 IDENTITY = 'release-test'
 
 
@@ -84,7 +89,7 @@ class SelfUpdate(unittest.TestCase):
         self.configure()
         self.project = self.tmp / 'project'
         run(['git', 'init', '-q', self.project], env=self.env)
-        self.cli('init', cwd=self.project)
+        self.cli('init', *INIT_FLAGS, cwd=self.project)
         self.state = self.home / '.local/state/claude-codex/fake/session.json'
         self.state.parent.mkdir(parents=True, exist_ok=True)
         self.state.write_text('{"state":"keep"}')

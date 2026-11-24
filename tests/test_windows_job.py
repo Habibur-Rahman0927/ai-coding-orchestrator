@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 import tempfile
 import time
 import unittest
@@ -23,7 +24,7 @@ class WindowsJobTests(unittest.TestCase):
                           ');from ccx_job import WindowsJob;job=WindowsJob();'
                           'child=job.start([sys.executable,"-c",' + repr(child) +
                           '],stdout=subprocess.PIPE,stderr=subprocess.PIPE);time.sleep(30)')
-            guardian = subprocess.Popen([sys.executable, '-c', supervisor], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            guardian = subprocess.Popen([sys.executable, '-B', '-c', supervisor], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             try:
                 deadline = time.monotonic() + 10
                 while not ready.exists() and guardian.poll() is None and time.monotonic() < deadline:

@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 import tempfile
 import time
 import unittest
@@ -17,6 +18,67 @@ SCRIPTS = PAYLOAD / 'scripts'
 
 
 class PortableRuntimeTests(unittest.TestCase):
+    @unittest.skipIf(os.name == 'nt', 'POSIX state permissions')
+    def test_private_state_repairs_umask_and_legacy_modes_without_bytecode(self):
+        for existing in (False, True):
+            with self.subTest(existing=existing), tempfile.TemporaryDirectory(prefix='ccx private state ') as temporary:
+                base = Path(temporary)
+                home = base / 'home'
+                project = base / 'project'
+                shutil.copytree(PAYLOAD / 'scripts', project / '.claude/scripts')
+                home.mkdir()
+                ancestors = [home, home / '.local', home / '.local/state']
+                for path in ancestors:
+                    path.mkdir(mode=0o775, exist_ok=True)
+                    path.chmod(0o775)
+                root = home / '.local/state/claude-codex'
+                project_id = hashlib.sha256(str(project.resolve()).encode()).hexdigest()[:16]
+                if existing:
+                    (root / project_id / 'tasks').mkdir(parents=True, mode=0o775)
+                    for path in (root, root / project_id, root / project_id / 'tasks'):
+                        path.chmod(0o775)
+                env = dict(os.environ, HOME=str(home), ORCHESTRATOR_CLAUDE_SESSION_ID=str(uuid.uuid4()))
+                env.pop('PYTHONPYCACHEPREFIX', None)
+                env.pop('PYTHONDONTWRITEBYTECODE', None)
+                # Explicitly remove Apple's cache prefix and enable bytecode: the
+                # entry script, not the test interpreter's -B, must prevent it.
+                source = ('import sys,os,runpy; sys.pycache_prefix=None; sys.dont_write_bytecode=False; '
+                          'os.umask(0o002); script=sys.argv[1]; sys.argv=sys.argv[1:]; '
+                          'sys.path.insert(0,os.path.dirname(script)); runpy.run_path(script,run_name="__main__")')
+                for name, args in (('task-state.py', ['start']), ('codex-session.py', ['--status'])):
+                    result = subprocess.run([sys.executable, '-c', source,
+                                             str(project / '.claude/scripts' / name), *args],
+                                            env=env, capture_output=True, text=True, timeout=15)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse(list(project.rglob('__pycache__')))
+                for path in (root, root / project_id, root / project_id / 'tasks'):
+                    self.assertEqual(path.stat().st_mode & 0o777, 0o700)
+                for path in ancestors:
+                    self.assertEqual(path.stat().st_mode & 0o777, 0o775)
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX state links')
+    def test_private_state_refuses_symlink_root_and_descendant(self):
+        for link_root in (True, False):
+            with self.subTest(link_root=link_root), tempfile.TemporaryDirectory() as temporary:
+                base = Path(temporary)
+                home = base / 'home'
+                root = home / '.local/state/claude-codex'
+                outside = base / 'outside'
+                outside.mkdir(mode=0o775)
+                outside.chmod(0o775)
+                link = root if link_root else root / 'project'
+                link.parent.mkdir(parents=True)
+                link.symlink_to(outside, target_is_directory=True)
+                source = ('import sys; from pathlib import Path; sys.path.insert(0,sys.argv[1]); '
+                          'from ccx_runtime import private_directory; private_directory(Path(sys.argv[2]))')
+                result = subprocess.run([sys.executable, '-B', '-c', source, str(SCRIPTS), str(link)],
+                                        env=dict(os.environ, HOME=str(home)), capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('link', result.stderr)
+                self.assertTrue(link.is_symlink())
+                self.assertEqual(outside.stat().st_mode & 0o777, 0o775)
+                self.assertEqual(list(outside.iterdir()), [])
+
     def run_controller(self, source, *options):
         return subprocess.run([sys.executable, str(SCRIPTS / 'recovery-controller.py'),
                                '--timeout', '8', *options, '--', sys.executable, '-c', source],
@@ -48,7 +110,7 @@ class PortableRuntimeTests(unittest.TestCase):
                      + ').touch(); time.sleep(3); Path(' + repr(str(escaped)) + ').touch(); time.sleep(30)')
             command = [sys.executable, str(SCRIPTS / 'recovery-controller.py'), '--timeout', '10',
                        '--', sys.executable, '-c', child]
-            launcher = subprocess.Popen([sys.executable, '-c',
+            launcher = subprocess.Popen([sys.executable, '-B', '-c',
                 'import subprocess,time; subprocess.Popen(' + repr(command) +
                 ',stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL); time.sleep(30)'])
             try:
@@ -93,7 +155,7 @@ class PortableRuntimeTests(unittest.TestCase):
                       'from ccx_runtime import safe_open; '
                       'h=safe_open(Path(' + repr(str(lock)) + '),"a"); '
                       'assert h.ccx_path == Path(' + repr(str(lock)) + ').resolve(); h.close()')
-            result = subprocess.run([sys.executable, '-c', source], capture_output=True, text=True, timeout=10)
+            result = subprocess.run([sys.executable, '-B', '-c', source], capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
 
     @unittest.skipUnless(os.name == 'nt', 'Native Windows guardian handoff locking')
@@ -110,11 +172,11 @@ class PortableRuntimeTests(unittest.TestCase):
                     'import ccx_platform as p; from ccx_runtime import safe_open; '
                     'h=safe_open(Path(' + repr(str(directory / 'management.lock')) + '),"a"); '
                     'p.flock(h,p.LOCK_EX|p.LOCK_NB)') + '; '
-                'busy=subprocess.run([sys.executable,"-c",probe],capture_output=True); assert busy.returncode!=0; '
+                'busy=subprocess.run([sys.executable,"-B","-c",probe],capture_output=True); assert busy.returncode!=0; '
                 '[h.close() for h in handles]; '
-                'free=subprocess.run([sys.executable,"-c",probe],capture_output=True); assert free.returncode==0,free.stderr'
+                'free=subprocess.run([sys.executable,"-B","-c",probe],capture_output=True); assert free.returncode==0,free.stderr'
             )
-            result = subprocess.run([sys.executable, '-c', source], capture_output=True, text=True, timeout=15)
+            result = subprocess.run([sys.executable, '-B', '-c', source], capture_output=True, text=True, timeout=15)
             self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_atomic_state_write_does_not_follow_temporary_or_destination_links(self):
@@ -128,14 +190,14 @@ class PortableRuntimeTests(unittest.TestCase):
                 self.skipTest('Host does not permit file symlinks: ' + str(error))
             source = ('import sys; from pathlib import Path; sys.path.insert(0,' + repr(str(SCRIPTS)) + '); '
                       'from ccx_runtime import atomic_write; atomic_write(Path(' + repr(str(target)) + '),"new state")')
-            result = subprocess.run([sys.executable, '-c', source], capture_output=True, text=True, timeout=10)
+            result = subprocess.run([sys.executable, '-B', '-c', source], capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(outside.read_bytes(), b'untouched')
             self.assertEqual(target.read_text(), 'new state')
             self.assertFalse(list(base.glob('.ccx-state-*')))
             target.unlink()
             target.symlink_to(outside)
-            refused = subprocess.run([sys.executable, '-c', source], capture_output=True, text=True, timeout=10)
+            refused = subprocess.run([sys.executable, '-B', '-c', source], capture_output=True, text=True, timeout=10)
             self.assertNotEqual(refused.returncode, 0)
             self.assertIn('link/reparse', refused.stderr)
             self.assertEqual(outside.read_bytes(), b'untouched')
@@ -162,22 +224,35 @@ class PortableRuntimeTests(unittest.TestCase):
                        LOCALAPPDATA=str(base / 'local'), ORCHESTRATOR_CLAUDE_SESSION_ID=session)
             (base / 'home').mkdir()
             task = project / '.claude/scripts/task-state.py'
+            bootstrap = ('import sys,os,runpy; sys.pycache_prefix=None; sys.dont_write_bytecode=False; '
+                         'script=sys.argv[1]; sys.argv=sys.argv[1:]; '
+                         'sys.path.insert(0,os.path.dirname(script)); runpy.run_path(script,run_name="__main__")')
             def run(*args):
-                result = subprocess.run([sys.executable, str(task), *args], env=env,
+                result = subprocess.run([sys.executable, '-c', bootstrap, str(task), *args], env=env,
                                         capture_output=True, text=True, timeout=10)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 return json.loads(result.stdout)
             self.assertFalse(run('status')['active'])
             self.assertTrue(run('start')['active'])
             run('add', '--id', 'portable', '--title', 'Portable task')
-            gate = subprocess.run([sys.executable, str(project / '.claude/hooks/completion-gate.py')],
+            gate = subprocess.run([sys.executable, '-c', bootstrap, str(project / '.claude/hooks/completion-gate.py')],
                                   input=json.dumps({'session_id': session}), env=env,
                                   capture_output=True, text=True, timeout=10)
             self.assertEqual(gate.returncode, 0, gate.stderr)
             self.assertEqual(json.loads(gate.stdout)['decision'], 'block')
             self.assertFalse(run('pause')['active'])
+            self.assertFalse(list(project.rglob('__pycache__')))
 
     def test_mock_agent_persists_exact_session_without_authentication(self):
+        self.check_mock_agent_session()
+
+    def test_candidate_inherits_config_without_tomllib(self):
+        self.check_mock_agent_session(block_tomllib=True)
+
+    def check_mock_agent_session(self, block_tomllib=False):
+        if os.name != 'nt':
+            previous_umask = os.umask(0o002)
+            self.addCleanup(os.umask, previous_umask)
         with tempfile.TemporaryDirectory(prefix='ccx mocked agent ü ') as temporary:
             base = Path(temporary)
             project = base / 'project'
@@ -189,6 +264,12 @@ class PortableRuntimeTests(unittest.TestCase):
             env = dict(os.environ, HOME=str(home), USERPROFILE=str(home),
                        LOCALAPPDATA=str(base / 'local'), CODEX_HOME=str(home / '.codex'),
                        ORCHESTRATOR_CLAUDE_SESSION_ID=session)
+            if block_tomllib:
+                config = home / '.codex/config.toml'
+                config.parent.mkdir()
+                config_bytes = (b'model = "saved-model"\nmodel_reasoning_effort = "high"\n'
+                                b'service_tier = "priority"\n')
+                config.write_bytes(config_bytes)
             fake = project / 'fake_agent.py'
             fake.write_text(
                 'import json,sys\nfrom pathlib import Path\n'
@@ -208,16 +289,37 @@ class PortableRuntimeTests(unittest.TestCase):
                           else home / '.local/state/claude-codex')
             manifest = state_root / project_id / 'integrity/manifest.json'
             manifest.parent.mkdir(parents=True)
+            if os.name != 'nt':
+                state_root.chmod(0o775)
             files = {path.relative_to(project).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
                      for path in (project / '.claude').rglob('*.py')}
             manifest.write_text(json.dumps({'project':str(project.resolve()),'files':files}), encoding='utf-8')
             script = project / '.claude/scripts/codex-session.py'
+            command = [sys.executable, str(script)]
+            if block_tomllib:
+                bootstrap = ('import sys,runpy; from pathlib import Path; '
+                             'sys.modules["tomllib"]=None; script=sys.argv[1]; sys.argv=sys.argv[1:]; '
+                             'sys.path.insert(0,str(Path(script).parent)); '
+                             'namespace=runpy.run_path(script,run_name="__main__"); '
+                             'assert namespace["tomllib"] is None; '
+                             'assert namespace["load_codex_defaults"]()=={}')
+                command = [sys.executable, '-B', '-c', bootstrap, str(script)]
             for prompt in ('First read-only task', 'Continue the same task'):
-                result = subprocess.run([sys.executable, str(script), prompt], cwd=project, env=env,
+                result = subprocess.run([*command, prompt], cwd=project, env=env,
                                         capture_output=True, text=True, timeout=25)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             calls = [json.loads(line) for line in fake.with_suffix('.calls').read_text(encoding='utf-8').splitlines()]
             self.assertEqual(len(calls), 2)
+            if block_tomllib:
+                self.assertEqual(config.read_bytes(), config_bytes)
+                for call in calls:
+                    self.assertNotIn('--model', call)
+                    self.assertFalse(any(arg.startswith(('model_reasoning_effort=', 'service_tier='))
+                                         for arg in call))
+            if os.name != 'nt':
+                self.assertEqual(state_root.stat().st_mode & 0o777, 0o700)
+                self.assertEqual((state_root / project_id).stat().st_mode & 0o777, 0o700)
+            self.assertFalse(list(project.rglob('__pycache__')))
             self.assertEqual(calls[0][0], 'exec')
             self.assertNotIn('resume', calls[0])
             self.assertEqual(calls[1][:2], ['exec', 'resume'])

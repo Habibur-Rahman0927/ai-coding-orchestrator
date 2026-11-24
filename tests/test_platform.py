@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+sys.dont_write_bytecode = True
 import tempfile
 import unittest
 
@@ -44,11 +45,11 @@ class PlatformTests(unittest.TestCase):
                     'f=open(sys.argv[2],"a");p.flock(f,p.LOCK_EX|p.LOCK_NB)')
             with path.open('a') as stream:
                 platform.flock(stream, platform.LOCK_EX)
-                result = subprocess.run([sys.executable, '-c', code, str(LIB), str(path)], capture_output=True)
+                result = subprocess.run([sys.executable, '-B', '-c', code, str(LIB), str(path)], capture_output=True)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(b'BlockingIOError', result.stderr)
                 platform.flock(stream, platform.LOCK_UN)
-                result = subprocess.run([sys.executable, '-c', code, str(LIB), str(path)], capture_output=True)
+                result = subprocess.run([sys.executable, '-B', '-c', code, str(LIB), str(path)], capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_shared_lock_excludes_writer(self):
@@ -59,7 +60,7 @@ class PlatformTests(unittest.TestCase):
             with path.open('a') as stream:
                 platform.flock(stream, platform.LOCK_SH)
                 for operation, expected in ((platform.LOCK_SH, 0), (platform.LOCK_EX, 1)):
-                    result = subprocess.run([sys.executable, '-c', code, str(LIB), str(path), str(operation)], capture_output=True)
+                    result = subprocess.run([sys.executable, '-B', '-c', code, str(LIB), str(path), str(operation)], capture_output=True)
                     self.assertEqual(result.returncode, expected, result.stderr)
 
     def test_secure_directory_creation(self):
@@ -117,7 +118,7 @@ class PlatformTests(unittest.TestCase):
 
     @unittest.skipIf(platform.WINDOWS, 'Windows containment uses Job Objects')
     def test_owned_group_snapshot(self):
-        child = subprocess.Popen([sys.executable, '-c', 'import time;time.sleep(30)'], start_new_session=True)
+        child = subprocess.Popen([sys.executable, '-B', '-c', 'import time;time.sleep(30)'], start_new_session=True)
         try:
             snapshot = platform.group_snapshot(child.pid)
             self.assertEqual(len(snapshot), 1)

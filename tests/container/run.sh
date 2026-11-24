@@ -5,7 +5,8 @@ repo=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 for tool in docker python3 git ssh-keygen; do
     command -v "$tool" >/dev/null 2>&1 || { echo "Required host tool missing: $tool" >&2; exit 1; }
 done
-work=$(mktemp -d)
+work=$(mktemp -d "${TMPDIR:-/tmp}/ccx-harness.XXXXXX")
+work=$(CDPATH= cd -P -- "$work" && pwd -P)
 trap 'rm -rf "$work"' 0
 trap 'exit 130' INT
 trap 'exit 143' TERM
@@ -22,7 +23,7 @@ repo, work = map(Path, sys.argv[1:])
 for version in ('4.2.0', '4.2.1'):
     source = work / ('source-' + version)
     source.mkdir()
-    for name in ('install.sh', 'uninstall.sh', 'VERSION', 'README.md', 'docs', 'engine'):
+    for name in ('install.sh', 'uninstall.sh', 'install.ps1', 'uninstall.ps1', 'VERSION', 'README.md', 'docs', 'engine'):
         path = repo / name
         if path.is_dir():
             shutil.copytree(path, source / name)

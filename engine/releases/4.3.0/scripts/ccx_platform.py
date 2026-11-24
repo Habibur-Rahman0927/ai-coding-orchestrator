@@ -3,6 +3,9 @@
 Security checks fail closed. Linux retains its established paths and /proc
 identities; Darwin uses libproc identities with microsecond creation times.
 """
+
+import sys
+sys.dont_write_bytecode = True
 import ctypes
 import os
 from pathlib import Path, PurePath, PureWindowsPath
