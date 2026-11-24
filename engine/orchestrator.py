@@ -1716,10 +1716,19 @@ def cmd_distribution_command(args):
         raise OrchestratorError('Distribution operation failed: ' + str(error), 1)
 
 
+def cmd_workspace(args):
+    from ccx_workspace.cli import main as workspace_main
+    arguments = (["--database", args.database] if args.database else []) + args.workspace_args
+    return workspace_main(arguments)
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description="Claude-Codex Global Orchestrator")
     parser.add_argument("--version", action="version", version=CLI_VERSION)
     sub = parser.add_subparsers(dest="action", required=True)
+    workspace = sub.add_parser("workspace", help="V5 persistent intelligence and universal workflows")
+    workspace.add_argument("--database")
+    workspace.add_argument("workspace_args", nargs=argparse.REMAINDER)
 
     def project_cmd(name, help_text):
         command = sub.add_parser(name, help=help_text)
@@ -1814,6 +1823,7 @@ def build_parser():
 
 
 COMMANDS = {
+    "workspace": cmd_workspace,
     "migrate-v3": cmd_legacy_command, "archive-legacy": cmd_legacy_command,
     "distribution": cmd_distribution_command, "self-update": cmd_distribution_command,
     "self-rollback": cmd_distribution_command,

@@ -1,0 +1,468 @@
+"""Provider adapters. No provider response authorizes a local operation.
+
+CLI transports retain upstream authentication/settings without changing them.
+MiniMax uses the official independent HTTPS API and an environment key reference.
+"""
+from dataclasses import dataclass, field
+import http.client
+import json
+import os
+from pathlib import Path
+import queue
+import re
+import shutil
+import ssl
+import socket
+import subprocess
+import threading
+import time
+import uuid
+
+from .tools import supervised_command, tool_definitions, SECRET_CONTENT
+
+MAX_RESPONSE = 4 * 1024 * 1024
+MINIMAX_ENDPOINT = 'https://api.minimax.io/v1/chat/completions'
+
+
+@dataclass
+class ProviderRequest:
+    project: Path
+    prompt: str
+    role: str = 'assistant'
+    session_id: str = None
+    model: str = None
+    timeout: float = 300
+    allowed_operations: tuple = ()
+    history: list = field(default_factory=list)
+    cancel_event: object = None
+    max_output_tokens: int = 4096
+
+    def validate(self):
+        self.project = Path(self.project).resolve(strict=True)
+        if not self.project.is_dir() or not isinstance(self.prompt, str) or not self.prompt.strip():
+            raise ValueError('A project directory and nonempty prompt are required')
+        if len(self.prompt.encode('utf-8')) > MAX_RESPONSE:
+            raise ValueError('Prompt exceeds provider size limit')
+        if not isinstance(self.timeout, (int, float)) or not 1 <= self.timeout <= 3600:
+            raise ValueError('Provider timeout must be 1..3600 seconds')
+        if not isinstance(self.max_output_tokens, int) or not 1 <= self.max_output_tokens <= 32768:
+            raise ValueError('Output token limit must be 1..32768')
+        if self.session_id:
+            self.session_id = str(uuid.UUID(self.session_id))
+        if not isinstance(self.allowed_operations, (list, tuple, set, frozenset)) or not all(isinstance(item, str) for item in self.allowed_operations):
+            raise ValueError('Allowed operations must be an explicit collection of names')
+        if not isinstance(self.history, list):
+            raise ValueError('History must be a list')
+        if not isinstance(self.role, str) or len(self.role) > 200:
+            raise ValueError('Invalid provider role')
+        if self.model is not None:
+            validate_model(self.model)
+        return self
+
+    def cancelled(self):
+        return bool(self.cancel_event and self.cancel_event.is_set())
+
+
+def validate_model(model):
+    if not isinstance(model, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}', model) or re.match(r'(?:sk[-_]|gh[pousr]_|github_pat_|AIza|AKIA|eyJ)', model, re.I):
+        raise ValueError('An explicit valid model identifier is required')
+    return model
+
+
+def event(kind, **values):
+    return dict(type=kind, **values)
+
+
+def normalized_usage(value):
+    return {str(key): number for key, number in (value or {}).items()
+            if isinstance(number, (int, float)) and not isinstance(number, bool) and number >= 0}
+
+
+def normalize_cli(provider_id, data):
+    """Normalize only documented visible text/session/result fields, not reasoning."""
+    kind = data.get('type')
+    if provider_id == 'codex':
+        if kind == 'thread.started':
+            return [event('session', session_id=str(uuid.UUID(data['thread_id'])))]
+        if kind == 'item.completed' and data.get('item', {}).get('type') == 'agent_message':
+            return [event('text', text=data['item'].get('text', ''))]
+        if kind == 'turn.completed':
+            return [event('usage', usage=normalized_usage(data.get('usage'))), event('completed')]
+        if kind in ('turn.failed', 'error'):
+            return [event('error', error='Provider reported a failed turn')]
+    else:
+        result = []
+        if data.get('session_id'):
+            result.append(event('session', session_id=str(uuid.UUID(data['session_id']))))
+        if kind == 'assistant':
+            for block in data.get('message', {}).get('content', []):
+                if block.get('type') == 'text':
+                    result.append(event('text', text=block.get('text', '')))
+        if kind == 'result':
+            if data.get('is_error') or data.get('subtype') not in (None, 'success'):
+                result.append(event('error', error='Provider reported a failed turn'))
+            else:
+                if isinstance(data.get('result'), str):
+                    result.append(event('text', text=data['result'], final=True))
+                result += [event('usage', usage=normalized_usage(data.get('usage'))), event('completed')]
+        return result
+    return []
+
+
+class CLIProvider:
+    def __init__(self, provider_id, config=None):
+        self.id = provider_id
+        self.config = dict(config or {})
+
+    def status(self):
+        return {'id': self.id, 'available': bool(shutil.which(self.id)), 'configured': True,
+                'model': self.config.get('model'), 'capabilities': {
+                    'exact_session_resume': True, 'streaming_events': True, 'token_limit': False,
+                    'scoped_tools': False, 'native_agent_authorization_required': True,
+                    'native_tools': self.id == 'codex', 'filesystem_secret_filtering': False},
+                'limitation': 'Native CLI settings/authentication are upstream controlled; scoped-tool policy does not sandbox the CLI.'}
+
+    def command(self, request):
+        if 'native_agent_access' not in request.allowed_operations:
+            raise PermissionError('Native CLI access requires explicit native_agent_access approval')
+        if self.id == 'codex':
+            sandbox = 'workspace-write' if 'native_agent_write' in request.allowed_operations else 'read-only'
+            argv = ['codex', 'exec']
+            if request.session_id:
+                argv += ['resume']
+            argv += ['--json', '-c', 'approval_policy="never"', '-c', 'sandbox_mode=' + json.dumps(sandbox)]
+            model = request.model or self.config.get('model')
+            if model:
+                argv += ['--model', model]
+            if request.session_id:
+                argv += [request.session_id]
+            argv += ['--', request.prompt]
+            return argv
+        argv = ['claude', '-p', '--output-format', 'stream-json', '--verbose',
+                '--safe-mode', '--restricted', '--tools', '', '--disallowedTools', '*',
+                '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
+                '--permission-mode', 'plan', '--permission-prompts', 'none']
+        model = request.model or self.config.get('model')
+        if model:
+            argv += ['--model', model]
+        if request.session_id:
+            argv += ['--resume', request.session_id]
+        argv += ['--', request.prompt]
+        return argv
+
+    def execute(self, request):
+        request.validate()
+        if request.cancelled():
+            yield event('cancelled')
+            return
+        command = self.command(request)
+        process = subprocess.Popen(supervised_command(command, request.timeout), cwd=str(request.project),
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        messages = queue.Queue(maxsize=64)
+        stopped = threading.Event()
+
+        def reader():
+            try:
+                while not stopped.is_set():
+                    line = process.stdout.readline(MAX_RESPONSE + 1)
+                    if not line:
+                        break
+                    while not stopped.is_set():
+                        try:
+                            messages.put(line, timeout=.1)
+                            break
+                        except queue.Full:
+                            pass
+            finally:
+                while not stopped.is_set():
+                    try:
+                        messages.put(None, timeout=.1)
+                        break
+                    except queue.Full:
+                        pass
+        thread = threading.Thread(target=reader, daemon=True)
+        thread.start()
+        deadline = time.monotonic() + request.timeout + 5
+        total, completed, failed = 0, False, False
+        current_session = request.session_id
+        try:
+            while True:
+                if request.cancelled():
+                    yield event('cancelled')
+                    return
+                if time.monotonic() >= deadline:
+                    yield event('timeout', error='Provider execution exceeded deadline')
+                    return
+                try:
+                    line = messages.get(timeout=.1)
+                except queue.Empty:
+                    continue
+                if line is None:
+                    break
+                total += len(line)
+                if total > MAX_RESPONSE:
+                    yield event('error', error='Provider output limit exceeded')
+                    return
+                try:
+                    raw = json.loads(line)
+                except (ValueError, UnicodeError):
+                    continue  # Do not echo native diagnostics that may contain credentials.
+                if not isinstance(raw, dict):
+                    continue
+                if raw.get('status') == 'EXECUTION_TIMEOUT':
+                    yield event('timeout', error='Provider execution exceeded deadline')
+                    return
+                for item in normalize_cli(self.id, raw):
+                    if item['type'] == 'session':
+                        if current_session and current_session != item['session_id']:
+                            yield event('error', error='Provider returned an unexpected session identifier')
+                            return
+                        current_session = item['session_id']
+                    completed |= item['type'] == 'completed'
+                    failed |= item['type'] == 'error'
+                    # Completion is emitted only after the supervisor confirms exit.
+                    if item['type'] != 'completed':
+                        yield item
+            code = process.wait(timeout=15)
+            if code == 0 and completed and not failed and current_session:
+                yield event('completed')
+            else:
+                yield event('error', error='Provider did not finish a verified successful turn', exit_code=code)
+        finally:
+            stopped.set()
+            if process.poll() is None:
+                process.terminate()  # Supervisor performs owned tree cleanup; Windows Job closes atomically.
+                try:
+                    process.wait(timeout=20)
+                except subprocess.TimeoutExpired:
+                    # Do not claim cleanup when the supervisor cannot confirm it.
+                    raise RuntimeError('Provider cleanup could not be confirmed')
+            process.stdout.close()
+            thread.join(timeout=1)
+
+
+class MiniMaxProvider:
+    id = 'minimax'
+
+    def __init__(self, config=None, connection_factory=None):
+        self.config = dict(config or {})
+        self.connection_factory = connection_factory or http.client.HTTPSConnection
+
+    def status(self):
+        configured = bool(self.config.get('model') and self.config.get('api_key_env'))
+        present = bool(os.environ.get(self.config.get('api_key_env', '')))
+        return {'id': self.id, 'available': configured and present, 'configured': configured,
+                'model': self.config.get('model'), 'capabilities': {'exact_session_resume': False,
+                    'local_transcript_sessions': True, 'streaming_events': False, 'token_limit': True,
+                    'scoped_tools': True, 'native_tools': False, 'filesystem_secret_filtering': True},
+                'limitation': 'API calls require explicit sharing/cost approval; cancellation cannot revoke a request already received by MiniMax.'}
+
+    def execute(self, request):
+        request.validate()
+        model = validate_model(request.model or self.config.get('model'))
+        key_name = self.config.get('api_key_env')
+        if not isinstance(key_name, str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,127}', key_name):
+            raise ValueError('Configure an API key environment-variable name, not a key value')
+        key = os.environ.get(key_name)
+        if not key:
+            raise RuntimeError('Configured MiniMax credential environment variable is unavailable')
+        if self.config.get('endpoint', MINIMAX_ENDPOINT) != MINIMAX_ENDPOINT:
+            raise PermissionError('MiniMax endpoint is not allowlisted')
+        if request.cancelled():
+            yield event('cancelled')
+            return
+        if request.session_id and not request.history:
+            raise ValueError('Resuming a MiniMax local session requires its saved transcript')
+        session = request.session_id or str(uuid.uuid4())
+        messages = list(request.history)
+        if not messages:
+            messages.append({'role': 'system', 'content': 'Perform the assigned role: ' + request.role + '. Request only explicitly provided tools. Never claim tool execution without results.'})
+        if not all(isinstance(item, dict) and item.get('role') in ('system', 'user', 'assistant', 'tool') for item in messages):
+            raise ValueError('Invalid MiniMax transcript')
+        # During a tool loop the engine supplies the complete previous response
+        # and tool results. A new prompt is appended only when it is not a tool continuation.
+        if not messages or messages[-1].get('role') != 'tool':
+            messages.append({'role': 'user', 'content': request.prompt})
+        payload = {'model': model, 'messages': messages, 'stream': False,
+                   'max_completion_tokens': request.max_output_tokens}
+        definitions = tool_definitions(request.allowed_operations)
+        if definitions:
+            payload['tools'] = definitions
+        body = json.dumps(payload).encode('utf-8')
+        if len(body) > MAX_RESPONSE:
+            raise ValueError('MiniMax transcript exceeds request limit')
+        connection = self.connection_factory('api.minimax.io', timeout=min(request.timeout, 30),
+                                             context=ssl.create_default_context())
+        outcome = queue.Queue(maxsize=1)
+        stop = threading.Event()
+        transport_socket = [None]
+
+        def perform():
+            try:
+                if request.cancelled() or stop.is_set():
+                    outcome.put(('error', 'MiniMax request cancelled before transmission'))
+                    return
+                connection.connect()
+                transport_socket[0] = getattr(connection, 'sock', None)
+                if request.cancelled() or stop.is_set():
+                    outcome.put(('error', 'MiniMax request cancelled before transmission'))
+                    return
+                connection.request('POST', '/v1/chat/completions', body=body,
+                                   headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'})
+                response = connection.getresponse()
+                if response.status != 200:
+                    # Redirects are never followed; credentials stay on the allowlisted origin.
+                    outcome.put(('error', 'MiniMax HTTP status ' + str(response.status)))
+                    return
+                raw = response.read(MAX_RESPONSE + 1)
+                if len(raw) > MAX_RESPONSE:
+                    outcome.put(('error', 'MiniMax response exceeds size limit'))
+                    return
+                outcome.put(('result', json.loads(raw)))
+            except Exception:
+                outcome.put(('error', 'MiniMax transport or response failure'))
+            finally:
+                connection.close()
+        worker = threading.Thread(target=perform, daemon=True)
+        worker.start()
+        deadline = time.monotonic() + request.timeout
+        yield event('session', session_id=session, scope='local_transcript')
+        try:
+            while True:
+                if request.cancelled():
+                    yield event('cancelled')
+                    return
+                if time.monotonic() >= deadline:
+                    yield event('timeout', error='MiniMax request exceeded deadline')
+                    return
+                try:
+                    kind, response = outcome.get(timeout=.1)
+                    break
+                except queue.Empty:
+                    pass
+            if kind == 'error':
+                yield event('error', error=response)
+                return
+            if not isinstance(response, dict) or not response.get('choices'):
+                yield event('error', error='MiniMax response schema is invalid')
+                return
+            choice = response['choices'][0]
+            message = choice.get('message')
+            if not isinstance(message, dict) or message.get('role') != 'assistant':
+                yield event('error', error='MiniMax assistant response is invalid')
+                return
+            # Internal replay event. Preserve the COMPLETE provider message, but
+            # never display reasoning_content/reasoning_details as visible output.
+            yield event('message', message=message)
+            yield event('history', history=messages + [message])
+            if isinstance(message.get('content'), str):
+                yield event('text', text=message['content'])
+            yield event('usage', usage=normalized_usage(response.get('usage')))
+            calls = message.get('tool_calls') or []
+            if not isinstance(calls, list) or not all(isinstance(call, dict) and isinstance(call.get('function'), dict) for call in calls):
+                yield event('error', error='MiniMax tool-call schema is invalid')
+                return
+            if len(calls) > 16:
+                yield event('error', error='MiniMax tool-call limit exceeded')
+                return
+            identifiers = [call.get('id') for call in calls]
+            if any(not isinstance(value, str) or not value or len(value) > 200 for value in identifiers) or len(set(identifiers)) != len(identifiers):
+                yield event('error', error='MiniMax tool-call identifiers are invalid')
+                return
+            declared = {definition['function']['name'] for definition in definitions}
+            for call in calls:
+                function = call.get('function', {})
+                arguments = json.loads(function.get('arguments', '{}'))
+                if not isinstance(arguments, dict) or not isinstance(call.get('id'), str) or function.get('name') not in declared:
+                    yield event('error', error='MiniMax requested an unauthorized or invalid tool')
+                    return
+                yield event('tool_call', tool_call={'id': call['id'], 'name': function['name'], 'arguments': arguments})
+            if calls:
+                yield event('tool_calls')
+            elif choice.get('finish_reason') == 'stop':
+                yield event('completed')
+            else:
+                yield event('error', error='MiniMax response stopped before completion')
+        finally:
+            stop.set()
+            sock = transport_socket[0] or getattr(connection, 'sock', None)
+            if sock is not None:
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+            connection.close()
+
+
+class ProviderRegistry:
+    def __init__(self, config=None, providers=None):
+        self.config = {}
+        for provider_id, value in (config or {}).items():
+            self.configure(provider_id, value)
+        self.providers = dict(providers or {})
+
+    def configure(self, provider_id, config):
+        if provider_id not in ('claude', 'codex', 'minimax') or not isinstance(config, dict):
+            raise ValueError('Unknown provider or invalid configuration')
+        allowed = {'model', 'api_key_env', 'endpoint'} if provider_id == 'minimax' else {'model'}
+        if set(config) - allowed:
+            raise ValueError('Provider configuration contains unsupported fields; never submit credentials')
+        clean = dict(config)
+        if 'model' in clean:
+            validate_model(clean['model'])
+        if 'api_key_env' in clean and not re.fullmatch(r'[A-Z][A-Z0-9_]{0,127}', str(clean['api_key_env'])):
+            raise ValueError('Credential configuration requires an environment-variable name')
+        if 'endpoint' in clean and clean['endpoint'] != MINIMAX_ENDPOINT:
+            raise ValueError('Only the official allowlisted MiniMax endpoint is supported')
+        self.config[provider_id] = clean
+        return dict(clean)
+
+    def get(self, provider_id):
+        if provider_id in self.providers:
+            return self.providers[provider_id]
+        if provider_id == 'minimax':
+            return MiniMaxProvider(self.config.get(provider_id))
+        if provider_id in ('codex', 'claude'):
+            return CLIProvider(provider_id, self.config.get(provider_id))
+        raise ValueError('Unknown provider')
+
+    def status(self):
+        return [self.get(name).status() for name in ('claude', 'codex', 'minimax')]
+
+    discover = status
+
+    def probe(self, provider_id):
+        result = self.get(provider_id).status()
+        result['live_connection_tested'] = False
+        return result
+
+    def invoke(self, provider_id, request):
+        if isinstance(request, dict):
+            request = ProviderRequest(**request)
+        result = {'status': 'failed', 'output': '', 'session_id': request.session_id,
+                  'usage': {}, 'tool_calls': [], 'events': [], 'message': None, 'history': [], 'error': None}
+        try:
+            for item in self.get(provider_id).execute(request):
+                kind = item.get('type')
+                if kind == 'history':
+                    result['history'] = item['history']  # Internal-only transcript data.
+                    continue
+                if kind == 'message':
+                    result['message'] = item['message']  # Internal-only transcript data.
+                    continue
+                result['events'].append(item)
+                if kind == 'text':
+                    result['output'] = item['text'] if item.get('final') else result['output'] + item['text']
+                elif kind == 'session':
+                    result['session_id'] = item['session_id']
+                elif kind == 'usage':
+                    result['usage'].update(item['usage'])
+                elif kind == 'tool_call':
+                    result['tool_calls'].append(item['tool_call'])
+                elif kind in ('completed', 'cancelled', 'timeout', 'tool_calls'):
+                    result['status'] = kind
+                elif kind == 'error':
+                    result['status'], result['error'] = 'failed', item.get('error', 'Provider failed')
+        except (PermissionError, ValueError, RuntimeError, OSError, KeyError, TypeError, AttributeError):
+            result['status'], result['error'] = 'failed', 'Provider configuration, authorization, transport, or response validation failed'
+        return result
