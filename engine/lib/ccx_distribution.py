@@ -79,7 +79,32 @@ def verify_artifact(tarball, sums, sig, config, allow_unsigned, requested_versio
 @contextlib.contextmanager
 def _verify_artifact(tarball, sums, sig, config, allow_unsigned, requested_version=None):
     """Yield a verified source root; delete all extracted data on context exit."""
+    # Snapshot external inputs once; no verification step reopens their paths.
     tarball, sums = Path(tarball), Path(sums)
+    with tempfile.TemporaryDirectory(prefix='ccx-input-') as temporary:
+        private = Path(temporary)
+        os.chmod(str(private), 0o700)
+        archive_copy = private / tarball.name
+        sums_copy = private / 'checksums'
+        sig_copy = private / 'signature' if sig is not None else None
+        for source, destination in ((tarball, archive_copy), (sums, sums_copy)):
+            with source.open('rb') as incoming, destination.open('xb') as outgoing:
+                os.chmod(str(destination), 0o600)
+                shutil.copyfileobj(incoming, outgoing)
+        if sig_copy is not None:
+            try:
+                with Path(sig).open('rb') as incoming, sig_copy.open('xb') as outgoing:
+                    os.chmod(str(sig_copy), 0o600)
+                    shutil.copyfileobj(incoming, outgoing)
+            except FileNotFoundError:
+                sig_copy = None
+        with _verify_private_artifact(archive_copy, sums_copy, sig_copy, config,
+                                      allow_unsigned, requested_version) as source:
+            yield source
+
+
+@contextlib.contextmanager
+def _verify_private_artifact(tarball, sums, sig, config, allow_unsigned, requested_version):
     # Authenticate the checksum document before trusting any of its contents.
     required = config.get('require_signature', True) or not allow_unsigned
     if sig is not None and Path(sig).is_file():

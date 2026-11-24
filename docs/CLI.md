@@ -1,4 +1,7 @@
-# Claude-Codex Orchestrator CLI (4.1.0)
+# Claude-Codex Orchestrator CLI
+
+Engine 4.2.0; CLI/project payload 4.1.0. `--version` reports CLI_VERSION;
+`versions` includes `engine_version`, and `doctor` prints both versions.
 
 `orchestrator` installs and manages the Claude-Codex orchestration layer in Git
 projects. The engine lives in `~/.local/share/claude-codex-orchestrator`; the
@@ -14,11 +17,11 @@ Pass `--project PATH` to target another project.
 | `releases/<version>/` | Immutable release payloads with `checksums.json` |
 | `releases/<version>/release.json` | Release metadata (`status`: `VERIFIED`, `TESTING`, ...) |
 | `current.json` | Release that `init` and `update` use by default |
-| `cli-checksums.json` | Seal for `orchestrator.py`; written by `release-promote` |
+| `cli-checksums.json` | Seal for `orchestrator.py`; written by install/upgrade and `release-promote` |
 | `registry/projects.json` | Global project registry |
 | `backups/projects/<project-id>/` | Verified project backups |
-| `backups/engine/` | Backups of the engine itself |
-| `tests/test_orchestrator.py` | Regression suite |
+| `engine-backups/<version>-<timestamp>-<suffix>/` | Backups of the engine itself |
+| `install-receipt.json` | Installed code hashes, provenance, engine version and bin directory |
 | `~/.local/state/claude-codex/<project-id>/` | Per-project runtime state (sessions, workflows, logs, integrity manifest, profile approvals) |
 
 ## Installation in a project
@@ -55,7 +58,7 @@ orchestration and **"Use Claude only"** to pause it.
 
 | Command | Effect | Changes files |
 |---|---|---|
-| `versions` | CLI version and integrity, releases (status and integrity), current release, registered projects, this project's version | No |
+| `versions` | Engine/CLI versions and integrity, releases (status and integrity), current release, registered projects, this project's version | No |
 | `doctor` | CLI seal, current release integrity, tool availability | No |
 | `verify` | Run the project integrity check | No |
 | `status [--all]` / `watch` | Orchestration status of this project or of every registered project | No |
@@ -75,12 +78,69 @@ orchestration and **"Use Claude only"** to pause it.
 | `profile-approve NAME --yes` | Approve exactly one profile command | Approval file only |
 | `release-promote V --test-report R --yes` | Maintainer command: mark a release VERIFIED | Release metadata |
 
+### Engine distribution commands
+
+These commands operate on the engine, not the current Git project; they do not
+accept `--project`.
+
+| Command | Effect |
+|---|---|
+| `distribution show` | Print distribution configuration; exit 1 if missing |
+| `distribution configure --repository OWNER/REPO [--allowed-signers FILE] [--signer-identity ID] [--no-require-signature]` | Atomically write configuration and copy supplied signers; signatures required unless disabled |
+| `self-update --check` | Compare installed engine to available version; no artifact download |
+| `self-update --dry-run` | Download, verify signature/checksums/manifest and print install plan |
+| `self-update --apply --yes` | Run verified new installer with `--upgrade`; preserve project data |
+| `self-rollback --check` / `--dry-run` | Verify newest engine backup and show planned restoration |
+| `self-rollback --apply --yes` | Back up current code and restore newest engine backup; keep releases |
+
+Self-update accepts `--version X.Y.Z`, `--allow-downgrade`, and
+`--archive TAR --sums FILE [--signature SIG]` for local artifacts. Configuration
+is required even offline. `--allow-unsigned` works only if configured
+`require_signature` is false; a supplied signature is still verified. Remote
+access needs authenticated `gh`; missing configuration or `gh` gives exit 1.
+Both self commands require exactly one of `--check`, `--dry-run`, `--apply`.
+Applying without `--yes` gives exit 4. Engine lock contention gives exit 75.
+
+See [team updates](TEAM-UPDATE.md) for rollback toggling and separate project
+updates. Signature trust and failure boundaries are in [Security](SECURITY.md).
+
+### Engine installer and uninstaller
+
+```sh
+./install.sh [--prefix DIR] [--bin-dir DIR] [--dry-run] [--upgrade] [--allow-downgrade]
+./uninstall.sh [--prefix DIR] [--bin-dir DIR] [--yes] [--purge] [--dry-run]
+```
+
+Defaults: `${XDG_DATA_HOME:-$HOME/.local/share}/claude-codex-orchestrator` and
+`$HOME/.local/bin`. An installed uninstaller defaults to its own engine directory;
+custom bin directories still need `--bin-dir`. Uninstall without `--yes`, or with
+`--dry-run`, prints a plan and exits 4. `--purge` refuses while registry projects
+remain. It keeps unknown files, and normally keeps registry and project backups.
+It never removes project/runtime files. This differs from the project command
+`orchestrator uninstall --apply --yes`.
+
+| Installer/uninstaller code | Meaning |
+|---|---|
+| 0 | Success, including `UP_TO_DATE` |
+| 1 | General I/O/post-check error or injected fault |
+| 2 | Non-Linux, missing/old Python, missing Git, or invalid arguments |
+| 3 | Existing/foreign install conflict, release mismatch, downgrade refused, or registered projects prevent purge |
+| 4 | Uninstall confirmation/plan only |
+| 5 | Unsafe path or symlink |
+| 6 | Source checksum or manifest integrity failure |
+| 75 | Engine lock busy |
+
+Missing optional tools warn rather than fail. Validation can fail before a plan
+is printed. Source shape/version errors can also return 3. The release builder
+uses exit 6 for a refused build. Unexpected operating-system failures may return 1.
+
 ### Exit codes
 
 | Code | Meaning |
 |---|---|
 | 0 | Success |
 | 1 | General error (not installed, project or backup not found, no eligible backup) |
+| 2 | Invalid CLI arguments |
 | 3 | Conflict: local modification, legacy V3 project, unverified release, unmanaged file at a managed path |
 | 4 | Confirmation required (`--yes` or `--overwrite-edits`) |
 | 5 | Unsafe path: symlink, traversal, foreign owner, world-writable, permission denied, unsafe template rule |
@@ -194,7 +254,7 @@ Integrity protects this file.
 
 ## Security model and limitations
 
-- **Checksums only detect tampering by the same user.** Release checksums, CLI
+- **Checksums alone detect accidental edits, not malicious same-user tampering.** Release checksums, CLI
   seals, project integrity manifests and backup checksums all live in files
   the same Unix user can rewrite. They catch accidental edits, partial writes
   and tool mistakes. They do not stop a malicious process that runs as you,
@@ -205,8 +265,9 @@ Integrity protects this file.
   pathnames rather than directory file descriptors. A concurrent process
   running as the same user could still swap a parent directory for a symlink
   in the moment between check and write.
-- **Locks are cooperative.** The locks are `flock` locks on
-  `management.lock` and `project-execution.lock`. They coordinate the
+- **Locks are cooperative.** Project locks are `flock` locks on
+  `management.lock` and `project-execution.lock`; engine operations lock the
+  engine directory inode. They coordinate the
   orchestrator and the release scripts, not arbitrary editors or processes.
 - **`init` writes without `--yes`.** It only appends or merges into
   `CLAUDE.md`, `settings.local.json` and `.claude/.gitignore`, and it never

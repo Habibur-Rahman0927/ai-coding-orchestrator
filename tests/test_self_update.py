@@ -13,6 +13,9 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
+
+sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
 IDENTITY = 'release-test'
@@ -282,6 +285,62 @@ else:
             sign(sums, self.key)
             self.update('--apply', '--yes', directory=directory, expected=6)
             self.assertEqual(before, snapshot(self.prefix))
+
+    def test_verification_snapshots_external_inputs_once(self):
+        sys.path.insert(0, str(ROOT / 'engine/lib'))
+        import ccx_distribution as distribution
+        directory = self.artifact_copy()
+        archive = directory / 'claude-codex-orchestrator-4.2.1.tar.gz'
+        sums, sig = directory / 'SHA256SUMS', directory / 'SHA256SUMS.sig'
+        inputs = {archive: 0, sums: 0, sig: 0}
+        original_open = Path.open
+        original_verify = distribution._verify_private_artifact
+        config = {'require_signature': True, 'allowed_signers': str(self.signers),
+                  'signer_identity': IDENTITY}
+
+        def counted_open(path, *args, **kwargs):
+            if path in inputs:
+                inputs[path] += 1
+                self.assertEqual(inputs[path], 1, 'External input reopened')
+            return original_open(path, *args, **kwargs)
+
+        def replace_originals(*args, **kwargs):
+            for path in inputs:
+                with original_open(path, 'wb') as stream:
+                    stream.write(b'replaced after snapshot')
+            for path in args[:3]:
+                self.assertNotIn(path, inputs)
+                self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+            return original_verify(*args, **kwargs)
+
+        with mock.patch.object(Path, 'open', counted_open), mock.patch.object(
+                distribution, '_verify_private_artifact', replace_originals):
+            with distribution.verify_artifact(archive, sums, sig, config, False, '4.2.1') as source:
+                self.assertEqual((source / 'VERSION').read_text(), '4.2.1\n')
+        self.assertEqual(list(inputs.values()), [1, 1, 1])
+
+    def test_build_rejects_private_material_and_in_tree_signers(self):
+        src = self.tmp / 'source'
+        shutil.copytree(self.sources['4.2.0'], src)
+        planted = src / 'engine/release-key'
+        for label in ('OPENSSH', 'RSA', 'EC', 'ENCRYPTED'):
+            planted.write_text('-----BEGIN ' + label + ' PRIVATE KEY-----\nsynthetic fixture\n')
+            run([sys.executable, '-I', src / 'tools/build_release.py'], expected=6)
+        planted.unlink()
+        # Location checks must reject keys even outside the packaged allowlist.
+        local_key = src / 'unpackaged-signing-key'
+        local_key.write_text('synthetic placeholder')
+        run([sys.executable, '-I', src / 'tools/build_release.py', '--sign-key', local_key], expected=6)
+        alias = self.tmp / 'key-alias'
+        alias.symlink_to(local_key)
+        run([sys.executable, '-I', src / 'tools/build_release.py', '--sign-key', alias], expected=6)
+        alias.unlink()
+        alias.symlink_to(self.key)
+        public = src / 'public-key'
+        public.write_text(self.key.with_suffix('.pub').read_text())
+        Path(str(alias) + '.pub').symlink_to(public)
+        run([sys.executable, '-I', src / 'tools/build_release.py', '--sign-key', alias], expected=6)
 
     def test_apply_failure_restores(self):
         before, protected = self.code(), self.protected()

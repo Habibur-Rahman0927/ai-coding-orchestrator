@@ -19,6 +19,12 @@ from ccx_install import InstallError, code_version, verify_source, atomic_write
 
 def build(source, output, key=None):
     source = source.resolve()
+    if key is not None:
+        # Check both paths before reading source content, including symlink aliases.
+        for candidate in (Path(key), Path(str(key) + '.pub')):
+            resolved = candidate.resolve()
+            if resolved == source or source in resolved.parents:
+                raise InstallError('Signing key and public key must be outside the source tree', 6)
     payload = {}
     for name in ('install.sh', 'uninstall.sh', 'VERSION', 'README.md', 'docs', 'engine'):
         root = source / name
@@ -40,6 +46,8 @@ def build(source, output, key=None):
             if not path.is_file():
                 raise InstallError('Non-regular distribution file: ' + rel, 6)
             data = path.read_bytes()
+            if re.search(rb'-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----', data):
+                raise InstallError('Private key material in: ' + rel, 6)
             if re.search(rb'/(?:home|Users)/[^/\s]+/', data):
                 raise InstallError('Private absolute path in: ' + rel, 6)
             payload[rel] = data

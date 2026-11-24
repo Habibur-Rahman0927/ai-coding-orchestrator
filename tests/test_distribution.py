@@ -10,6 +10,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+from types import SimpleNamespace
+import contextlib
+import io
+
+sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -161,6 +167,52 @@ class Distribution(unittest.TestCase):
             self.run_cli('--upgrade', env=dict(self.env, ORCHESTRATOR_INSTALL_FAULT=point), expected=1)
             after = {r: data for r, data in snapshot(self.prefix).items() if not r.startswith('engine-backups/')}
             self.assertEqual(before, after)
+
+    def test_file_to_directory_upgrade_failure_restores(self):
+        self.run_cli()
+        (self.prefix / 'lib/extensions').write_text('original extension data')
+        before = snapshot(self.prefix)
+        src = self.source()
+        (src / 'engine/lib/extensions').mkdir()
+        (src / 'engine/lib/extensions/helper.py').write_text('VALUE = 1\n')
+        self.run_cli('--upgrade', source=src,
+                     env=dict(self.env, ORCHESTRATOR_INSTALL_FAULT='after-move'), expected=1)
+        after = {r: data for r, data in snapshot(self.prefix).items()
+                 if not r.startswith('engine-backups/')}
+        self.assertEqual(before, after)
+        self.assertTrue((self.prefix / 'lib/extensions').is_file())
+
+    def test_upgrade_recovery_continues_after_path_error(self):
+        sys.path.insert(0, str(ROOT / 'engine/lib'))
+        import ccx_install as installer
+        self.run_cli()
+        (self.prefix / 'lib/extensions').write_text('original extension data')
+        src = self.source()
+        (src / 'engine/lib/extensions').mkdir()
+        (src / 'engine/lib/extensions/helper.py').write_text('VALUE = 1\n')
+        recovering = []
+        atomic = installer.atomic_write
+
+        def fail_after_move(point):
+            if point == 'after-move':
+                recovering.append(True)
+                raise installer.InstallError('original failure', 1)
+
+        def restore_with_error(path, data, mode=0o600):
+            if recovering and path == self.prefix / 'orchestrator.py':
+                raise OSError('simulated per-path restore error')
+            return atomic(path, data, mode)
+
+        args = SimpleNamespace(prefix=self.prefix, bin_dir=self.bin, upgrade=True,
+                               dry_run=False, allow_downgrade=False)
+        errors = io.StringIO()
+        with mock.patch.object(installer, 'fault', fail_after_move), mock.patch.object(
+                installer, 'atomic_write', restore_with_error), contextlib.redirect_stderr(errors):
+            with self.assertRaisesRegex(installer.InstallError, 'original failure'):
+                installer.install(args, src)
+        self.assertEqual((self.prefix / 'lib/extensions').read_text(), 'original extension data')
+        self.assertIn('simulated per-path restore error', errors.getvalue())
+        self.assertIn('verified backup retained', errors.getvalue())
 
     def test_downgrade(self):
         self.run_cli()

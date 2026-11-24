@@ -457,22 +457,42 @@ def upgrade(args, prefix, stage, link, mkdir):
         doctor(prefix)
         fault('after-doctor')
     except BaseException:
+        # Recovery is best-effort across every path; preserve the original error.
+        recovery_errors = []
         if linked:
-            link.unlink()
+            try:
+                link.unlink()
+            except OSError as error:
+                recovery_errors.append(str(error))
         for p in reversed(added):
-            if p.is_dir():
-                shutil.rmtree(p)
-            elif p.exists():
-                p.unlink()
+            try:
+                safe(p)
+                if p.is_dir() and p not in original_dirs:
+                    shutil.rmtree(p)
+                elif p.is_file():
+                    p.unlink()
+            except (OSError, InstallError) as error:
+                recovery_errors.append(str(error))
         for rel in old:
-            p = target(backup, rel)
-            atomic_write(target(prefix, rel), p.read_bytes(), p.stat().st_mode & 0o777)
+            try:
+                p = target(backup, rel)
+                dest = target(prefix, rel)
+                # A newly created directory may occupy an original file's name.
+                if dest.is_dir() and dest not in original_dirs:
+                    shutil.rmtree(dest)
+                atomic_write(dest, p.read_bytes(), p.stat().st_mode & 0o777)
+            except (OSError, InstallError) as error:
+                recovery_errors.append(str(error))
         for p in sorted(prefix.rglob('*'), key=lambda p: len(p.parts), reverse=True):
             if p.is_dir() and p not in original_dirs:
                 try:
                     p.rmdir()
                 except OSError:
                     pass
+        if recovery_errors:
+            print('Incomplete recovery; verified backup retained at ' + str(backup), file=sys.stderr)
+            for error in recovery_errors:
+                print('Recovery error: ' + error, file=sys.stderr)
         raise
 
 
