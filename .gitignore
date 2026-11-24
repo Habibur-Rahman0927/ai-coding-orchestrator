@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.distribution-*
+dist/
+test-reports/

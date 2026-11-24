@@ -1,0 +1,12 @@
+{
+  "version": "4.1.0",
+  "status": "VERIFIED",
+  "previous_version": "4.0.0",
+  "created_at": "2026-11-24T12:11:00.339591+00:00",
+  "changes": [
+    "generic ORCHESTRATOR_CLAUDE_SESSION_ID",
+    "profile file + per-profile approval in managed-exec",
+    "generic CLAUDE.md block without project rules"
+  ],
+  "project_migration_enabled": false
+}

@@ -1,0 +1,17 @@
+{
+  "VERSION": "3b10b6ad566eadbcacadb33c591f1ec629593d6adf47442e56e0f61996829ef7",
+  "hooks/completion-gate.py": "0d421ab4e76db41aeadbb522521ed8473557fd2e5de5b0fcb4a38e8095704577",
+  "hooks/session-init.py": "1615ee0f149f55852703947cf24369d0510962ac204b03a72bbfb30fdce3c175",
+  "scripts/codex-session.py": "8be68051e54feeb8f053986bc59a72ea80bb881ebdf1353f3b2768f9248c9785",
+  "scripts/context-monitor.py": "920b18fc0568b9d73e5157990a7275d3410a53352383f2c6591eb6879b600743",
+  "scripts/integrity-check.py": "b67c60c2ba93c45cf9032041a3632ccdf3d7c948832e7eb85209068979de775f",
+  "scripts/managed-exec.py": "137fe349d6e75e716caa440547c95834a7512ab30f68accbe26e3d20f9bb6cdb",
+  "scripts/orchestration-status.py": "7890f0e315e62c8a2266e7033c1b2af48447d1e0347098f3278c2ea175020f0d",
+  "scripts/recovery-controller.py": "97b7622aafe013981bbeaef7edfcab2a34bf9d2b0d5acd52a2ba59da5b4fae0a",
+  "scripts/task-state.py": "42bf899ec28a29394e034c89e250fc107fba0b2e4fe01e040f2d69e23fd24428",
+  "scripts/usage-guard.py": "be0eddc86f03319acbe68aff799e1ecd16d390e009a83b544981cdfba8e73f2a",
+  "scripts/watchdog.py": "ac3b314ef74a659275373d5fc6634a59dfe5e5e8d5fbcec22e793ea3d6a60a9b",
+  "templates/.gitignore": "e7404ba25b2934e5114967ec90bc0f634d05041310bb23a8cd3c7531c9ecaec1",
+  "templates/CLAUDE.md": "3c8ad7567ec79262154a6278f7f185e636ad27977b1801813a4c945a04e5d166",
+  "templates/settings.template.json": "0c72cb2e9132f9fcc203b442ee52cd29b9e925ec4da3b71b4f7f01b4a266c35a"
+}

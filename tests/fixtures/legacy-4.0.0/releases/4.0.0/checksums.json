@@ -1,0 +1,18 @@
+{
+  "VERSION": "e1d49c569ae09b2ede16e2d83820a3809b35eb6c44c13ba9b5330598d6b8f43c",
+  "hooks/completion-gate.py": "0d421ab4e76db41aeadbb522521ed8473557fd2e5de5b0fcb4a38e8095704577",
+  "hooks/session-init.py": "f28f9eb80fcf8b1dbd8ca9c0a55892f34a488a14e36455692363371ddb62e2b5",
+  "release.json": "3f6c9f3028db4537a41cd59262a6752d8118a6ea6451f049e84211a3159b672c",
+  "scripts/codex-session.py": "1febf5ea49989f214c1c5c2f3e9c36918c2779073fe10fdd9b28710f3b090193",
+  "scripts/context-monitor.py": "9c616eed1a902c0c757d031cb66a4de5fe0f1bd48e40eb8d1c29a7dd5a451ded",
+  "scripts/integrity-check.py": "b67c60c2ba93c45cf9032041a3632ccdf3d7c948832e7eb85209068979de775f",
+  "scripts/managed-exec.py": "aacfc52c205b0c01692ee45560b685227ee927b0c5b15a0fffac3e1bde0abb70",
+  "scripts/orchestration-status.py": "7890f0e315e62c8a2266e7033c1b2af48447d1e0347098f3278c2ea175020f0d",
+  "scripts/recovery-controller.py": "97b7622aafe013981bbeaef7edfcab2a34bf9d2b0d5acd52a2ba59da5b4fae0a",
+  "scripts/task-state.py": "ae61ed9254fd9f3d828900cd683d160f0e28ff694d93565ec0fe97346b0d515c",
+  "scripts/usage-guard.py": "f3e6328b64d1f46aa03524032423eb043c3c1f98a0f94d53ee549563ace7c28c",
+  "scripts/watchdog.py": "ac3b314ef74a659275373d5fc6634a59dfe5e5e8d5fbcec22e793ea3d6a60a9b",
+  "templates/.gitignore": "7a82ec605d93c4ece6748b52f8f233192a662832a007acb536214e4943434335",
+  "templates/CLAUDE.md": "77de3abfee4d659402d4a96552dd05303ccde28b232c16efb3b272b216ab80db",
+  "templates/settings.template.json": "77f5d67e07e989ecbcb207bcddd8939a6cb106aa46de8816b573f34897a418f1"
+}

@@ -1,0 +1,8 @@
+
+/backups/
+*.backup
+/settings.local.json
+__pycache__/
+*.pyc
+/orchestration-test.txt
+/persistent-write-test.txt

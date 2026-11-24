@@ -1,0 +1,7 @@
+{
+  "version": "4.0.0",
+  "status": "PORTABILITY_PENDING",
+  "source_version": "3",
+  "project_migration_enabled": false,
+  "note": "Sanitized test fixture reproducing the 4.0.0 installer layout"
+}

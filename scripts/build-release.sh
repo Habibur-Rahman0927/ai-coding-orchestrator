@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+exec python3 -I "$script_dir/../tools/build_release.py" "$@"
