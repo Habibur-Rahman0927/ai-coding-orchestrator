@@ -24,7 +24,7 @@ from pathlib import Path
 os.umask(0o077)
 
 CLI_VERSION = "4.1.0"
-ENGINE_VERSION = "4.2.0"
+ENGINE_VERSION = "4.3.0"
 
 GLOBAL = Path(__file__).resolve().parent
 RELEASES = GLOBAL / "releases"
@@ -277,34 +277,47 @@ def state_dir(root):
 class ProjectLocks:
     """Exclusive management lock plus a non-blocking probe of the execution lock."""
 
-    def __init__(self, root, hold_execution=True):
+    def __init__(self, root, hold_execution=True, cleanup_created=False):
         self.directory = state_dir(root)
         self.hold_execution = hold_execution
         self.handles = []
+        self.cleanup_created = cleanup_created
+        self.created_locks = []
 
     def __enter__(self):
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         names = ["management.lock"]
         if self.hold_execution:
             names.append("project-execution.lock")
-        for name in names:
-            path = self.directory / name
-            if path.is_symlink():
-                raise OrchestratorError(f"Unsafe lock file: {path}", EXIT_UNSAFE)
-            handle = path.open("a")
-            try:
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                handle.close()
-                self.__exit__(None, None, None)
-                raise OrchestratorError(
-                    f"PROJECT_BUSY: {name} is held by another operation.",
-                    EXIT_BUSY
-                )
-            self.handles.append(handle)
+        try:
+            for name in names:
+                path = self.directory / name
+                if path.is_symlink():
+                    raise OrchestratorError(f"Unsafe lock file: {path}", EXIT_UNSAFE)
+                existed = path.exists()
+                handle = path.open("a")
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except BlockingIOError:
+                    handle.close()
+                    self.__exit__(None, None, None)
+                    raise OrchestratorError(
+                        f"PROJECT_BUSY: {name} is held by another operation.",
+                        EXIT_BUSY
+                    )
+                if not existed and self.cleanup_created:
+                    self.created_locks.append((path, os.fstat(handle.fileno()).st_ino))
+                self.handles.append(handle)
+        except BaseException:
+            self.__exit__(None, None, None)
+            raise
         return self
 
     def __exit__(self, *exc):
+        for path, inode in self.created_locks:
+            if not path.is_symlink() and path.exists() and path.stat().st_ino == inode:
+                path.unlink()
+        self.created_locks = []
         for handle in self.handles:
             handle.close()
         self.handles = []
@@ -349,7 +362,7 @@ def require_managed_install(root):
     if not config:
         if installed_version(root) == "3":
             raise OrchestratorError(
-                "LEGACY_V3_PROJECT: migration is disabled; no files changed.",
+                "LEGACY_V3_PROJECT: use migrate-v3; no files changed.",
                 EXIT_CONFLICT
             )
         raise OrchestratorError("Orchestration is not installed in this project.")
@@ -454,12 +467,13 @@ def template_settings(version):
     )
 
 
-def instruction_block(version, root):
+def instruction_block(version, root, existing_text=None):
     body = (release_dir(version) / "templates/CLAUDE.md").read_text().strip()
     lines = [BLOCK_BEGIN]
     agents = root / "AGENTS.md"
     claude = root / "CLAUDE.md"
-    existing = claude.read_text() if claude.is_file() and not claude.is_symlink() else ""
+    existing = existing_text if existing_text is not None else (
+        claude.read_text() if claude.is_file() and not claude.is_symlink() else "")
     existing, _ = strip_block(existing, BLOCK_BEGIN, BLOCK_END)
     legacy = legacy_400_block()
     if legacy:
@@ -791,7 +805,7 @@ def backup_scope(root, config, version):
     return sorted(files)
 
 
-def create_backup(root, kind, version_before, extra_files=()):
+def create_backup(root, kind, version_before, extra_files=(), scope_version=None):
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     directory = PROJECT_BACKUPS / project_id(root) / f"{stamp}-{kind}"
     directory.mkdir(parents=True, mode=0o700)
@@ -806,7 +820,7 @@ def create_backup(root, kind, version_before, extra_files=()):
         "files": {},
         "state": {},
     }
-    for rel in sorted(set(backup_scope(root, config, version_before or current_release())) | set(extra_files)):
+    for rel in sorted(set(backup_scope(root, config, scope_version or version_before or current_release())) | set(extra_files)):
         source = safe_target(root, rel)
         if source.is_file():
             target = directory / "files" / rel
@@ -1183,7 +1197,7 @@ def select_rollback_backup(root, name):
         return matches[0]
     for backup in reversed(backups):
         record = read_json(backup / "backup.json", {}) or {}
-        if (record.get("kind") == "pre-update" and record.get("completed_at")
+        if (record.get("kind") in ("pre-update", "pre-migrate-v3") and record.get("completed_at")
                 and not record.get("rolled_back_at")):
             return backup
     raise OrchestratorError("No pre-update backup available for rollback.")
@@ -1239,9 +1253,9 @@ def cmd_rollback(args):
         raise OrchestratorError(
             "Restoring this backup overwrites current files: " + ", ".join(overwrites)
             + "\nRe-run with --overwrite-edits to confirm. No files changed.", EXIT_CONFIRM)
-    with ProjectLocks(root):
+    with ProjectLocks(root, cleanup_created=record.get("kind") == "pre-migrate-v3"):
         require_no_active_workflow(root)
-        safety, _ = create_backup(root, "pre-rollback", installed_version(root))
+        safety, _ = create_backup(root, "pre-rollback", installed_version(root), extra_files=record["files"])
 
         def action(transaction):
             restore_backup(root, backup, transaction)
@@ -1564,6 +1578,18 @@ def cmd_release_promote(args):
     return 0
 
 
+def cmd_legacy_command(args):
+    sys.dont_write_bytecode = True
+    sys.path.insert(0, str(GLOBAL / 'lib'))
+    import ccx_migration
+    try:
+        if args.action == 'migrate-v3':
+            return ccx_migration.migrate(sys.modules[__name__], args)
+        return ccx_migration.archive(sys.modules[__name__], args)
+    except (OSError, ValueError, TypeError, SyntaxError, subprocess.SubprocessError) as error:
+        raise OrchestratorError('Legacy operation failed: ' + str(error))
+
+
 def cmd_distribution_command(args):
     # -I omits the script directory. Load only our resolved, installed library.
     sys.dont_write_bytecode = True
@@ -1636,6 +1662,21 @@ def build_parser():
     approve.add_argument("name")
     approve.add_argument("--yes", action="store_true")
 
+    migrate = project_cmd('migrate-v3', 'Migrate a verified V3 project to a managed release')
+    modes = migrate.add_mutually_exclusive_group(required=True)
+    for option in ('check', 'dry-run', 'apply'):
+        modes.add_argument('--' + option, action='store_true')
+    migrate.add_argument('--yes', action='store_true')
+    migrate.add_argument('--release')
+    migrate.add_argument('--project-rules')
+    migrate.add_argument('--report')
+    archive = project_cmd('archive-legacy', 'Archive explicitly enumerated legacy development artifacts')
+    modes = archive.add_mutually_exclusive_group(required=True)
+    modes.add_argument('--dry-run', action='store_true')
+    modes.add_argument('--apply', action='store_true')
+    archive.add_argument('--yes', action='store_true')
+    archive.add_argument('--to', required=True)
+
     distribution = sub.add_parser('distribution', help='Configure engine distribution provenance')
     actions = distribution.add_subparsers(dest='distribution_action', required=True)
     actions.add_parser('show')
@@ -1664,6 +1705,7 @@ def build_parser():
 
 
 COMMANDS = {
+    "migrate-v3": cmd_legacy_command, "archive-legacy": cmd_legacy_command,
     "distribution": cmd_distribution_command, "self-update": cmd_distribution_command,
     "self-rollback": cmd_distribution_command,
     "init": cmd_init, "adopt": cmd_adopt, "doctor": cmd_doctor, "verify": cmd_verify,

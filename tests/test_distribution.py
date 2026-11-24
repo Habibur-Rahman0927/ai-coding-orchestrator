@@ -62,7 +62,7 @@ class Distribution(unittest.TestCase):
             self.home.mkdir(parents=True)
             self.env['HOME'] = str(self.home)
             result = self.run_cli()
-            self.assertIn('Engine version: 4.2.0', result.stdout)
+            self.assertIn('Engine version: 4.3.0', result.stdout)
             self.assertTrue((self.bin / 'orchestrator').is_symlink())
             project = self.tmp / name / 'project'
             subprocess.run(['git', 'init', '-q', str(project)], check=True, env=self.env)
@@ -139,7 +139,7 @@ class Distribution(unittest.TestCase):
         self.run_cli()
         (self.prefix / 'install-receipt.json').unlink()
         p = self.prefix / 'orchestrator.py'
-        p.write_text(p.read_text().replace('ENGINE_VERSION = "4.2.0"', ''))
+        p.write_text(p.read_text().replace('ENGINE_VERSION = "4.3.0"', ''))
         (self.prefix / 'backups').mkdir()
         (self.prefix / 'backups/user').write_text('precious')
         (self.prefix / 'registry/projects.json').write_text('{"projects": {"id": {"path": "unavailable"}}}')
@@ -217,7 +217,7 @@ class Distribution(unittest.TestCase):
     def test_downgrade(self):
         self.run_cli()
         p = self.prefix / 'orchestrator.py'
-        p.write_text(p.read_text().replace('ENGINE_VERSION = "4.2.0"', 'ENGINE_VERSION = "9.0.0"'))
+        p.write_text(p.read_text().replace('ENGINE_VERSION = "4.3.0"', 'ENGINE_VERSION = "9.0.0"'))
         before = snapshot(self.prefix)
         self.run_cli('--upgrade', expected=3)
         self.assertEqual(before, snapshot(self.prefix))
@@ -320,9 +320,9 @@ class Distribution(unittest.TestCase):
     def test_uninstall_removes_upgrade_backups(self):
         self.run_cli()
         src = self.source()
-        (src / 'VERSION').write_text('4.3.0\n')
+        (src / 'VERSION').write_text('4.3.1\n')
         cli = src / 'engine/orchestrator.py'
-        cli.write_text(cli.read_text().replace('ENGINE_VERSION = "4.2.0"', 'ENGINE_VERSION = "4.3.0"'))
+        cli.write_text(cli.read_text().replace('ENGINE_VERSION = "4.3.0"', 'ENGINE_VERSION = "4.3.1"'))
         self.run_cli('--upgrade', source=src)
         self.assertTrue(any((self.prefix / 'engine-backups').iterdir()))
         (self.prefix / 'backups').mkdir()

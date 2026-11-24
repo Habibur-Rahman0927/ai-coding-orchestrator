@@ -6,6 +6,7 @@ import gzip
 import io
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -61,7 +62,7 @@ class SelfUpdate(unittest.TestCase):
                 shutil.copy2(ROOT / name, src / name)
             (src / 'VERSION').write_text(version + '\n')
             cli = src / 'engine/orchestrator.py'
-            cli.write_text(cli.read_text().replace('ENGINE_VERSION = "4.2.0"', 'ENGINE_VERSION = "' + version + '"'))
+            cli.write_text(re.sub(r'^ENGINE_VERSION = "[^"]+"$', 'ENGINE_VERSION = "' + version + '"', cli.read_text(), flags=re.M))
             run([sys.executable, '-I', src / 'tools/build_release.py', '--sign-key', cls.key])
             cls.sources[version] = src
             cls.artifacts[version] = src / 'dist'

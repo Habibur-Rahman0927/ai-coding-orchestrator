@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git ls-files *)",
+      "Bash(git rev-parse *)",
+      "Bash(git branch --show-current)",
+      "Bash(python3 .claude/scripts/codex-session.py *)",
+      "Bash(python3 .claude/scripts/task-state.py *)",
+      "Bash(python3 .claude/scripts/watchdog.py *)",
+      "Bash(python3 .claude/scripts/context-monitor.py)",
+      "Bash(python3 .claude/scripts/orchestration-status.py)",
+      "Bash(python3 .claude/scripts/orchestration-status.py --json)",
+      "Bash(python3 .claude/scripts/integrity-check.py)",
+      "Bash(python3 .claude/scripts/managed-exec.py --list)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-init.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/completion-gate.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

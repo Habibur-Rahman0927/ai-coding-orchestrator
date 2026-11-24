@@ -1,6 +1,6 @@
 # Claude-Codex Orchestrator CLI
 
-Engine 4.2.0; CLI/project payload 4.1.0. `--version` reports CLI_VERSION;
+Engine 4.3.0; CLI/project payload 4.1.0. `--version` reports CLI_VERSION;
 `versions` includes `engine_version`, and `doctor` prints both versions.
 
 `orchestrator` installs and manages the Claude-Codex orchestration layer in Git
@@ -73,10 +73,32 @@ orchestration and **"Use Claude only"** to pause it.
 | `uninstall --dry-run` | Show what would be removed and preserved | No |
 | `uninstall --apply --yes` | Remove orchestration and keep runtime state | Yes |
 | `unregister [--id ID]` | Remove a project from the registry only | Registry only |
+| `migrate-v3 --check` / `--dry-run` | Validate V3, report exact edits, profiles and project rules | No (except explicit `--report`) |
+| `migrate-v3 --apply --yes` | Transactionally migrate V3 to the current VERIFIED payload | Yes; verified pre-migration backup |
+| `archive-legacy --dry-run --to DIR` | Enumerate legacy artifacts; keep tracked/managed files | No |
+| `archive-legacy --apply --yes --to DIR` | Verify archive copies, then remove listed legacy artifacts | Yes |
 | `adopt` | Register an existing installation (for example legacy V3) without changes | Registry only |
 | `profiles` | List execution profiles with their approval state | No |
 | `profile-approve NAME --yes` | Approve exactly one profile command | Approval file only |
 | `release-promote V --test-report R --yes` | Maintainer command: mark a release VERIFIED | Release metadata |
+
+### V3 migration and archival
+
+`migrate-v3` requires exactly one of `--check`, `--dry-run`, or `--apply`; applying
+requires `--yes` (otherwise exit 4). Options: `--project DIR`, `--release V`,
+`--project-rules FILE` (replace the project-rules body), and `--report FILE`
+(write JSON outside project/engine/state). The target must be VERIFIED. V3
+integrity failure returns 6, active workflow 7, unsafe path 5, lock busy 75,
+and already-migrated/conflicting layout 3. The plan shows the full new and removed
+instruction text, settings changes, unapproved profiles and restart notice.
+Only the integrity manifest changes in runtime state; session mappings, tasks,
+history and logs stay untouched.
+
+`archive-legacy` requires `--to DIR` and either `--dry-run` or `--apply --yes`.
+DIR must be outside the project and runtime state. It archives the explicit
+legacy development-artifact list after a managed-install integrity check;
+tracked and managed files are skipped. Cache bytecode may be deleted as reported.
+See [Migration and recovery](MIGRATION-AND-RECOVERY.md) for scope and rollback.
 
 ### Engine distribution commands
 
@@ -177,7 +199,7 @@ During an update:
 
 ## Rollback
 
-`rollback` restores the newest completed `pre-update` backup. Failed updates
+`rollback` restores the newest completed `pre-update` or `pre-migrate-v3` backup. Failed updates
 never produce a selectable backup. Before restoring it:
 
 - re-verifies every checksum in the backup;
@@ -276,5 +298,7 @@ Integrity protects this file.
   `Bash(git branch --show-current)` and rules for scripts shipped in that
   release. Wildcard `git diff`, `git log` and `git show` rules are rejected
   because options such as `--output` can write files.
-- **Legacy V3 projects** (no `.claude/orchestration.json`) are never modified.
-  `update`, `rollback` and `uninstall` refuse with exit 3.
+- **Legacy V3 projects** require explicit `migrate-v3 --apply --yes`. Ordinary
+  `update`, `rollback` and `uninstall` still refuse an unmigrated V3 project with
+  exit 3. Rolling back a completed migration restores V3 without requiring a V4
+  configuration afterwards.
