@@ -1,0 +1,56 @@
+name: Cross-platform candidate
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, macos-15-intel, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Report actual OS and architecture
+        run: python -c "import platform; print(platform.platform(), platform.machine())"
+      - name: Platform primitives
+        run: python -m unittest discover -s tests -p test_platform.py -v
+      - name: Portable installer
+        run: python -m unittest discover -s tests -p test_portable_install.py -v
+      - name: Portable runtime
+        run: python -m unittest discover -s tests -p test_runtime_portable.py -v
+      - name: Portable project lifecycle
+        run: python -m unittest discover -s tests -p test_cli_portable.py -v
+      - name: Native Windows Job containment
+        if: runner.os == 'Windows'
+        run: python -m unittest discover -s tests -p test_windows_job.py -v
+      - name: Existing POSIX regression suite against candidate
+        if: runner.os != 'Windows'
+        env:
+          ORCH_TEST_RELEASE: '4.3.0'
+        run: python -m unittest discover -s tests -v
+      - name: Legacy 4.1 Linux runtime compatibility
+        if: runner.os == 'Linux'
+        env:
+          ORCH_TEST_RELEASE: '4.1.0'
+        run: python tests/test_orchestrator.py
+  python-floor:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+      - name: Candidate regression at Python floor
+        env:
+          ORCH_TEST_RELEASE: '4.3.0'
+        run: python -B -m unittest discover -s tests -v
+  linux-distributions:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Existing five-distribution installation harness
+        run: sh tests/container/run.sh

@@ -1,5 +1,8 @@
 # Team updates
 
+For the unpublished 4.3.0 cross-platform candidate, see the
+[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+
 ## Engine updates
 
 Configure the repository and trusted signers first (see [installation](TEAM-INSTALL.md)).

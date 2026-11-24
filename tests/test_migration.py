@@ -28,10 +28,10 @@ def snapshot(root, exclude=()):
 class Migration(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='ccx-migration-')
-        self.tmp = Path(self.temp.name)
+        self.tmp = Path(self.temp.name).resolve()
         self.home = self.tmp / 'home'
         self.home.mkdir()
-        self.env = dict(os.environ, HOME=str(self.home), TMPDIR=str(self.tmp), PYTHONDONTWRITEBYTECODE='1')
+        self.env = dict(os.environ, HOME=str(self.home), PYTHONDONTWRITEBYTECODE="1", TMPDIR=str(self.tmp))
         self.env.pop('ORCHESTRATOR_FAULT', None)
         self.engine = self.tmp / 'engine'
         self.bin = self.tmp / 'bin'

@@ -1,5 +1,8 @@
 # Migration and Recovery
 
+For the unpublished 4.3.0 cross-platform candidate, see the
+[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+
 ## Version lineage
 
 | Version | Origin | Project marker | Status |

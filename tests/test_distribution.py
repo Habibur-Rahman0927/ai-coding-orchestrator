@@ -27,17 +27,22 @@ def snapshot(path):
 
 class Distribution(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix='.distribution-'))
+        self.tmp = Path(tempfile.mkdtemp(prefix='.distribution-')).resolve()
         self.home = self.tmp / 'home'
         self.home.mkdir()
         self.prefix = self.tmp / 'prefix'
         self.bin = self.tmp / 'bin'
-        self.env = dict(os.environ, HOME=str(self.home), TMPDIR=str(self.tmp))
+        self.env = dict(os.environ, HOME=str(self.home), PYTHONDONTWRITEBYTECODE="1", TMPDIR=str(self.tmp))
+        # Apple's /usr/bin/python3 launcher caches xcrun data in TMPDIR. Keep
+        # tool-owned caches outside the application tree asserted by snapshots.
+        self.tool_temp = tempfile.TemporaryDirectory(prefix='ccx-tool-cache-')
+        self.env['TMPDIR'] = self.tool_temp.name
         self.env.pop('ORCHESTRATOR_INSTALL_FAULT', None)
         self.env.pop('XDG_DATA_HOME', None)
 
     def tearDown(self):
         shutil.rmtree(self.tmp)
+        self.tool_temp.cleanup()
 
     def run_cli(self, *args, action='install', source=ROOT, env=None, expected=0):
         result = subprocess.run(['/bin/sh', str(source / (action + '.sh')), '--prefix', str(self.prefix),
@@ -269,7 +274,7 @@ class Distribution(unittest.TestCase):
     def test_default_paths_and_shells(self):
         env = dict(self.env, XDG_DATA_HOME=str(self.home / 'data with spaces'))
         for shell in (['/bin/dash'], [shutil.which('busybox'), 'ash']):
-            if not shell[0]:
+            if not shell[0] or not Path(shell[0]).exists():
                 continue
             result = subprocess.run(shell + [str(ROOT / 'install.sh'), '--dry-run'],
                                     env=env, capture_output=True, text=True)
@@ -365,7 +370,11 @@ class Distribution(unittest.TestCase):
         (commands / 'uname').unlink()
         (commands / 'uname').write_text('#!/bin/sh\necho Darwin\n')
         (commands / 'uname').chmod(0o700)
-        self.assertIn('Linux', self.run_cli(env=env, expected=2).stderr)
+        # Darwin is now supported; retain the Python floor regardless of uname.
+        self.assertIn('3.8', self.run_cli(env=env, expected=2).stderr)
+        (commands / 'python3').unlink()
+        (commands / 'python3').symlink_to(shutil.which('python3'))
+        self.run_cli('--dry-run', env=env)
 
 
 if __name__ == '__main__':

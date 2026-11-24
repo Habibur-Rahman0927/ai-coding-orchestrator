@@ -6,8 +6,10 @@ State (session mappings, workflows, logs) lives under
 ~/.local/state/claude-codex/<project-id>/ and is never removed by this CLI.
 """
 
+import sys
+sys.dont_write_bytecode = True
+
 import argparse
-import fcntl
 import hashlib
 import json
 import os
@@ -21,6 +23,11 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+import ccx_platform as platform_api
+import ccx_platform as fcntl
+
 os.umask(0o077)
 
 CLI_VERSION = "4.1.0"
@@ -32,7 +39,7 @@ REGISTRY = GLOBAL / "registry/projects.json"
 CURRENT_FILE = GLOBAL / "current.json"
 CLI_CHECKSUMS = GLOBAL / "cli-checksums.json"
 PROJECT_BACKUPS = GLOBAL / "backups/projects"
-STATE_ROOT = (Path.home() / ".local/state/claude-codex").resolve()
+STATE_ROOT = platform_api.state_root().resolve()
 
 BLOCK_BEGIN = "<!-- BEGIN CLAUDE-CODEX ORCHESTRATION (managed by orchestrator; edits inside are replaced on update) -->"
 BLOCK_END = "<!-- END CLAUDE-CODEX ORCHESTRATION -->"
@@ -65,11 +72,11 @@ EXIT_BUSY = 75
 SAFE_ALLOW_RULE = re.compile(
     r"^Bash\((?:"
     r"git status|git branch --show-current"
-    r"|python3 \.claude/scripts/(?P<script>[a-z][a-z-]*\.py)(?: --?[a-z][a-z-]*)*(?: \*)?"
+    r"|python3? \.claude/scripts/(?P<script>[a-z][a-z-]*\.py)(?: --?[a-z][a-z-]*)*(?: \*)?"
     r")\)$"
 )
 SAFE_HOOK_COMMAND = re.compile(
-    r'^python3 "\$CLAUDE_PROJECT_DIR/\.claude/hooks/[a-z][a-z-]*\.py"$'
+    r'^python3? "\$CLAUDE_PROJECT_DIR/\.claude/hooks/[a-z][a-z-]*\.py"$'
 )
 
 
@@ -115,9 +122,9 @@ def fsync_dir(directory):
 def assert_canonical_parent(path):
     """Reject a path whose directory chain contains a symlink (checked immediately before use)."""
     parent = os.path.abspath(path.parent)
-    if os.path.realpath(parent) != parent:
+    if os.path.normcase(os.path.realpath(parent)) != os.path.normcase(parent):
         raise OrchestratorError(f"Symlink in directory chain: {path}", EXIT_UNSAFE)
-    if path.is_symlink():
+    if platform_api.is_link(path):
         raise OrchestratorError(f"Refusing to use symlink: {path}", EXIT_UNSAFE)
 
 
@@ -125,13 +132,16 @@ def atomic_write(path, data, mode=0o600):
     if isinstance(data, str):
         data = data.encode()
     assert_canonical_parent(path)
+    security = platform_api.capture_security(path) if path.exists() else None
     fd, temp = tempfile.mkstemp(dir=path.parent, prefix=".orchestrator-")
     try:
         with os.fdopen(fd, "wb") as handle:
             handle.write(data)
             handle.flush()
             os.fsync(handle.fileno())
-        os.chmod(temp, mode)
+        platform_api.secure_mode(Path(temp), mode)
+        if security is not None:
+            platform_api.restore_security(Path(temp), security)
         os.replace(temp, path)
     except BaseException:
         Path(temp).unlink(missing_ok=True)
@@ -140,41 +150,37 @@ def atomic_write(path, data, mode=0o600):
 
 
 def write_json(path, data, mode=0o600):
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    platform_api.secure_mkdir(path.parent, parents=True, exist_ok=True, mode=0o700)
     atomic_write(path, json.dumps(data, indent=2) + "\n", mode)
 
 
 def read_json(path, default=None):
     try:
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return default
 
 
 def relative_parts(rel):
-    rel_path = Path(rel)
-    if rel_path.is_absolute() or ".." in rel_path.parts or not rel_path.parts:
-        raise OrchestratorError(f"Unsafe relative path: {rel}", EXIT_UNSAFE)
-    return rel_path
+    try:
+        return platform_api.validate_relative(rel)
+    except (ValueError, OSError) as error:
+        raise OrchestratorError(f"Unsafe relative path: {rel}: {error}", EXIT_UNSAFE)
 
 
 def safe_target(base, rel):
     """Return base/rel after rejecting traversal, symlinks and foreign owners."""
     rel_path = relative_parts(rel)
-    uid = os.getuid()
     current = base
-    if base.is_symlink():
+    if platform_api.is_link(base):
         raise OrchestratorError(f"Unsafe symlink: {base}", EXIT_UNSAFE)
     for part in rel_path.parts:
         current = current / part
-        if current.is_symlink():
+        if platform_api.is_link(current):
             raise OrchestratorError(f"Unsafe symlink: {current}", EXIT_UNSAFE)
         if current.exists():
-            info = current.lstat()
-            if info.st_uid != uid:
-                raise OrchestratorError(f"Unexpected owner: {current}", EXIT_UNSAFE)
-            if stat.S_IMODE(info.st_mode) & 0o002:
-                raise OrchestratorError(f"World-writable path: {current}", EXIT_UNSAFE)
+            platform_api.validate_owner(current)
+            platform_api.validate_permissions(current, mask=0o002)
     resolved_base = base.resolve()
     if current.exists() and resolved_base not in current.resolve().parents:
         raise OrchestratorError(f"Path escapes {base}: {rel}", EXIT_UNSAFE)
@@ -191,11 +197,12 @@ class Transaction:
     def remember(self, path):
         if path in self.originals:
             return
-        if path.is_symlink():
+        if platform_api.is_link(path):
             raise OrchestratorError(f"Unsafe symlink: {path}", EXIT_UNSAFE)
         if path.exists():
             self.originals[path] = (
-                path.read_bytes(), stat.S_IMODE(path.stat().st_mode)
+                path.read_bytes(), stat.S_IMODE(path.stat().st_mode),
+                platform_api.capture_security(path)
             )
         else:
             self.originals[path] = None
@@ -203,13 +210,13 @@ class Transaction:
     def ensure_dir(self, directory):
         missing = []
         probe = directory
-        while not probe.exists() and not probe.is_symlink():
+        while not probe.exists() and not platform_api.is_link(probe):
             missing.append(probe)
             probe = probe.parent
-        if os.path.realpath(probe) != os.path.abspath(probe):
+        if os.path.normcase(os.path.realpath(probe)) != os.path.normcase(os.path.abspath(probe)):
             raise OrchestratorError(f"Symlink in directory chain: {probe}", EXIT_UNSAFE)
         for entry in reversed(missing):
-            entry.mkdir(mode=0o700)
+            platform_api.secure_mkdir(entry, mode=0o700)
             self.created_dirs.append(entry)
 
     def write(self, path, data, mode=0o600):
@@ -232,8 +239,9 @@ class Transaction:
                     assert_canonical_parent(path)
                     path.unlink(missing_ok=True)
                 else:
-                    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                    platform_api.secure_mkdir(path.parent, parents=True, exist_ok=True, mode=0o700)
                     atomic_write(path, original[0], original[1])
+                    platform_api.restore_security(path, original[2])
             except Exception as error:  # keep restoring the remaining paths
                 errors.append(f"{path}: {error}")
         for directory in reversed(self.created_dirs):
@@ -261,8 +269,9 @@ def resolve_project(args):
     if not start.is_dir():
         raise OrchestratorError(f"Project directory unavailable: {start}")
     root = git_toplevel(start)
-    if root.stat().st_uid != os.getuid():
-        raise OrchestratorError(f"Project not owned by current user: {root}", EXIT_UNSAFE)
+    platform_api.validate_owner(root)
+    if os.name == "nt":
+        platform_api.validate_permissions(root)
     return root
 
 
@@ -281,21 +290,23 @@ class ProjectLocks:
         self.directory = state_dir(root)
         self.hold_execution = hold_execution
         self.handles = []
-        self.cleanup_created = cleanup_created
+        self.cleanup_created = cleanup_created and os.name != "nt"  # Windows lock names remain stable.
         self.created_locks = []
 
     def __enter__(self):
-        self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        platform_api.secure_mkdir(self.directory, parents=True, exist_ok=True, mode=0o700)
         names = ["management.lock"]
         if self.hold_execution:
             names.append("project-execution.lock")
         try:
             for name in names:
                 path = self.directory / name
-                if path.is_symlink():
+                if platform_api.is_link(path):
                     raise OrchestratorError(f"Unsafe lock file: {path}", EXIT_UNSAFE)
                 existed = path.exists()
                 handle = path.open("a")
+                if os.name == "nt":
+                    platform_api.validate_permissions(path)
                 try:
                     fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 except BlockingIOError:
@@ -315,7 +326,7 @@ class ProjectLocks:
 
     def __exit__(self, *exc):
         for path, inode in self.created_locks:
-            if not path.is_symlink() and path.exists() and path.stat().st_ino == inode:
+            if not platform_api.is_link(path) and path.exists() and path.stat().st_ino == inode:
                 path.unlink()
         self.created_locks = []
         for handle in self.handles:
@@ -343,7 +354,7 @@ def require_no_active_workflow(root):
 
 def project_config(root):
     path = root / ".claude/orchestration.json"
-    if path.is_symlink():
+    if platform_api.is_link(path):
         raise OrchestratorError(f"Unsafe symlink: {path}", EXIT_UNSAFE)
     return read_json(path)
 
@@ -386,7 +397,7 @@ def release_metadata(version):
 def all_releases():
     found = []
     for path in RELEASES.iterdir() if RELEASES.is_dir() else []:
-        if path.is_dir() and not path.is_symlink() and re.fullmatch(r"\d+\.\d+\.\d+", path.name):
+        if path.is_dir() and not platform_api.is_link(path) and re.fullmatch(r"\d+\.\d+\.\d+", path.name):
             found.append(path.name)
     return sorted(found, key=lambda v: tuple(int(x) for x in v.split(".")))
 
@@ -401,14 +412,14 @@ def current_release():
 
 def verify_release(version):
     directory = release_dir(version)
-    if not directory.is_dir() or directory.is_symlink():
+    if not directory.is_dir() or platform_api.is_link(directory):
         raise OrchestratorError(f"Release unavailable: {version}", EXIT_INTEGRITY)
     manifest = read_json(directory / "checksums.json")
     if not manifest:
         raise OrchestratorError(f"Release checksums missing: {version}", EXIT_INTEGRITY)
     for name, expected in manifest.items():
         path = directory / relative_parts(name)
-        if path.is_symlink() or not path.is_file() or digest(path) != expected:
+        if platform_api.is_link(path) or not path.is_file() or digest(path) != expected:
             raise OrchestratorError(f"Release integrity mismatch: {version}/{name}", EXIT_INTEGRITY)
     for folder in ("scripts", "hooks"):
         for path in (directory / folder).glob("*"):
@@ -461,19 +472,29 @@ def validate_template_settings(template, scripts=None):
 
 
 def template_settings(version):
-    return validate_template_settings(
-        json.loads((release_dir(version) / "templates/settings.template.json").read_text()),
-        scripts={path.name for path in (release_dir(version) / "scripts").glob("*.py")}
-    )
+    template = json.loads((release_dir(version) / "templates/settings.template.json").read_text(encoding="utf-8"))
+    # Native Windows installations commonly expose python.exe, not python3.
+    # Keep the explicit Bash hook environment contract while resolving Python.
+    if os.name == "nt" and version == "4.3.0" and shutil.which("python"):
+        template["permissions"]["allow"] = [rule.replace("Bash(python3 ", "Bash(python ")
+                                                 for rule in template["permissions"].get("allow", [])]
+        for definitions in template.get("hooks", {}).values():
+            for definition in definitions:
+                for hook in definition.get("hooks", []):
+                    hook["command"] = hook["command"].replace("python3 ", "python ", 1)
+    return validate_template_settings(template,
+        scripts={path.name for path in (release_dir(version) / "scripts").glob("*.py")})
 
 
 def instruction_block(version, root, existing_text=None):
-    body = (release_dir(version) / "templates/CLAUDE.md").read_text().strip()
+    body = (release_dir(version) / "templates/CLAUDE.md").read_text(encoding="utf-8").strip()
+    if os.name == "nt" and version == "4.3.0" and shutil.which("python"):
+        body = body.replace("python3 .claude/", "python .claude/")
     lines = [BLOCK_BEGIN]
     agents = root / "AGENTS.md"
     claude = root / "CLAUDE.md"
     existing = existing_text if existing_text is not None else (
-        claude.read_text() if claude.is_file() and not claude.is_symlink() else "")
+        claude.read_text(encoding="utf-8") if claude.is_file() and not platform_api.is_link(claude) else "")
     existing, _ = strip_block(existing, BLOCK_BEGIN, BLOCK_END)
     legacy = legacy_400_block()
     if legacy:
@@ -487,7 +508,7 @@ def instruction_block(version, root, existing_text=None):
 
 
 def ignore_block(version):
-    body = (release_dir(version) / "templates/.gitignore").read_text().strip()
+    body = (release_dir(version) / "templates/.gitignore").read_text(encoding="utf-8").strip()
     return f"{IGNORE_BEGIN}\n{body}\n{IGNORE_END}\n"
 
 
@@ -496,7 +517,7 @@ def legacy_400_block():
     path = RELEASES / "4.0.0/templates/CLAUDE.md"
     if not path.is_file():
         return None
-    template = path.read_text()
+    template = path.read_text(encoding="utf-8")
     template = re.split(r"^## 15\. [^\n]*Project Rules$", template, maxsplit=1, flags=re.M)[0]
     template = template.replace("@AGENTS.md", "", 1).strip()
     return template.replace("Orchestration V3", "Orchestration V4")
@@ -551,7 +572,7 @@ def load_settings(path):
     if not path.exists():
         return {}
     try:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
     except ValueError:
         raise OrchestratorError(f"Invalid JSON, no files changed: {path}", EXIT_CONFLICT)
     if not isinstance(data, dict):
@@ -613,12 +634,12 @@ def previous_template(config):
     """Template the project was installed with: its integrity-protected snapshot first."""
     root = Path(config["project"])
     snapshot = root / ".claude/settings.template.json"
-    if snapshot.is_file() and not snapshot.is_symlink():
-        return json.loads(snapshot.read_text())
+    if snapshot.is_file() and not platform_api.is_link(snapshot):
+        return json.loads(snapshot.read_text(encoding="utf-8"))
     version = str(config.get("version"))
     path = RELEASES / version / "templates/settings.template.json"
     if re.fullmatch(r"\d+\.\d+\.\d+", version) and path.is_file():
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding="utf-8"))
     raise OrchestratorError("Installed settings template unavailable; cannot reconcile safely.",
                             EXIT_CONFLICT)
 
@@ -649,17 +670,17 @@ def existing_orchestration(root):
     markers = []
     for rel in (".claude/scripts/codex-session.py", ".claude/hooks/completion-gate.py",
                 ".claude/orchestration.json"):
-        if (root / rel).exists() or (root / rel).is_symlink():
+        if (root / rel).exists() or platform_api.is_link(root / rel):
             markers.append(rel)
     claude = root / "CLAUDE.md"
-    if claude.is_file() and not claude.is_symlink():
-        text = claude.read_text()
+    if claude.is_file() and not platform_api.is_link(claude):
+        text = claude.read_text(encoding="utf-8")
         if BLOCK_BEGIN in text or "# Claude-Codex Orchestration" in text:
             markers.append("CLAUDE.md orchestration section")
     for name in ("settings.json", "settings.local.json"):
         path = root / ".claude" / name
-        if path.is_file() and not path.is_symlink():
-            text = path.read_text()
+        if path.is_file() and not platform_api.is_link(path):
+            text = path.read_text(encoding="utf-8")
             if "completion-gate.py" in text or "codex-session.py" in text:
                 markers.append(f".claude/{name} orchestration hooks")
     if (state_dir(root) / "integrity/manifest.json").exists():
@@ -679,7 +700,7 @@ def profile_prefix(directory):
 def detect_profiles(root):
     candidates = ["."]
     for entry in sorted(root.iterdir()):
-        if (entry.is_dir() and not entry.is_symlink() and not entry.name.startswith(".")
+        if (entry.is_dir() and not platform_api.is_link(entry) and not entry.name.startswith(".")
                 and entry.name not in ("node_modules", "vendor", "dist", "build", "venv")):
             candidates.append(entry.name)
     profiles = {}
@@ -694,11 +715,11 @@ def detect_profiles(root):
 
         def has(name):
             path = base / name
-            return path.is_file() and not path.is_symlink()
+            return path.is_file() and not platform_api.is_link(path)
 
         if has("package.json"):
             try:
-                scripts = json.loads((base / "package.json").read_text()).get("scripts", {})
+                scripts = json.loads((base / "package.json").read_text(encoding="utf-8")).get("scripts", {})
             except ValueError:
                 scripts = {}
             runner = (["pnpm", "run"] if has("pnpm-lock.yaml")
@@ -708,19 +729,34 @@ def detect_profiles(root):
                 if name in NODE_SCRIPTS or name.startswith("test:"):
                     add(directory, name.replace(":", "-"), runner + [name],
                         NODE_SCRIPTS.get(name, 1200))
+        if has("composer.json"):
+            try:
+                scripts = json.loads((base / "composer.json").read_text(encoding="utf-8")).get("scripts", {})
+            except ValueError:
+                scripts = {}
+            for name in sorted(scripts):
+                if name in NODE_SCRIPTS or name.startswith("test:"):
+                    add(directory, "composer-" + name.replace(":", "-"),
+                        ["composer", "run-script", name], NODE_SCRIPTS.get(name, 1200))
+        if has("compose.yaml") or has("compose.yml") or has("docker-compose.yml"):
+            add(directory, "docker-config", ["docker", "compose", "config", "--quiet"], 120)
+        for name in ("build", "test"):
+            if has(name + ".ps1"):
+                add(directory, "powershell-" + name,
+                    ["pwsh", "-NoProfile", "-File", "./" + name + ".ps1"], 1200)
         if has("artisan") and has("composer.json"):
             add(directory, "artisan-test", ["php", "artisan", "test"], 1200)
-            if has("vendor/bin/pint") or "laravel/pint" in (base / "composer.json").read_text():
-                add(directory, "pint-test", ["vendor/bin/pint", "--test"], 600)
+            if has("vendor/bin/pint") or "laravel/pint" in (base / "composer.json").read_text(encoding="utf-8"):
+                add(directory, "pint-test", (["php", "vendor/bin/pint", "--test"] if os.name == "nt" else ["vendor/bin/pint", "--test"]), 600)
         if has("pyproject.toml") or has("pytest.ini") or has("setup.py"):
-            add(directory, "pytest", ["python3", "-m", "pytest"], 1200)
+            add(directory, "pytest", ["python" if os.name == "nt" else "python3", "-m", "pytest"], 1200)
         if has("go.mod"):
             add(directory, "go-build", ["go", "build", "./..."], 900)
             add(directory, "go-test", ["go", "test", "./..."], 1200)
             add(directory, "go-vet", ["go", "vet", "./..."], 600)
         if has("Cargo.toml"):
             add(directory, "cargo-test", ["cargo", "test"], 1800)
-        if has("Makefile") and re.search(r"^test:", (base / "Makefile").read_text(), re.M):
+        if has("Makefile") and re.search(r"^test:", (base / "Makefile").read_text(encoding="utf-8"), re.M):
             add(directory, "make-test", ["make", "test"], 1200)
     return profiles
 
@@ -777,7 +813,7 @@ def manifest_conflicts(root):
         if rel in USER_FILES:
             continue
         path = root / rel
-        if path.is_symlink():
+        if platform_api.is_link(path):
             conflicts.append(f"{rel}: SYMLINK")
         elif not path.is_file():
             conflicts.append(f"{rel}: MISSING")
@@ -808,7 +844,7 @@ def backup_scope(root, config, version):
 def create_backup(root, kind, version_before, extra_files=(), scope_version=None):
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     directory = PROJECT_BACKUPS / project_id(root) / f"{stamp}-{kind}"
-    directory.mkdir(parents=True, mode=0o700)
+    platform_api.secure_mkdir(directory, parents=True, mode=0o700)
     config = project_config(root)
     record = {
         "schema": 1,
@@ -824,23 +860,25 @@ def create_backup(root, kind, version_before, extra_files=(), scope_version=None
         source = safe_target(root, rel)
         if source.is_file():
             target = directory / "files" / rel
-            target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            platform_api.secure_mkdir(target.parent, parents=True, exist_ok=True, mode=0o700)
             data = source.read_bytes()
             atomic_write(target, data, 0o600)
             record["files"][rel] = {
                 "sha256": sha256_bytes(data),
                 "mode": stat.S_IMODE(source.stat().st_mode),
+                "security": platform_api.capture_security(source),
             }
         else:
             record["files"][rel] = None
     for rel in STATE_FILES:
         source = state_dir(root) / rel
-        if source.is_file() and not source.is_symlink():
+        if source.is_file() and not platform_api.is_link(source):
             target = directory / "state" / rel
-            target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            platform_api.secure_mkdir(target.parent, parents=True, exist_ok=True, mode=0o700)
             data = source.read_bytes()
             atomic_write(target, data, 0o600)
-            record["state"][rel] = {"sha256": sha256_bytes(data), "mode": 0o600}
+            record["state"][rel] = {"sha256": sha256_bytes(data), "mode": 0o600,
+                                    "security": platform_api.capture_security(source)}
         else:
             record["state"][rel] = None
     write_json(directory / "backup.json", record)
@@ -849,7 +887,7 @@ def create_backup(root, kind, version_before, extra_files=(), scope_version=None
 
 
 def verify_backup(directory):
-    if directory.is_symlink() or not directory.is_dir():
+    if platform_api.is_link(directory) or not directory.is_dir():
         raise OrchestratorError(f"Unsafe or missing backup: {directory}", EXIT_UNSAFE)
     record = read_json(directory / "backup.json")
     if not record:
@@ -863,7 +901,7 @@ def verify_backup(directory):
             for parent in [path, *path.parents]:
                 if parent == directory:
                     break
-                if parent.is_symlink():
+                if platform_api.is_link(parent):
                     raise OrchestratorError(f"Symlink inside backup: {parent}", EXIT_UNSAFE)
             if not path.is_file() or digest(path) != meta["sha256"]:
                 raise OrchestratorError(f"Backup checksum mismatch: {rel}", EXIT_INTEGRITY)
@@ -874,7 +912,7 @@ def list_backups(root):
     base = PROJECT_BACKUPS / project_id(root)
     if not base.is_dir():
         return []
-    return sorted(p for p in base.iterdir() if p.is_dir() and not p.is_symlink())
+    return sorted(p for p in base.iterdir() if p.is_dir() and not platform_api.is_link(p))
 
 
 def restore_backup(root, directory, transaction):
@@ -887,12 +925,14 @@ def restore_backup(root, directory, transaction):
             transaction.remove(target)
         else:
             transaction.write(target, (directory / "files" / rel).read_bytes(), meta["mode"])
+            platform_api.restore_security(target, meta.get("security"))
     for rel, meta in record["state"].items():
         target = safe_target(state_dir(root), rel)
         if meta is None:
             transaction.remove(target)
         else:
             transaction.write(target, (directory / "state" / rel).read_bytes(), 0o600)
+            platform_api.restore_security(target, meta.get("security"))
     return record
 
 
@@ -904,7 +944,7 @@ def registry_data():
 
 
 def registry_update(mutator):
-    REGISTRY.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    platform_api.secure_mkdir(REGISTRY.parent, parents=True, exist_ok=True, mode=0o700)
     with REGISTRY.with_suffix(".lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         data = registry_data()
@@ -960,14 +1000,14 @@ def install_files(root, version, transaction, config_before=None, keep_profiles=
 
     # instructions
     claude = safe_target(root, "CLAUDE.md")
-    text = claude.read_text() if claude.exists() else ""
+    text = claude.read_text(encoding="utf-8") if claude.exists() else ""
     block = instruction_block(version, root)
     mode = stat.S_IMODE(claude.stat().st_mode) if claude.exists() else 0o644
     transaction.write(claude, apply_instruction_block(text, block), mode)
 
     ignore = safe_target(root, ".claude/.gitignore")
-    ignore_text = ignore.read_text() if ignore.exists() else ""
-    legacy_ignore = (RELEASES / "4.0.0/templates/.gitignore").read_text() \
+    ignore_text = ignore.read_text(encoding="utf-8") if ignore.exists() else ""
+    legacy_ignore = (RELEASES / "4.0.0/templates/.gitignore").read_text(encoding="utf-8") \
         if (RELEASES / "4.0.0/templates/.gitignore").is_file() else None
     transaction.write(ignore, apply_ignore_block(ignore_text, ignore_block(version), legacy_ignore), 0o644)
     fault("install:after-instructions")
@@ -1044,7 +1084,7 @@ def cmd_init(args):
     for rel in USER_FILES + tuple(release_payload(version)) + MANAGED_CONFIG:
         safe_target(root, rel)
     collisions = [rel for rel in tuple(release_payload(version)) + MANAGED_CONFIG
-                  if (root / rel).exists() or (root / rel).is_symlink()]
+                  if (root / rel).exists() or platform_api.is_link(root / rel)]
     if collisions:
         raise OrchestratorError(
             "File conflict, no files changed: " + ", ".join(collisions), EXIT_CONFLICT
@@ -1134,7 +1174,7 @@ def cmd_update(args):
     known |= set(config.get("managed_files", {})) | set(
         (read_json(state_dir(root) / "integrity/manifest.json", {}) or {}).get("files", {}))
     conflicts += [f"{rel}: UNMANAGED_FILE_AT_NEW_PATH" for rel in release_payload(target)
-                  if rel not in known and ((root / rel).exists() or (root / rel).is_symlink())]
+                  if rel not in known and ((root / rel).exists() or platform_api.is_link(root / rel))]
     up_to_date = config.get("version") == target and not [
         op for op in plan["operations"] if op[0] in ("add", "replace", "remove")
     ]
@@ -1213,7 +1253,7 @@ def cmd_rollback(args):
     post = record.get("post_files")
     for rel in record["files"]:
         path = root / rel
-        if path.is_symlink():
+        if platform_api.is_link(path):
             conflicts.append(f"{rel}: SYMLINK")
             continue
         current = digest(path) if path.is_file() else None
@@ -1285,9 +1325,9 @@ def original_settings_from_install_backup(config):
     if record:
         verify_backup(path)
         meta = record["files"].get(".claude/settings.local.json")
-        return {} if meta is None else json.loads((path / "files/.claude/settings.local.json").read_text())
+        return {} if meta is None else json.loads((path / "files/.claude/settings.local.json").read_text(encoding="utf-8"))
     legacy = path / "settings.local.json"
-    return json.loads(legacy.read_text()) if legacy.is_file() else {}
+    return json.loads(legacy.read_text(encoding="utf-8")) if legacy.is_file() else {}
 
 
 def previous_added_settings(config):
@@ -1299,7 +1339,7 @@ def previous_added_settings(config):
     if not legacy_template.is_file():
         raise OrchestratorError("Release 4.0.0 unavailable; cannot derive installer-owned settings.",
                                 EXIT_CONFLICT)
-    template = json.loads(legacy_template.read_text())
+    template = json.loads(legacy_template.read_text(encoding="utf-8"))
     return {
         "allow": [r for r in template.get("permissions", {}).get("allow", [])
                   if r not in before.get("permissions", {}).get("allow", [])],
@@ -1361,7 +1401,7 @@ def cmd_uninstall(args):
                     transaction.write(settings_path, json.dumps(settings, indent=2) + "\n", 0o600)
             claude = safe_target(root, "CLAUDE.md")
             if claude.exists():
-                text, _ = strip_block(claude.read_text(), BLOCK_BEGIN, BLOCK_END)
+                text, _ = strip_block(claude.read_text(encoding="utf-8"), BLOCK_BEGIN, BLOCK_END)
                 text, _ = strip_legacy_400_instructions(text)
                 if not text.strip() and originally_absent("CLAUDE.md"):
                     transaction.remove(claude)
@@ -1369,7 +1409,7 @@ def cmd_uninstall(args):
                     transaction.write(claude, text, stat.S_IMODE(claude.stat().st_mode))
             ignore = safe_target(root, ".claude/.gitignore")
             if ignore.exists():
-                text, _ = strip_block(ignore.read_text(), IGNORE_BEGIN, IGNORE_END)
+                text, _ = strip_block(ignore.read_text(encoding="utf-8"), IGNORE_BEGIN, IGNORE_END)
                 if not text.strip() and originally_absent(".claude/.gitignore"):
                     transaction.remove(ignore)
                 else:
@@ -1511,11 +1551,16 @@ def cmd_profile_approve(args):
 def cmd_doctor(args):
     print("Orchestrator version:", CLI_VERSION)
     print("Engine version:", ENGINE_VERSION)
+    print("Platform:", json.dumps(platform_api.environment_info(), sort_keys=True))
     print("CLI integrity:", verify_cli())
     version = current_release()
     verify_release(version)
     print(f"Release integrity ({version}): PASS")
-    for command in ("python3", "git", "claude", "codex"):
+    if not sys.platform.startswith("linux") and version in ("4.0.0", "4.1.0"):
+        print("Runtime compatibility: legacy payload requires Linux; evaluate 4.3.0 explicitly with --allow-unverified")
+    if os.name == "nt":
+        print("Claude hooks: Git Bash required; native Windows lifecycle NOT VERIFIED")
+    for command in ("python3", "git", "claude", "codex", "gh", "ssh-keygen"):
         print(command + ":", shutil.which(command) or "NOT FOUND")
     print("Registered projects:", len(registry_data()["projects"]))
     return 0
@@ -1554,7 +1599,7 @@ def cmd_release_promote(args):
     """Mark a release VERIFIED only with a passing test report for its exact checksums."""
     version = args.version
     manifest = verify_release(version)
-    report = json.loads(Path(args.test_report).read_text())
+    report = json.loads(Path(args.test_report).read_text(encoding="utf-8"))
     checksum_digest = sha256_bytes((release_dir(version) / "checksums.json").read_bytes())
     if report.get("status") != "PASS" or report.get("failures") or report.get("errors"):
         raise OrchestratorError("Test report is not PASS; metadata unchanged.", EXIT_INTEGRITY)
@@ -1725,6 +1770,9 @@ def main(argv=None):
     except OrchestratorError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return error.code
+    except PermissionError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return EXIT_UNSAFE
 
 
 if __name__ == "__main__":

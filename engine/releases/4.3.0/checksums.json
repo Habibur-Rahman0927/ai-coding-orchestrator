@@ -1,0 +1,21 @@
+{
+  "VERSION": "1e5302003691b6fdc7bddc0736eef7ce3adc870e97afdfcfb497dde2a78ed545",
+  "hooks/completion-gate.py": "d62bb839bf84f093e19fd7967d51b72e0223ec874cb675729e4249ab169ba857",
+  "hooks/session-init.py": "1615ee0f149f55852703947cf24369d0510962ac204b03a72bbfb30fdce3c175",
+  "scripts/ccx_job.py": "e2bd530ada9ce925565279c038c1932c30a47167787c70d04028a20ddc07c2bf",
+  "scripts/ccx_platform.py": "cbd516b9111398da3347a548d0df41ff36e02c5a91fc549464ab4abf26d98032",
+  "scripts/ccx_runtime.py": "cfc951895bed521eb3bfcf6e93f137a5c363952f37fb528a1b0300761f720b15",
+  "scripts/ccx_windows.py": "80b6e63bb576eb01497c1b33ba56da3f52851f259cf66177d96d43e18c44a410",
+  "scripts/codex-session.py": "2ab0ad4d072161e3a79fa2c25336646ff9b98f9d1b3fb6c07c9e034ded74eb60",
+  "scripts/context-monitor.py": "3dada988738a1b47194e6bcf55212f129381cff963964c06a6736b06f37d7918",
+  "scripts/integrity-check.py": "4a8e6d02f223dd64248fef6e7ef4c5543003a298045e5fd1d60ed4be4a4f7c8a",
+  "scripts/managed-exec.py": "11fbf6f43e31b610e9adbbde319af49e2af0ef992cd7887adde2aee3c1ffc3cd",
+  "scripts/orchestration-status.py": "f6c5b0038342550cbbeb0e2eb2d4a6c52629e3c8b50877ac1bdbaa96376bcd13",
+  "scripts/recovery-controller.py": "0b0de946fcd8ee795889d9a8d67e63c5e03216b4a54f76bf87268bd620a0c6f0",
+  "scripts/task-state.py": "12ffbe36a70d345d7becdac44b4dc459754db1af382e8ce0b85e3e0d18251b43",
+  "scripts/usage-guard.py": "5edcf537decf5908dbb545d9cbcc1bb93b21328ae15b5c1fd6f86a7181c2e624",
+  "scripts/watchdog.py": "1797f1186b249b3941974db6737324f89397e52d86b6150f6d6dadd220e19f6a",
+  "templates/.gitignore": "e7404ba25b2934e5114967ec90bc0f634d05041310bb23a8cd3c7531c9ecaec1",
+  "templates/CLAUDE.md": "3c8ad7567ec79262154a6278f7f185e636ad27977b1801813a4c945a04e5d166",
+  "templates/settings.template.json": "43bace012c06ca847a2581fa2a5dfdd737c5a5220e49cf4309cace555d98ad63"
+}

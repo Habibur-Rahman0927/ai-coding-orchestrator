@@ -1,5 +1,8 @@
 # Security model
 
+For the unpublished 4.3.0 cross-platform candidate, see the
+[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+
 The signature on **SHA256SUMS**, verified against independently trusted
 `allowed_signers` and the configured signer identity, is the release trust
 anchor. Its namespace is `claude-codex-orchestrator-release`. The authenticated

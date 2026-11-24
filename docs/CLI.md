@@ -1,5 +1,8 @@
 # Claude-Codex Orchestrator CLI
 
+For the unpublished 4.3.0 cross-platform candidate, see the
+[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+
 Engine 4.3.0; CLI/project payload 4.1.0. `--version` reports CLI_VERSION;
 `versions` includes `engine_version`, and `doctor` prints both versions.
 

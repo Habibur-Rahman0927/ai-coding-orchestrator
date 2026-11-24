@@ -1,0 +1,145 @@
+{
+  "status": "LOCAL_AUTOMATED_PASS",
+  "date": "2026-11-24",
+  "release": "4.3.0",
+  "platform": {
+    "os": "macOS",
+    "version": "27.2.1",
+    "architecture": "arm64",
+    "python": "3.9.6",
+    "git": "2.56.0",
+    "openssh": "10.5p1",
+    "codex": "0.171.0-alpha.13",
+    "claude": "NOT_FOUND",
+    "gh": "NOT_FOUND"
+  },
+  "command": "ORCH_TEST_RELEASE=4.3.0 python3 -B -m unittest discover -s tests -v",
+  "tests_run": 139,
+  "passed": 133,
+  "skipped": 6,
+  "failures": 0,
+  "errors": 0,
+  "elapsed_seconds": 108.366,
+  "existing_regressions": 99,
+  "new_tests": 40,
+  "baseline": {
+    "tests_run": 99,
+    "failures": 52,
+    "errors": 0
+  },
+  "release_checksums_sha256": "411440b91184429b1263aec1d6ccd9d0e42b7beda059990661c89682106a645d",
+  "cli_sha256": "b600c7797999d56bfa30441fc883c8f2c8b988c9e78d278f8f397f98b1203d21",
+  "legacy_payload_changed": false,
+  "native_windows": "NOT_RUN",
+  "linux": "BLOCKED_DOCKER_SOCKET",
+  "macos_intel": "NOT_RUN",
+  "live_verification": {
+    "platform": "macOS ARM64",
+    "checks": [
+      {
+        "check": "Isolated per-user global CLI install",
+        "status": "PASS"
+      },
+      {
+        "check": "Global launcher and doctor",
+        "status": "PASS"
+      },
+      {
+        "check": "Fresh disposable Git project",
+        "status": "PASS"
+      },
+      {
+        "check": "Candidate initialization",
+        "status": "PASS"
+      },
+      {
+        "check": "Project integrity",
+        "status": "PASS"
+      },
+      {
+        "check": "Claude-only default state",
+        "status": "PASS"
+      },
+      {
+        "check": "Actual SessionStart script (not Claude lifecycle)",
+        "status": "PASS"
+      },
+      {
+        "check": "Task State Manager activation",
+        "status": "PASS"
+      },
+      {
+        "check": "Task State Manager task",
+        "status": "PASS"
+      },
+      {
+        "check": "Actual Completion Gate script (not live Claude Stop)",
+        "status": "PASS"
+      },
+      {
+        "check": "Claude-only pause",
+        "status": "PASS"
+      },
+      {
+        "check": "Approve disposable Make profile",
+        "status": "PASS"
+      },
+      {
+        "check": "Actual managed process supervision",
+        "status": "PASS"
+      },
+      {
+        "check": "Context Monitor",
+        "status": "PASS"
+      },
+      {
+        "check": "Global status reporting",
+        "status": "PASS"
+      },
+      {
+        "check": "Project backup",
+        "status": "PASS"
+      },
+      {
+        "check": "Project restore",
+        "status": "PASS"
+      },
+      {
+        "check": "Post-restore integrity",
+        "status": "PASS"
+      },
+      {
+        "check": "Safe project uninstall",
+        "status": "PASS"
+      },
+      {
+        "check": "Safe engine uninstall",
+        "status": "PASS"
+      },
+      {
+        "check": "Isolated preexisting user settings preserved",
+        "status": "PASS"
+      },
+      {
+        "check": "Actual Claude lifecycle / live Stop continuation (Claude absent)",
+        "status": "BLOCKED"
+      },
+      {
+        "check": "Authenticated read-only Codex delegation / exact session resume (sandbox startup denied)",
+        "status": "BLOCKED"
+      },
+      {
+        "check": "Real-account global installation (outside allowed writable roots)",
+        "status": "BLOCKED"
+      }
+    ],
+    "temporary_installation_removed": true
+  },
+  "dedicated_codex_session": {
+    "created": false,
+    "reason": "in-process app-server startup Operation not permitted; read-only diagnostic database",
+    "resume_last_used": false
+  },
+  "release_promoted": false,
+  "published": false
+}

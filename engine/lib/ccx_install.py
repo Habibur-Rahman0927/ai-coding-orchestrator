@@ -4,19 +4,27 @@
 Directory inode locks avoid persistent lock files and are shared by upgrades and
 uninstalls. Receipts describe code, never project registry or runtime state.
 """
+import sys
+sys.dont_write_bytecode = True
+
 import argparse
 import contextlib
-import fcntl
 import hashlib
 import json
 import os
+import platform
 from pathlib import Path
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
+import uuid
 from datetime import datetime, timezone
+
+
+# Isolated Python (-I) intentionally omits the script directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import ccx_platform as portable
 
 
 class InstallError(Exception):
@@ -36,7 +44,7 @@ def canonical_base(path):
     missing trailing components, including for a fresh destination.
     """
     path = Path(os.path.abspath(path))
-    if path.is_symlink():
+    if portable.is_link(path):
         raise InstallError('Refusing symlink: ' + str(path), 5)
     return safe(path.parent.resolve() / path.name)
 
@@ -44,15 +52,16 @@ def canonical_base(path):
 def safe(path):
     path = Path(os.path.abspath(path))
     for item in (path,) + tuple(path.parents):
-        if item.is_symlink():
+        if portable.is_link(item):
             raise InstallError('Refusing symlink: ' + str(item), 5)
     return path
 
 
 def target(base, rel):
-    p = Path(rel)
-    if p.is_absolute() or '..' in p.parts or not p.parts:
-        raise InstallError('Unsafe relative path: ' + str(rel), 5)
+    try:
+        p = portable.validate_relative(rel)
+    except ValueError as error:
+        raise InstallError(str(error), 5)
     return safe(base / p)
 
 
@@ -71,19 +80,49 @@ def files(root):
 
 def read_json(path, default=None):
     safe(path)
-    return json.loads(path.read_text()) if path.exists() else default
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
+
+
+def private_mkdir(path):
+    portable.secure_mkdir(path, mode=0o700, parents=True, exist_ok=True)
+
+
+def private_tempdir(prefix, directory=None):
+    if os.name != 'nt':
+        return Path(tempfile.mkdtemp(prefix=prefix, dir=str(directory) if directory else None)).resolve()
+    parent = Path(directory or tempfile.gettempdir()).resolve()
+    for _ in range(100):
+        path = parent / (prefix + uuid.uuid4().hex)
+        try:
+            portable.secure_mkdir(path, mode=0o700)
+            return path
+        except FileExistsError:
+            continue
+    raise InstallError('Unable to allocate private staging directory', 5)
+
+
+@contextlib.contextmanager
+def temporary_directory(prefix, directory=None):
+    path = private_tempdir(prefix, directory)
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path)
 
 
 def atomic_write(path, data, mode=0o600):
     path = safe(path)
-    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if path.exists():
+        portable.validate_owner(path)
+        portable.validate_permissions(path, mask=0o002)
+    private_mkdir(path.parent)
     fd, name = tempfile.mkstemp(prefix='.ccx-', dir=str(path.parent))
     try:
         with os.fdopen(fd, 'wb') as stream:
             stream.write(data.encode() if isinstance(data, str) else data)
             stream.flush()
             os.fsync(stream.fileno())
-        os.chmod(name, mode)
+        portable.secure_mode(Path(name), mode)
         os.replace(name, str(path))
     finally:
         if os.path.exists(name):
@@ -104,10 +143,18 @@ def write_receipt(prefix, receipt):
 
 @contextlib.contextmanager
 def lock_engine(prefix):
-    fd = os.open(str(safe(prefix)), os.O_RDONLY | os.O_DIRECTORY)
+    portable.validate_owner(prefix)
+    portable.validate_permissions(prefix, mask=0o002)
+    if os.name == 'nt':
+        lock = safe(prefix / '.engine.lock')
+        fd = os.open(str(lock), os.O_CREAT | os.O_RDWR, 0o600)
+    else:
+        fd = os.open(str(safe(prefix)), os.O_RDONLY | os.O_DIRECTORY)
     try:
+        if os.name == 'nt':
+            portable.secure_mode(lock, 0o600)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            portable.flock(fd, portable.LOCK_EX | portable.LOCK_NB)
         except BlockingIOError:
             raise InstallError('Engine is busy', 75)
         yield
@@ -128,6 +175,8 @@ def engine_payload(src):
     src = canonical_base(src)
     result = {'orchestrator.py': target(src, 'engine/orchestrator.py'),
               'uninstall.sh': target(src, 'uninstall.sh')}
+    if (src / 'uninstall.ps1').exists():
+        result['uninstall.ps1'] = target(src, 'uninstall.ps1')
     for folder in ('lib', 'releases'):
         result.update({folder + '/' + k: v for k, v in files(src / 'engine' / folder).items()})
     result.update({'docs/' + k: v for k, v in files(src / 'docs').items()})
@@ -154,7 +203,7 @@ def verify_source(src):
         for rel in engine_files:
             if 'engine/' + rel not in listing:
                 raise InstallError('Unlisted engine file: ' + rel, 6)
-    version = (src / 'VERSION').read_text().strip()
+    version = (src / 'VERSION').read_text(encoding="utf-8").strip()
     if version != code_version(src / 'engine/orchestrator.py', 'ENGINE_VERSION'):
         raise InstallError('VERSION disagrees with engine')
     return payload
@@ -163,7 +212,7 @@ def verify_source(src):
 def code_version(path, key='ENGINE_VERSION'):
     if not path.exists():
         return 'legacy'
-    match = re.search(r'^' + key + r'\s*=\s*[\'"]([^\'"]+)', path.read_text(), re.M)
+    match = re.search(r'^' + key + r'\s*=\s*[\'"]([^\'"]+)', path.read_text(encoding="utf-8"), re.M)
     return match.group(1) if match else 'legacy'
 
 
@@ -182,7 +231,32 @@ def mode(rel):
     return 0o700 if rel in ('orchestrator.py', 'uninstall.sh') else 0o600
 
 
+def filesystem_capabilities(directory):
+    """Probe the destination filesystem in a disposable private staging child."""
+    with temporary_directory('.ccx-fs-', directory) as temporary:
+        root = Path(temporary)
+        portable.secure_mode(root, 0o700)
+        sample = root / 'CaseProbe'
+        atomic_write(sample, b'first')
+        case_sensitive = not (root / 'caseprobe').exists()
+        atomic_write(sample, b'replacement')
+        if sample.read_bytes() != b'replacement':
+            raise InstallError('Destination does not support required file replacement', 5)
+        link = root / 'link-probe'
+        try:
+            link.symlink_to(sample.name)
+            symlinks = link.is_symlink() and link.read_bytes() == b'replacement'
+        except (OSError, NotImplementedError):
+            symlinks = False
+        finally:
+            if link.is_symlink():
+                link.unlink()
+        return {'case_sensitive': case_sensitive, 'symlinks': symlinks,
+                'file_replacement': True, 'security': 'windows-dacl' if os.name == 'nt' else 'posix-mode'}
+
+
 def populate(stage, src, payload, bin_dir):
+    capabilities = filesystem_capabilities(stage)
     for rel, source in payload.items():
         atomic_write(target(stage, rel), source.read_bytes(), mode(rel))
     versions = [p.name for p in (stage / 'releases').iterdir()
@@ -200,12 +274,50 @@ def populate(stage, src, payload, bin_dir):
     write_receipt(stage, {'engine_version': code_version(stage / 'orchestrator.py'),
                          'installed_at': datetime.now(timezone.utc).isoformat(),
                          'bin_dir': str(bin_dir),
+                         'filesystem': capabilities,
                          'source_manifest_sha256': digest(src / 'MANIFEST.json') if (src / 'MANIFEST.json').exists() else None,
                          'files': hashes})
     verify_hashes(stage, hashes)
 
 
+def launcher_path(bin_dir):
+    return bin_dir / ('orchestrator.cmd' if os.name == 'nt' else 'orchestrator')
+
+
+def windows_launcher(prefix):
+    # Batch paths are literal quoted strings; escape percent expansion and turn
+    # delayed expansion off before paths containing exclamation marks are read.
+    paths = [str(Path(sys.executable).resolve()), str(prefix / 'orchestrator.py')]
+    if any(any(c in path for c in '\r\n\"') for path in paths):
+        raise InstallError('Unsupported launcher path', 5)
+    python, script = [path.replace('%', '%%') for path in paths]
+    if os.name == 'nt':
+        import ctypes
+        from ctypes import wintypes
+        query = ctypes.WinDLL('kernel32', use_last_error=True).GetSystemDirectoryW
+        query.argtypes = [wintypes.LPWSTR, wintypes.UINT]
+        query.restype = wintypes.UINT
+        buffer = ctypes.create_unicode_buffer(32768)
+        length = query(buffer, len(buffer))
+        if not length or length >= len(buffer):
+            raise ctypes.WinError(ctypes.get_last_error())
+        system_directory = Path(buffer.value)
+    else:
+        # Allows source-generation tests on POSIX; only Windows executes this.
+        system_directory = Path('C:/Windows/System32')
+    chcp = str(system_directory / 'chcp.com').replace('%', '%%')
+    return ('@echo off\r\nsetlocal DisableDelayedExpansion\r\n'
+            + 'for /f "tokens=2 delims=:" %%C in (\'"' + chcp + '"\') do set "_ccx_cp=%%C"\r\n'
+            + '"' + chcp + '" 65001 >nul\r\n'
+            + '"' + python + '" -B -I "' + script + '" %*\r\n'
+            + 'set "_ccx_exit=%errorlevel%"\r\n"' + chcp + '" %_ccx_cp% >nul\r\n'
+            + 'exit /b %_ccx_exit%\r\n').encode('utf-8')
+
+
 def link_matches(link, prefix, into=False):
+    if os.name == 'nt':
+        return (not portable.is_link(link) and link.is_file()
+                and link.read_bytes() == windows_launcher(prefix))
     if not link.is_symlink():
         return False
     dest = Path(os.path.abspath(link.parent / os.readlink(str(link))))
@@ -213,6 +325,9 @@ def link_matches(link, prefix, into=False):
 
 
 def atomic_link(link, prefix):
+    if os.name == 'nt':
+        atomic_write(link, windows_launcher(prefix))
+        return
     fd, temp = tempfile.mkstemp(prefix='.ccx-', dir=str(link.parent))
     os.close(fd)
     os.unlink(temp)
@@ -225,13 +340,17 @@ def atomic_link(link, prefix):
 
 
 def doctor(prefix):
-    subprocess.run([sys.executable, '-I', str(prefix / 'orchestrator.py'), 'doctor'], check=True)
+    subprocess.run([sys.executable, '-B', '-I', str(prefix / 'orchestrator.py'), 'doctor'], check=True)
 
 
 def install(args, src):
     payload = verify_source(src)  # Always before any destination mutation.
     prefix, bin_dir = canonical_base(args.prefix), canonical_base(args.bin_dir)
-    link = bin_dir / 'orchestrator'
+    link = launcher_path(bin_dir)
+    for directory in (prefix, bin_dir):
+        if directory.exists():
+            portable.validate_owner(directory)
+            portable.validate_permissions(directory, mask=0o002)
     if os.path.lexists(str(link)) and not link_matches(link, prefix):
         raise InstallError('Foreign orchestrator executable: ' + str(link))
     if (prefix / 'orchestrator.py').exists() and not args.upgrade:
@@ -239,7 +358,10 @@ def install(args, src):
     if args.upgrade and not (prefix / 'orchestrator.py').is_file():
         raise InstallError('--upgrade requires an installed engine')
     plan = {'operation': 'upgrade' if args.upgrade else 'install', 'prefix': str(prefix),
-            'bin_dir': str(bin_dir), 'files': sorted(payload)}
+            'bin_dir': str(bin_dir), 'files': sorted(payload),
+            'platform': platform.system(), 'architecture': platform.machine(),
+            'python': platform.python_version(),
+            'tools': {tool: shutil.which(tool) for tool in ('git', 'claude', 'codex', 'gh', 'ssh', 'ssh-keygen')}}
     if args.dry_run:
         print(json.dumps(plan, indent=2))
         return
@@ -250,14 +372,15 @@ def install(args, src):
     def mkdir(p):
         if not p.exists():
             mkdir(p.parent)
-            p.mkdir(mode=0o700)
+            portable.secure_mkdir(p, mode=0o700)
             created_dirs.append(p)
     locks = contextlib.ExitStack()
     try:
         if args.upgrade:
             locks.enter_context(lock_engine(prefix))
         mkdir(prefix.parent)
-        stage = Path(tempfile.mkdtemp(prefix='.ccx-stage-', dir=str(prefix if args.upgrade else prefix.parent)))
+        stage = private_tempdir('.ccx-stage-', prefix if args.upgrade else prefix.parent)
+        portable.secure_mode(stage, 0o700)
         populate(stage, src, payload, bin_dir)
         if prefix.exists() and not args.upgrade:
             # Preserve pre-existing data and unknown files in a fresh destination.
@@ -275,7 +398,7 @@ def install(args, src):
                     atomic_write(dest, source.read_bytes(), source.stat().st_mode & 0o777)
             for directory in prefix.rglob('*'):
                 if directory.is_dir():
-                    target(stage, directory.relative_to(prefix)).mkdir(parents=True, exist_ok=True, mode=0o700)
+                    private_mkdir(target(stage, directory.relative_to(prefix)))
         fault('after-stage')
         if args.upgrade:
             upgrade(args, prefix, stage, link, mkdir)
@@ -283,7 +406,7 @@ def install(args, src):
             if not (stage / 'registry/projects.json').exists():
                 write_json(stage / 'registry/projects.json', {'projects': {}})
             if prefix.exists():
-                saved_prefix = Path(tempfile.mkdtemp(prefix='.ccx-original-', dir=str(prefix.parent)))
+                saved_prefix = private_tempdir('.ccx-original-', prefix.parent)
                 saved_prefix.rmdir()
                 os.rename(str(prefix), str(saved_prefix))
             os.rename(str(stage), str(prefix))
@@ -323,13 +446,13 @@ def is_code_path(rel):
     p = Path(rel)
     return (not p.is_absolute() and '..' not in p.parts and bool(p.parts)
             and (p.parts[0] in ('lib', 'docs') or str(p) in (
-                'orchestrator.py', 'uninstall.sh', 'cli-checksums.json',
+                'orchestrator.py', 'uninstall.sh', 'uninstall.ps1', 'cli-checksums.json',
                 'current.json', 'install-receipt.json')))
 
 
 def current_code(prefix):
     old = {}
-    for rel in ('orchestrator.py', 'uninstall.sh', 'cli-checksums.json', 'current.json', 'install-receipt.json'):
+    for rel in ('orchestrator.py', 'uninstall.sh', 'uninstall.ps1', 'cli-checksums.json', 'current.json', 'install-receipt.json'):
         p = target(prefix, rel)
         if p.exists():
             old[rel] = p
@@ -350,8 +473,9 @@ def backup_engine(prefix, old=None):
         old = current_code(prefix)
     old_version = code_version(prefix / 'orchestrator.py')
     backup_root = target(prefix, 'engine-backups')
-    backup_root.mkdir(mode=0o700, exist_ok=True)
-    backup = Path(tempfile.mkdtemp(prefix=old_version + '-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-', dir=str(backup_root)))
+    private_mkdir(backup_root)
+    backup = private_tempdir(old_version + '-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ') + '-', backup_root)
+    portable.secure_mode(backup, 0o700)
     for rel, p in old.items():
         atomic_write(target(backup, rel), p.read_bytes(), p.stat().st_mode & 0o777)
     checksums = {rel: digest(p) for rel, p in old.items()}
@@ -445,7 +569,7 @@ def upgrade(args, prefix, stage, link, mkdir):
         for release in (stage / 'releases').iterdir():
             dest = target(prefix, 'releases/' + release.name)
             if not dest.exists():
-                dest.parent.mkdir(mode=0o700, exist_ok=True)
+                private_mkdir(dest.parent)
                 added.append(dest)
                 shutil.copytree(release, dest)
         fault('after-move')
@@ -508,7 +632,7 @@ def uninstall(args):
         if args.purge and read_json(prefix / 'registry/projects.json', {'projects': {}}).get('projects'):
             raise InstallError('Cannot purge: registered projects remain')
         names = list(receipt['files']) + ['install-receipt.json', 'lib', 'releases', 'engine-backups'] if receipt else [
-            'orchestrator.py', 'lib', 'uninstall.sh', 'releases', 'engine-backups',
+            'orchestrator.py', 'lib', 'uninstall.sh', 'uninstall.ps1', 'releases', 'engine-backups',
             'cli-checksums.json', 'current.json', 'install-receipt.json']
         if args.purge:
             names += ['registry', 'backups']
@@ -520,7 +644,7 @@ def uninstall(args):
             if p.is_dir():
                 files(p)
         unknown = [r for r in files(prefix) if not any(target(prefix, r) == p or p in target(prefix, r).parents for p in paths)]
-        link = bin_dir / 'orchestrator'
+        link = launcher_path(bin_dir)
         print(json.dumps({'operation': 'uninstall', 'prefix': str(prefix), 'files': names,
                           'kept': unknown, 'remove_link': link_matches(link, prefix, True)}, indent=2))
         if args.dry_run or not args.yes:
@@ -544,11 +668,24 @@ def uninstall(args):
             pass
 
 
+def default_prefix():
+    if sys.platform == 'darwin' and not os.environ.get('XDG_DATA_HOME'):
+        legacy = Path.home() / '.local/share/claude-codex-orchestrator'
+        if (legacy / 'install-receipt.json').is_file():
+            return legacy
+    return portable.data_root()
+
+
+def default_bin_dir():
+    return portable.bin_root()
+
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('operation', choices=('install', 'uninstall'))
     parser.add_argument('--prefix', type=Path)
-    parser.add_argument('--bin-dir', type=Path, default=Path.home() / '.local/bin')
+    parser.add_argument('--bin-dir', type=Path)
     for option in ('dry-run', 'upgrade', 'allow-downgrade', 'yes', 'purge'):
         parser.add_argument('--' + option, action='store_true')
     args = parser.parse_args()
@@ -557,14 +694,27 @@ def main():
         if args.operation == 'uninstall' and (engine_root / 'uninstall.sh').is_file():
             args.prefix = engine_root
         else:
-            args.prefix = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share'))) / 'claude-codex-orchestrator'
+            args.prefix = default_prefix()
     os.umask(0o077)
     try:
+        if args.bin_dir is None:
+            receipt = read_receipt(canonical_base(args.prefix)) or {}
+            args.bin_dir = Path(receipt.get('bin_dir') or default_bin_dir())
+        if sys.version_info < (3, 8):
+            raise InstallError('Python 3.8 or newer is required', 2)
         if args.operation == 'install':
+            if not shutil.which('git'):
+                raise InstallError('git is required', 2)
+            for tool in ('claude', 'codex', 'gh', 'ssh-keygen'):
+                if not shutil.which(tool):
+                    print('Warning: ' + tool + ' NOT FOUND', file=sys.stderr)
             install(args, Path(__file__).resolve().parents[2])
         else:
             uninstall(args)
         return 0
+    except PermissionError as error:
+        print('Unsafe filesystem access: ' + str(error), file=sys.stderr)
+        return 5
     except (InstallError, OSError, ValueError, subprocess.CalledProcessError) as error:
         print(str(error), file=sys.stderr)
         return getattr(error, 'code', 1)

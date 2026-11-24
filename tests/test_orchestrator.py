@@ -88,6 +88,7 @@ class Base(unittest.TestCase):
         for directory in (self.engine / "registry", self.home, self.bin):
             directory.mkdir(parents=True)
         shutil.copy2(CLI, self.engine / "orchestrator.py")
+        shutil.copytree(ENGINE / "lib", self.engine / "lib", ignore=shutil.ignore_patterns("__pycache__"))
         shutil.copytree(LEGACY / "releases/4.0.0", self.engine / "releases/4.0.0")
         shutil.copytree(ENGINE / "releases" / RELEASE, self.engine / "releases" / RELEASE)
         meta_path = self.engine / "releases" / RELEASE / "release.json"

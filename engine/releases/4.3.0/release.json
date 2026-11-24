@@ -1,0 +1,16 @@
+{
+  "version": "4.3.0",
+  "status": "CANDIDATE",
+  "previous_version": "4.1.0",
+  "changes": [
+    "Portable platform adapters and process supervision",
+    "Native Windows Job containment with lock guardian",
+    "Versioned project payload; legacy payload preserved"
+  ],
+  "project_migration_enabled": false,
+  "verification": {
+    "linux": "NOT_RUN_DOCKER_ACCESS_BLOCKED",
+    "macos": "AUTOMATED_PASS_ARM64; LIVE_AGENTS_BLOCKED",
+    "windows": "NOT_RUN"
+  }
+}

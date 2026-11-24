@@ -11,6 +11,7 @@ import re
 import stat
 import subprocess
 import tempfile
+import ccx_platform
 
 
 STATE_NOTICE = ('Runtime state, session mappings, workflow history and logs are untouched. '
@@ -25,7 +26,7 @@ def reject(c, message, code=3):
 
 
 def profiles_and_env(c, root):
-    tree = ast.parse((root / '.claude/scripts/codex-session.py').read_text())
+    tree = ast.parse((root / '.claude/scripts/codex-session.py').read_text(encoding="utf-8"))
     names = set()
     for node in ast.walk(tree):
         if (isinstance(node, ast.Subscript) and isinstance(node.value, ast.Attribute)
@@ -40,7 +41,7 @@ def profiles_and_env(c, root):
                 names.add(value)
     if len(names) != 1:
         reject(c, 'Cannot uniquely identify the V3 session environment variable')
-    tree = ast.parse((root / '.claude/scripts/managed-exec.py').read_text())
+    tree = ast.parse((root / '.claude/scripts/managed-exec.py').read_text(encoding="utf-8"))
     assignments = [node.value for node in tree.body if isinstance(node, ast.Assign)
                    and any(isinstance(t, ast.Name) and t.id == 'PROFILES' for t in node.targets)]
     if len(assignments) != 1:
@@ -67,7 +68,7 @@ def profiles_and_env(c, root):
 
 
 def instructions(c, root, version, rules_file):
-    text = (root / 'CLAUDE.md').read_text()
+    text = (root / 'CLAUDE.md').read_text(encoding="utf-8")
     headings = list(re.finditer(r'^# Claude-Codex Orchestration V3\s*$', text, re.M))
     rules = list(re.finditer(r'^## 15\. (.+ Project Rules)[ \t]*\r?$', text, re.M))
     if len(headings) != 1 or len(rules) != 1 or headings[0].start() >= rules[0].start():
@@ -81,7 +82,7 @@ def instructions(c, root, version, rules_file):
     if rules_file:
         path = Path(os.path.abspath(rules_file))
         c.assert_canonical_parent(path)
-        body = '\n\n' + path.read_text()
+        body = '\n\n' + path.read_text(encoding="utf-8")
     kept = text[:start] + '# ' + rules[0].group(1).strip() + body
     if c.BLOCK_BEGIN in body or c.BLOCK_END in body:
         reject(c, 'Project rules must not contain managed block markers')
@@ -158,8 +159,8 @@ def plan_migration(c, root, args):
                                    if entry not in legacy_template.get('hooks', {}).get(event, [])]
     template = c.template_settings(version)
     added = c.merge_settings(settings, template)
-    ignore_lines = (root / '.claude/.gitignore').read_text().splitlines(keepends=True)
-    duplicates = set((c.release_dir(version) / 'templates/.gitignore').read_text().splitlines()) - {''}
+    ignore_lines = (root / '.claude/.gitignore').read_text(encoding="utf-8").splitlines(keepends=True)
+    duplicates = set((c.release_dir(version) / 'templates/.gitignore').read_text(encoding="utf-8").splitlines()) - {''}
     test_names = {'orchestration-test.txt', 'persistent-write-test.txt'}
     kept = [line for line in ignore_lines if line.rstrip('\r\n') not in duplicates
             and line.strip().lstrip('/') not in test_names]
@@ -294,17 +295,17 @@ def archive(c, args):
         candidates = set()
         base = c.safe_target(root, '.claude/backups')
         if base.exists():
-            candidates.update(p for p in base.rglob('*') if not p.is_dir() or p.is_symlink())
+            candidates.update(p for p in base.rglob('*') if not p.is_dir() or ccx_platform.is_link(p))
         for folder in ('.claude', '.claude/scripts', '.claude/hooks'):
             candidates.update((root / folder).glob('*.backup'))
         for name in ('orchestration-test.txt', 'persistent-write-test.txt'):
             path = root / '.claude' / name
-            if path.exists() or path.is_symlink():
+            if path.exists() or ccx_platform.is_link(path):
                 candidates.add(path)
         for folder in ('.claude/scripts', '.claude/hooks'):
             for directory in (root / folder).rglob('__pycache__'):
                 c.safe_target(root, directory.relative_to(root))
-                candidates.update(p for p in directory.rglob('*') if not p.is_dir() or p.is_symlink())
+                candidates.update(p for p in directory.rglob('*') if not p.is_dir() or ccx_platform.is_link(p))
         entries, skipped = [], []
         managed = set(c.read_json(c.state_dir(root) / 'integrity/manifest.json', {}).get('files', {}))
         for path in sorted(candidates):

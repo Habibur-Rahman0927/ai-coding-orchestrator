@@ -1,4 +1,7 @@
 """Distribution configuration, signed artifact verification and update dispatch."""
+import sys
+sys.dont_write_bytecode = True
+
 import contextlib
 import json
 import os
@@ -6,11 +9,11 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import subprocess
-import sys
 import tarfile
 import tempfile
 
 import ccx_install as install
+import ccx_platform as portable
 
 NAMESPACE = 'claude-codex-orchestrator-release'
 SEMVER = r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
@@ -22,8 +25,7 @@ def fail(message, code=6):
 
 
 def config_path():
-    base = Path(os.environ.get('XDG_CONFIG_HOME', str(Path.home() / '.config')))
-    return install.canonical_base(base / 'claude-codex-orchestrator') / 'distribution.json'
+    return install.canonical_base(portable.config_root()) / 'distribution.json'
 
 
 def load_config():
@@ -46,8 +48,8 @@ def distribution(args):
     path = config_path()
     old = install.read_json(path, {})
     signers = Path(args.allowed_signers).read_bytes() if args.allowed_signers else None
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    os.chmod(str(path.parent), 0o700)
+    install.private_mkdir(path.parent)
+    portable.secure_mode(str(path.parent), 0o700)
     allowed = path.parent / 'allowed_signers'
     if signers is not None:
         install.atomic_write(allowed, signers)
@@ -81,20 +83,20 @@ def _verify_artifact(tarball, sums, sig, config, allow_unsigned, requested_versi
     """Yield a verified source root; delete all extracted data on context exit."""
     # Snapshot external inputs once; no verification step reopens their paths.
     tarball, sums = Path(tarball), Path(sums)
-    with tempfile.TemporaryDirectory(prefix='ccx-input-') as temporary:
-        private = Path(temporary)
-        os.chmod(str(private), 0o700)
+    with install.temporary_directory('ccx-input-') as temporary:
+        private = Path(temporary).resolve()
+        portable.secure_mode(str(private), 0o700)
         archive_copy = private / tarball.name
         sums_copy = private / 'checksums'
         sig_copy = private / 'signature' if sig is not None else None
         for source, destination in ((tarball, archive_copy), (sums, sums_copy)):
             with source.open('rb') as incoming, destination.open('xb') as outgoing:
-                os.chmod(str(destination), 0o600)
+                portable.secure_mode(str(destination), 0o600)
                 shutil.copyfileobj(incoming, outgoing)
         if sig_copy is not None:
             try:
                 with Path(sig).open('rb') as incoming, sig_copy.open('xb') as outgoing:
-                    os.chmod(str(sig_copy), 0o600)
+                    portable.secure_mode(str(sig_copy), 0o600)
                     shutil.copyfileobj(incoming, outgoing)
             except FileNotFoundError:
                 sig_copy = None
@@ -119,7 +121,7 @@ def _verify_private_artifact(tarball, sums, sig, config, allow_unsigned, request
     elif required:
         fail('Release signature required')
     matches = []
-    for line in sums.read_text().splitlines():
+    for line in sums.read_text(encoding="utf-8").splitlines():
         match = re.fullmatch(r'([0-9a-fA-F]{64}) [ *](.+)', line)
         if not match:
             fail('Invalid SHA256SUMS')
@@ -131,10 +133,11 @@ def _verify_private_artifact(tarball, sums, sig, config, allow_unsigned, request
     if requested_version is not None and version != requested_version:
         fail('Artifact does not match requested tag')
     top = 'claude-codex-orchestrator-' + version
-    with tempfile.TemporaryDirectory(prefix='ccx-verify-') as temporary:
-        root = Path(temporary)
-        os.chmod(str(root), 0o700)
+    with install.temporary_directory('ccx-verify-') as temporary:
+        root = Path(temporary).resolve()
+        portable.secure_mode(str(root), 0o700)
         seen = set()
+        spellings = {}
         total = 0
         with tarfile.open(str(tarball), 'r:gz') as archive:
             for count, member in enumerate(archive, 1):
@@ -143,13 +146,22 @@ def _verify_private_artifact(tarball, sums, sig, config, allow_unsigned, request
                         or '..' in parts or '\\' in member.name or member.name.rstrip('/') != '/'.join(parts)
                         or not (member.isfile() or member.isdir()) or member.name.rstrip('/') in seen):
                     fail('Unsafe archive member or member count exceeded')
-                seen.add(member.name.rstrip('/'))
+                key = member.name.rstrip('/').casefold()
+                if key in seen:
+                    fail('Case-colliding archive member')
+                seen.add(key)
+                for length in range(1, len(parts) + 1):
+                    spelling = '/'.join(parts[:length])
+                    folded = spelling.casefold()
+                    if folded in spellings and spellings[folded] != spelling:
+                        fail('Case-colliding archive directory or member')
+                    spellings[folded] = spelling
                 total += member.size
                 if member.size < 0 or total > 100 * 1024 * 1024:
                     fail('Archive size limit exceeded')
                 dest = install.target(root, '/'.join(parts))
                 if member.isdir():
-                    dest.mkdir(parents=True, exist_ok=True, mode=0o700)
+                    install.private_mkdir(dest)
                 else:
                     if len(parts) < 2:
                         fail('Artifact root must be a directory')
@@ -166,7 +178,7 @@ def _verify_private_artifact(tarball, sums, sig, config, allow_unsigned, request
         if set(manifest['files']) != set(extracted) - {'MANIFEST.json'}:
             fail('MANIFEST.json does not exactly cover artifact')
         install.verify_hashes(source, manifest['files'])
-        if manifest.get('version') != version or (source / 'VERSION').read_text().strip() != version:
+        if manifest.get('version') != version or (source / 'VERSION').read_text(encoding="utf-8").strip() != version:
             fail('Manifest/VERSION does not match requested tag')
         install.verify_source(source)
         yield source
@@ -207,7 +219,7 @@ def self_update(args, prefix):
         return 0
     if install.version_key(version) < install.version_key(current) and not args.allow_downgrade:
         fail('Downgrade refused; use --allow-downgrade', 3)
-    with tempfile.TemporaryDirectory(prefix='ccx-download-') as temporary:
+    with install.temporary_directory('ccx-download-') as temporary:
         if args.archive:
             tarball, sums, sig = Path(args.archive), Path(args.sums), args.signature
         else:
@@ -218,8 +230,8 @@ def self_update(args, prefix):
             tarball, sums, sig = folder / name, folder / 'SHA256SUMS', folder / 'SHA256SUMS.sig'
         with verify_artifact(tarball, sums, sig, config, args.allow_unsigned, version) as source:
             receipt = install.read_receipt(prefix) or {}
-            bin_dir = receipt.get('bin_dir', str(Path.home() / '.local/bin'))
-            command = [sys.executable, '-I', str(source / 'engine/lib/ccx_install.py'), 'install', '--upgrade',
+            bin_dir = receipt.get('bin_dir', str(install.default_bin_dir()))
+            command = [sys.executable, '-B', '-I', str(source / 'engine/lib/ccx_install.py'), 'install', '--upgrade',
                        '--prefix', str(prefix), '--bin-dir', bin_dir]
             if args.allow_downgrade:
                 command.append('--allow-downgrade')

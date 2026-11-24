@@ -1,5 +1,8 @@
 # Releasing an engine
 
+For the unpublished 4.3.0 cross-platform candidate, see the
+[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+
 1. Change root `VERSION` and `ENGINE_VERSION` in `engine/orchestrator.py` together.
    Engine versions and `CLI_VERSION`/project payload versions are separate.
    Do not edit immutable verified payloads to bump only the engine version.

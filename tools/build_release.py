@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """Build a reproducible, allowlisted engine distribution, optionally SSH-signed."""
+import sys
+sys.dont_write_bytecode = True
+
 import argparse
 import fnmatch
 import gzip
@@ -9,11 +12,10 @@ import json
 from pathlib import Path
 import re
 import subprocess
-import sys
 import tarfile
 
-sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'engine/lib'))
+import ccx_platform as portable
 from ccx_install import InstallError, code_version, verify_source, atomic_write
 
 
@@ -26,18 +28,24 @@ def build(source, output, key=None):
             if resolved == source or source in resolved.parents:
                 raise InstallError('Signing key and public key must be outside the source tree', 6)
     payload = {}
-    for name in ('install.sh', 'uninstall.sh', 'VERSION', 'README.md', 'docs', 'engine'):
+    spellings = {}
+    for name in ('install.sh', 'uninstall.sh', 'install.ps1', 'uninstall.ps1', 'VERSION', 'README.md', 'docs', 'engine'):
         root = source / name
         if not root.exists() and not root.is_symlink():
-            if name in ('README.md', 'docs'):
+            if name in ('README.md', 'docs', 'install.ps1', 'uninstall.ps1'):
                 continue
             raise InstallError('Missing required source: ' + name, 6)
         for path in [root] + (sorted(root.rglob('*')) if root.is_dir() else []):
             rel = path.relative_to(source).as_posix()
+            portable.validate_relative(rel)
+            folded = rel.casefold()
+            if folded in spellings and spellings[folded] != rel:
+                raise InstallError('Case-colliding distribution path: ' + rel, 6)
+            spellings[folded] = rel
             parts = Path(rel).parts
             forbidden = ('*.jsonl', 'auth.json', '.credentials*', 'config.toml', '*.pem',
                          'id_rsa*', 'id_ed25519*', '.env*')
-            if (path.is_symlink() or any(p in ('registry', 'backups', 'engine-backups', 'test-reports', '__pycache__') for p in parts)
+            if (portable.is_link(path) or any(p in ('registry', 'backups', 'engine-backups', 'test-reports', '__pycache__') for p in parts)
                     or any(fnmatch.fnmatch(p, pattern) for p in parts for pattern in forbidden)
                     or re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\.json', path.name)):
                 raise InstallError('Forbidden distribution path: ' + rel, 6)

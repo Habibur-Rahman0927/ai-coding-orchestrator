@@ -46,7 +46,7 @@ class SelfUpdate(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.shared = tempfile.TemporaryDirectory(prefix='ccx-artifacts-')
-        cls.root = Path(cls.shared.name)
+        cls.root = Path(cls.shared.name).resolve()
         cls.key = cls.root / 'signing-key'
         run(['ssh-keygen', '-q', '-t', 'ed25519', '-N', '', '-f', cls.key])
         cls.signers = cls.root / 'signers'
@@ -73,12 +73,12 @@ class SelfUpdate(unittest.TestCase):
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='ccx-update-test-')
-        self.tmp = Path(self.temp.name)
+        self.tmp = Path(self.temp.name).resolve()
         self.home = self.tmp / 'home'
         self.home.mkdir()
         self.prefix = self.tmp / 'engine'
         self.bin = self.tmp / 'bin'
-        self.env = dict(os.environ, HOME=str(self.home), XDG_CONFIG_HOME=str(self.home / 'config'), TMPDIR=str(self.tmp))
+        self.env = dict(os.environ, HOME=str(self.home), PYTHONDONTWRITEBYTECODE="1", XDG_CONFIG_HOME=str(self.home / 'config'), TMPDIR=str(self.tmp))
         self.env.pop('ORCHESTRATOR_INSTALL_FAULT', None)
         run(['/bin/sh', self.sources['4.2.0'] / 'install.sh', '--prefix', self.prefix, '--bin-dir', self.bin], env=self.env)
         self.configure()

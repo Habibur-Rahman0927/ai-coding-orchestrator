@@ -6,7 +6,13 @@ engine updates and project payload updates are separate operations.
 
 ## Platform and requirements
 
-Linux only. The distribution matrix **tested by `tests/container`** is:
+V4.3.0 is an unpublished cross-platform candidate with native macOS and Windows
+adapters. See the [cross-platform guide](docs/CROSS-PLATFORM.md) and
+[measured verification status](docs/CROSS-PLATFORM-RESULTS.md) before using it.
+The immutable 4.1.0 project payload remains the default; select the 4.3.0
+candidate explicitly for non-Linux evaluation.
+
+The historical Linux distribution harness covers:
 
 - Ubuntu 20.04 (Python 3.8 floor) and 24.04
 - Debian 12
