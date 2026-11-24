@@ -1,0 +1,86 @@
+{
+  "date": "2026-11-25",
+  "baseline_commit": "6fde991",
+  "live_provider_requests": 0,
+  "live_tests": "explicitly deferred by user",
+  "tests": {
+    "baseline_macos": {
+      "run": 227,
+      "passed": 219,
+      "skipped": 8,
+      "seconds": 153.444,
+      "result": "PASS"
+    },
+    "full_macos": {
+      "run": 279,
+      "passed": 266,
+      "skipped": 13,
+      "seconds": 176.279,
+      "result": "PASS"
+    },
+    "full_ubuntu20": {
+      "run": 279,
+      "passed": 268,
+      "skipped": 11,
+      "seconds": 58.757,
+      "result": "PASS"
+    },
+    "full_ubuntu24": {
+      "run": 279,
+      "passed": 268,
+      "skipped": 11,
+      "seconds": 61.655,
+      "result": "PASS"
+    },
+    "focused_macos": {
+      "run": 129,
+      "passed": 123,
+      "skipped": 6,
+      "seconds": 17.743,
+      "result": "PASS"
+    },
+    "focused_ubuntu20": {
+      "run": 129,
+      "passed": 128,
+      "skipped": 1,
+      "seconds": 9.155,
+      "result": "PASS"
+    },
+    "focused_ubuntu24": {
+      "run": 129,
+      "passed": 128,
+      "skipped": 1,
+      "seconds": 9.036,
+      "result": "PASS"
+    },
+    "browser": {
+      "run": 8,
+      "passed": 8,
+      "skipped": 0,
+      "seconds": 46.263,
+      "result": "PASS"
+    },
+    "installed_browser": {
+      "run": 1,
+      "passed": 1,
+      "skipped": 0,
+      "seconds": 4.55,
+      "result": "PASS"
+    },
+    "service": {
+      "run": 8,
+      "passed": 8,
+      "skipped": 0,
+      "seconds": 1.839,
+      "result": "PASS"
+    }
+  },
+  "application_source_sha256": "64014354e6ea39362df9686fac23b57905dad6950fc26858b5c6247c99098b56",
+  "source_digest_scope": "sorted workspace package relative paths and file SHA256, then engine/orchestrator.py",
+  "platforms_not_run": [
+    "native Windows",
+    "macOS Intel",
+    "WSL2"
+  ],
+  "browser_scope": "actual Chrome; isolated profiles; mocked providers; no production credentials"
+}

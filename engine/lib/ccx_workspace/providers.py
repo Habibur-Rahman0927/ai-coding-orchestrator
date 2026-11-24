@@ -36,6 +36,7 @@ class ProviderRequest:
     history: list = field(default_factory=list)
     cancel_event: object = None
     max_output_tokens: int = 4096
+    event_callback: object = None
 
     def validate(self):
         self.project = Path(self.project).resolve(strict=True)
@@ -45,7 +46,7 @@ class ProviderRequest:
             raise ValueError('Prompt exceeds provider size limit')
         if not isinstance(self.timeout, (int, float)) or not 1 <= self.timeout <= 3600:
             raise ValueError('Provider timeout must be 1..3600 seconds')
-        if not isinstance(self.max_output_tokens, int) or not 1 <= self.max_output_tokens <= 32768:
+        if type(self.max_output_tokens) is not int or not 1 <= self.max_output_tokens <= 32768:
             raise ValueError('Output token limit must be 1..32768')
         if self.session_id:
             self.session_id = str(uuid.UUID(self.session_id))
@@ -55,6 +56,8 @@ class ProviderRequest:
             raise ValueError('History must be a list')
         if not isinstance(self.role, str) or len(self.role) > 200:
             raise ValueError('Invalid provider role')
+        if self.event_callback is not None and not callable(self.event_callback):
+            raise ValueError('Event callback must be callable')
         if self.model is not None:
             validate_model(self.model)
         return self
@@ -74,8 +77,28 @@ def event(kind, **values):
 
 
 def normalized_usage(value):
-    return {str(key): number for key, number in (value or {}).items()
-            if isinstance(number, (int, float)) and not isinstance(number, bool) and number >= 0}
+    value = value if isinstance(value, dict) else {}
+    result = {str(key): number for key, number in value.items()
+              if isinstance(number, (int, float)) and not isinstance(number, bool) and number >= 0}
+    for destination, source in (('input_tokens', 'prompt_tokens'), ('output_tokens', 'completion_tokens')):
+        if destination not in result and source in result: result[destination] = result[source]
+    for parent, key, destination in (('prompt_tokens_details', 'cached_tokens', 'cached_input_tokens'),
+                                     ('completion_tokens_details', 'reasoning_tokens', 'reasoning_tokens')):
+        number = (value.get(parent) or {}).get(key) if isinstance(value.get(parent), dict) else None
+        if isinstance(number, (int, float)) and not isinstance(number, bool) and number >= 0: result[destination] = number
+    return result
+
+
+def classify_error(value):
+    text = str(value).lower()
+    for kind, terms in (('usage_limit', ('rate_limit', 'rate limit', 'usage limit', 'quota', '429', 'credit balance')),
+                        ('authentication', ('unauthorized', 'authentication', 'invalid_api_key', '401', 'not logged in', 'credential')),
+                        ('context_limit', ('context_length', 'context window', 'context limit', 'too many tokens')),
+                        ('permission_denied', ('permission denied', 'forbidden', '403')),
+                        ('network', ('connection', 'network', 'transport', '503', '502')),
+                        ('incomplete', ('length', 'max_tokens', 'incomplete'))):
+        if any(term in text for term in terms): return kind
+    return 'provider_error'
 
 
 def normalize_cli(provider_id, data):
@@ -89,7 +112,7 @@ def normalize_cli(provider_id, data):
         if kind == 'turn.completed':
             return [event('usage', usage=normalized_usage(data.get('usage'))), event('completed')]
         if kind in ('turn.failed', 'error'):
-            return [event('error', error='Provider reported a failed turn')]
+            return [event('error', error='Provider reported a failed turn', error_kind=classify_error(data.get('error') or data.get('subtype') or data.get('result')))]
     else:
         result = []
         if data.get('session_id'):
@@ -100,7 +123,7 @@ def normalize_cli(provider_id, data):
                     result.append(event('text', text=block.get('text', '')))
         if kind == 'result':
             if data.get('is_error') or data.get('subtype') not in (None, 'success'):
-                result.append(event('error', error='Provider reported a failed turn'))
+                result.append(event('error', error='Provider reported a failed turn', error_kind=classify_error(data.get('error') or data.get('subtype') or data.get('result'))))
             else:
                 if isinstance(data.get('result'), str):
                     result.append(event('text', text=data['result'], final=True))
@@ -115,7 +138,7 @@ class CLIProvider:
         self.config = dict(config or {})
 
     def status(self):
-        return {'id': self.id, 'available': bool(shutil.which(self.id)), 'configured': True,
+        return {'id': self.id, 'available': bool(shutil.which(self.id)), 'installed': bool(shutil.which(self.id)), 'configured': bool(shutil.which(self.id)), 'authentication': 'unknown', 'connection_status': 'authentication_unknown' if shutil.which(self.id) else 'not_installed', 'last_verified_at': None,
                 'model': self.config.get('model'), 'capabilities': {
                     'exact_session_resume': True, 'streaming_events': True, 'token_limit': False,
                     'scoped_tools': False, 'native_agent_authorization_required': True,
@@ -244,14 +267,17 @@ class CLIProvider:
 class MiniMaxProvider:
     id = 'minimax'
 
-    def __init__(self, config=None, connection_factory=None):
+    def __init__(self, config=None, connection_factory=None, credential_resolver=None, credential_status=None):
         self.config = dict(config or {})
         self.connection_factory = connection_factory or http.client.HTTPSConnection
+        self.credential_resolver = credential_resolver
+        self.credential_status = credential_status
 
     def status(self):
-        configured = bool(self.config.get('model') and self.config.get('api_key_env'))
-        present = bool(os.environ.get(self.config.get('api_key_env', '')))
-        return {'id': self.id, 'available': configured and present, 'configured': configured,
+        mode = self.config.get('credential_mode', 'environment')
+        configured = bool(self.config.get('model') and (self.config.get('api_key_env') or mode in ('os', 'session')))
+        present = self.credential_status(self.id).get('configured', False) if self.credential_status else bool(os.environ.get(self.config.get('api_key_env', '')))
+        return {'id': self.id, 'available': configured and present, 'configured': configured, 'installed': True, 'authentication': 'unknown', 'authentication_method': mode, 'connection_status': 'authentication_unknown' if configured and present else 'not_configured', 'last_verified_at': None,
                 'model': self.config.get('model'), 'capabilities': {'exact_session_resume': False,
                     'local_transcript_sessions': True, 'streaming_events': False, 'token_limit': True,
                     'scoped_tools': True, 'native_tools': False, 'filesystem_secret_filtering': True},
@@ -261,9 +287,9 @@ class MiniMaxProvider:
         request.validate()
         model = validate_model(request.model or self.config.get('model'))
         key_name = self.config.get('api_key_env')
-        if not isinstance(key_name, str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,127}', key_name):
+        if self.config.get('credential_mode', 'environment') == 'environment' and (not isinstance(key_name, str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,127}', key_name)):
             raise ValueError('Configure an API key environment-variable name, not a key value')
-        key = os.environ.get(key_name)
+        key = self.credential_resolver(self.id, self.config) if self.credential_resolver else os.environ.get(key_name or '')
         if not key:
             raise RuntimeError('Configured MiniMax credential environment variable is unavailable')
         if self.config.get('endpoint', MINIMAX_ENDPOINT) != MINIMAX_ENDPOINT:
@@ -341,7 +367,7 @@ class MiniMaxProvider:
                 except queue.Empty:
                     pass
             if kind == 'error':
-                yield event('error', error=response)
+                yield event('error', error=response, error_kind=classify_error(response))
                 return
             if not isinstance(response, dict) or not response.get('choices'):
                 yield event('error', error='MiniMax response schema is invalid')
@@ -382,7 +408,7 @@ class MiniMaxProvider:
             elif choice.get('finish_reason') == 'stop':
                 yield event('completed')
             else:
-                yield event('error', error='MiniMax response stopped before completion')
+                yield event('error', error='MiniMax response stopped before completion', error_kind='incomplete' if choice.get('finish_reason') == 'length' else 'provider_error')
         finally:
             stop.set()
             sock = transport_socket[0] or getattr(connection, 'sock', None)
@@ -395,7 +421,9 @@ class MiniMaxProvider:
 
 
 class ProviderRegistry:
-    def __init__(self, config=None, providers=None):
+    def __init__(self, config=None, providers=None, credential_resolver=None, credential_status=None):
+        self.credential_resolver = credential_resolver
+        self.credential_status = credential_status
         self.config = {}
         for provider_id, value in (config or {}).items():
             self.configure(provider_id, value)
@@ -404,12 +432,18 @@ class ProviderRegistry:
     def configure(self, provider_id, config):
         if provider_id not in ('claude', 'codex', 'minimax') or not isinstance(config, dict):
             raise ValueError('Unknown provider or invalid configuration')
-        allowed = {'model', 'api_key_env', 'endpoint'} if provider_id == 'minimax' else {'model'}
+        allowed = {'model', 'api_key_env', 'endpoint', 'credential_mode'} if provider_id == 'minimax' else {'model'}
         if set(config) - allowed:
             raise ValueError('Provider configuration contains unsupported fields; never submit credentials')
         clean = dict(config)
+        # Model/preferences forms must not silently switch an OS/session credential back to environment mode.
+        if provider_id == 'minimax' and 'credential_mode' not in clean and provider_id in self.config:
+            mode = self.config[provider_id].get('credential_mode')
+            if mode is not None: clean['credential_mode'] = mode
         if 'model' in clean:
             validate_model(clean['model'])
+        if 'credential_mode' in clean and clean['credential_mode'] not in ('environment', 'os', 'session'):
+            raise ValueError('Unsupported credential mode')
         if 'api_key_env' in clean and not re.fullmatch(r'[A-Z][A-Z0-9_]{0,127}', str(clean['api_key_env'])):
             raise ValueError('Credential configuration requires an environment-variable name')
         if 'endpoint' in clean and clean['endpoint'] != MINIMAX_ENDPOINT:
@@ -421,7 +455,7 @@ class ProviderRegistry:
         if provider_id in self.providers:
             return self.providers[provider_id]
         if provider_id == 'minimax':
-            return MiniMaxProvider(self.config.get(provider_id))
+            return MiniMaxProvider(self.config.get(provider_id), credential_resolver=self.credential_resolver, credential_status=self.credential_status)
         if provider_id in ('codex', 'claude'):
             return CLIProvider(provider_id, self.config.get(provider_id))
         raise ValueError('Unknown provider')
@@ -440,7 +474,7 @@ class ProviderRegistry:
         if isinstance(request, dict):
             request = ProviderRequest(**request)
         result = {'status': 'failed', 'output': '', 'session_id': request.session_id,
-                  'usage': {}, 'tool_calls': [], 'events': [], 'message': None, 'history': [], 'error': None}
+                  'usage': {}, 'tool_calls': [], 'events': [], 'message': None, 'history': [], 'error': None, 'error_kind': None}
         try:
             for item in self.get(provider_id).execute(request):
                 kind = item.get('type')
@@ -451,6 +485,11 @@ class ProviderRegistry:
                     result['message'] = item['message']  # Internal-only transcript data.
                     continue
                 result['events'].append(item)
+                if request.event_callback and kind in ('text', 'session', 'usage', 'tool_call', 'completed', 'cancelled', 'timeout', 'error'):
+                    try:
+                        request.event_callback(dict(item))
+                    except Exception:
+                        pass  # UI telemetry failure cannot change provider authority or turn outcome.
                 if kind == 'text':
                     result['output'] = item['text'] if item.get('final') else result['output'] + item['text']
                 elif kind == 'session':
@@ -461,8 +500,13 @@ class ProviderRegistry:
                     result['tool_calls'].append(item['tool_call'])
                 elif kind in ('completed', 'cancelled', 'timeout', 'tool_calls'):
                     result['status'] = kind
+                    if kind in ('timeout', 'cancelled'): result['error_kind'] = kind
                 elif kind == 'error':
                     result['status'], result['error'] = 'failed', item.get('error', 'Provider failed')
-        except (PermissionError, ValueError, RuntimeError, OSError, KeyError, TypeError, AttributeError):
+                    if result['error_kind'] in (None, 'provider_error'):
+                        result['error_kind'] = item.get('error_kind') or classify_error(result['error'])
+        except (PermissionError, ValueError, RuntimeError, OSError, KeyError, TypeError, AttributeError) as error:
+            category = classify_error(error)
+            result['error_kind'] = 'permission_denied' if isinstance(error, PermissionError) else category if category != 'provider_error' else 'configuration'
             result['status'], result['error'] = 'failed', 'Provider configuration, authorization, transport, or response validation failed'
         return result

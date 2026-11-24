@@ -12,7 +12,7 @@ import sqlite3
 import re
 import math
 import ccx_platform as native
-from .store import allowed, file_path
+from .store import allowed, file_path, read_source
 import subprocess
 import threading
 import time
@@ -23,8 +23,30 @@ def provider_identifier(value):
 DEFAULT_BUDGETS = {'max_tasks': 24, 'max_depth': 4, 'max_retries': 2,
                    'max_concurrency': 1, 'max_tokens': 50000, 'max_seconds': 1800,
                    'max_cost': 0.0, 'call_timeout': 180, 'max_tool_calls': 32,
-                   'max_output_tokens': 4096}
+                   'max_output_tokens': 4096, 'max_provider_calls': 64,
+                   'max_context_tokens': 2000, 'max_continuations': 2}
 TERMINAL = {'COMPLETED', 'CANCELLED', 'FAILED'}
+
+
+def classify_failure(result):
+    """A category is a recovery hint, never proof that retrying has no effects."""
+    known = {'authentication', 'usage_limit', 'network', 'context_limit', 'permission_denied',
+             'timeout', 'cancelled', 'incomplete', 'invalid_response', 'configuration', 'provider_error', 'unknown'}
+    category = result.get('error_kind') or result.get('error_category')
+    if category in known:
+        return category
+    status = result.get('status')
+    if status in ('timeout', 'cancelled', 'incomplete'):
+        return status
+    error = str(result.get('error') or '').lower()[:1000]
+    for words, label in ((('401', 'authentication', 'not logged', 'invalid api key'), 'authentication'),
+                         (('429', 'quota', 'usage limit', 'rate limit'), 'usage_limit'),
+                         (('context length', 'context limit', 'too many tokens'), 'context_limit'),
+                         (('permission denied', 'forbidden', '403'), 'permission_denied'),
+                         (('network', 'connection', 'transport'), 'network')):
+        if any(word in error for word in words):
+            return label
+    return 'unknown'
 
 
 def _json(value):
@@ -56,11 +78,14 @@ def _decode_object(text):
 def snapshot(project, exclusions=()):
     """Fingerprint actual project files, including untracked nonignored content.
 
-    Git projects respect .gitignore; tracked ignored files remain included. For
-    non-Git projects only engine metadata and known dependency caches are omitted.
-    Links are hashed as links, never followed outside the project.
+    Requires a registered Git root. Tracked files participate in verification even
+    when ignored by Git; application exclusions still apply. Links and oversized
+    or multiply-linked files are refused rather than followed.
     """
-    root = Path(project).resolve(strict=True)
+    original=Path(project).absolute()
+    if any(native.is_link(p) for p in (original,)+tuple(original.parents)):
+        raise PermissionError('Snapshot root contains a link/reparse point')
+    root = original.resolve(strict=True)
     result = subprocess.run(['git', '-C', str(root), 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=30)
     if result.returncode != 0:
@@ -82,10 +107,7 @@ def snapshot(project, exclusions=()):
             total += info.st_size
             if total > 128 * 1024 * 1024:
                 raise ValueError('Snapshot exceeds bounded byte budget')
-            with path.open('rb') as stream:
-                data = stream.read(4 * 1024 * 1024 + 1)
-            if len(data) > 4 * 1024 * 1024:
-                raise ValueError('Snapshot file grew beyond byte budget')
+            data=read_source(root,name,limit=4*1024*1024)
             records.append((name, 'file', hashlib.sha256(data).hexdigest(), info.st_mode & 0o111))
         elif not path.exists():
             records.append((name, 'deleted'))
@@ -127,9 +149,71 @@ class WorkflowEngine:
                     PRIMARY KEY(workflow_id,task_id,provider,role));
                 CREATE INDEX IF NOT EXISTS w5_tasks_workflow ON w5_tasks(workflow_id,created_at);
                 CREATE INDEX IF NOT EXISTS w5_actions_workflow ON w5_actions(workflow_id,state);
+                CREATE TABLE IF NOT EXISTS w5_dependencies (
+                    task_id TEXT NOT NULL, depends_on TEXT NOT NULL,
+                    PRIMARY KEY(task_id,depends_on));
+                CREATE TABLE IF NOT EXISTS w5_requests (
+                    id TEXT PRIMARY KEY, workflow_id TEXT NOT NULL, kind TEXT NOT NULL,
+                    scope TEXT NOT NULL, reason TEXT NOT NULL, created_at REAL NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'PENDING');
             ''')
             if 'consumed' not in {r['name'] for r in db.execute('PRAGMA table_info(w5_actions)')}:
                 db.execute('ALTER TABLE w5_actions ADD COLUMN consumed INTEGER NOT NULL DEFAULT 0')
+            if 'context_mode' not in {r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}:
+                db.execute("ALTER TABLE w5_workflows ADD COLUMN context_mode TEXT NOT NULL DEFAULT 'retrieved'")
+            for column,default in (('model_overrides','{}'),('execution_policy','standard')):
+                if column not in {r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}:
+                    db.execute("ALTER TABLE w5_workflows ADD COLUMN "+column+" TEXT NOT NULL DEFAULT '"+default+"'")
+            columns={r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}
+            for column in ('lease_pid','lease_start_ticks'):
+                if column not in columns:
+                    db.execute('ALTER TABLE w5_workflows ADD COLUMN '+column+' INTEGER')
+
+    @staticmethod
+    def _process_birth(pid):
+        """Keep only a birth identifier, never a process command or environment."""
+        info=native.process_info(pid)
+        if info is None or info.get('state')=='Z': return None
+        birth=info.get('start_ticks')
+        if type(birth)!=int or birth<0: raise ValueError('Process birth identity unavailable')
+        return birth
+
+    def _reconcile_ownership(self, db, project_id=None):
+        query='SELECT id,status,lease_pid,lease_start_ticks,lease_until FROM w5_workflows WHERE lease_owner IS NOT NULL'
+        rows=list(db.execute(query+(' AND project_id=?' if project_id else ''),(project_id,) if project_id else ()))
+        reconciled=[];now=time.time()
+        for row in rows:
+            known_dead=False;known_live=False
+            if row['lease_pid'] is not None and row['lease_start_ticks'] is not None:
+                try:
+                    birth=self._process_birth(row['lease_pid'])
+                    known_dead=birth is None or birth!=row['lease_start_ticks']
+                    known_live=not known_dead
+                except (OSError,ValueError,NotImplementedError):
+                    pass
+            # A live matching owner may be a separate CLI runner. Do not steal
+            # it because a heartbeat was delayed or the dashboard restarted.
+            if known_live or (not known_dead and row['lease_until'] and row['lease_until']>now):
+                continue
+            unknown=db.execute("SELECT 1 FROM w5_actions WHERE workflow_id=? AND state IN ('RUNNING','UNCERTAIN') LIMIT 1",(row['id'],)).fetchone()
+            state=row['status']
+            if state not in TERMINAL:
+                state='RECOVERY_REQUIRED' if unknown else 'PAUSED'
+            db.execute("UPDATE w5_workflows SET lease_owner=NULL,lease_until=NULL,lease_pid=NULL,lease_start_ticks=NULL,status=?,reason=?,updated_at=? WHERE id=?",
+                       (state,'Execution owner exited or could not be established after lease expiry; inspect persisted evidence before resuming',now,row['id']))
+            if unknown:
+                db.execute("UPDATE w5_actions SET state='UNCERTAIN' WHERE workflow_id=? AND state='RUNNING'",(row['id'],))
+            self._checkpoint(db,row['id'],'EXECUTION_OWNER_RECONCILED',
+                             {'known_dead_or_reused':known_dead,'identity_unavailable':not known_dead,'unknown_outcome':bool(unknown),'status':state})
+            reconciled.append({'workflow_id':row['id'],'status':state,'unknown_outcome':bool(unknown)})
+        return reconciled
+
+    def reconcile_ownership(self, project_id=None):
+        """Reconcile persisted leases without killing a PID or replaying work."""
+        if project_id is not None:self.store.project(project_id)
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            return {'reconciled':self._reconcile_ownership(db,project_id)}
 
     def _snapshot(self, workflow):
         project = self.store.project(workflow['project_id'])
@@ -139,12 +223,21 @@ class WorkflowEngine:
         db.execute('INSERT INTO w5_checkpoints(workflow_id,task_id,action_id,event,data,created_at) VALUES(?,?,?,?,?,?)',
                    (workflow_id, task_id, action_id, event, _json(data or {}), time.time()))
 
-    def create(self, project_id, objective, criteria, providers=None, budgets=None):
+    def create(self, project_id, objective, criteria, providers=None, budgets=None, context_mode='retrieved', model_overrides=None, execution_policy='standard'):
         self.store.project(project_id)
         if not isinstance(objective, str) or not objective.strip():
             raise ValueError('Objective is required')
         if not isinstance(criteria, list) or not criteria or not all(isinstance(c, str) and c.strip() for c in criteria):
             raise ValueError('Explicit nonempty acceptance criteria are required')
+        if context_mode not in ('retrieved','full_index'):
+            raise ValueError('Unknown context mode')
+        if execution_policy not in ('standard','single_task'):
+            raise ValueError('Execution policy must be standard or single_task (skip planning only)')
+        overrides=dict(model_overrides or {})
+        if set(overrides)-{'planner','executor','reviewer'}:
+            raise ValueError('Unknown override role')
+        from .providers import validate_model
+        for value in overrides.values(): validate_model(value)
         roles = {'planner': 'claude', 'executor': 'codex', 'reviewer': 'claude'}
         roles.update(providers or {})
         if set(roles) != {'planner', 'executor', 'reviewer'} or any(not provider_identifier(v) for v in roles.values()):
@@ -156,14 +249,18 @@ class WorkflowEngine:
         for key, value in limits.items():
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
                 raise ValueError('Budgets must be nonnegative numbers')
-            if key not in ('max_cost',) and (not isinstance(value, int) or (value == 0 and key not in ('max_depth', 'max_retries'))):
+            if key not in ('max_cost',) and (not isinstance(value, int) or (value == 0 and key not in ('max_depth', 'max_retries', 'max_continuations'))):
                 raise ValueError('Count/time budgets must be positive integers')
         if limits['max_depth'] > 8 or limits['max_retries'] > 5 or limits['max_tasks'] > 1000 or limits['max_concurrency'] > 16 or limits['max_output_tokens'] > 32768 or limits['call_timeout'] > 3600:
             raise ValueError('Budget exceeds engine safety maximum')
+        if not 64 <= limits['max_context_tokens'] <= 32000 or limits['max_provider_calls'] > 1000 or limits['max_continuations'] > 5:
+            raise ValueError('Context/call/continuation budget outside safety bounds')
         identifier, now = _id(), time.time()
         with self.store.connect() as db:
             db.execute('INSERT INTO w5_workflows(id,project_id,objective,criteria,providers,budgets,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',
                        (identifier, project_id, objective.strip(), _json(criteria), _json(roles), _json(limits), 'READY', now, now))
+            db.execute('UPDATE w5_workflows SET context_mode=? WHERE id=?',(context_mode,identifier))
+            db.execute('UPDATE w5_workflows SET model_overrides=?,execution_policy=? WHERE id=?',(_json(overrides),execution_policy,identifier))
             self._checkpoint(db, identifier, 'WORKFLOW_CREATED', {'criteria': criteria, 'providers': roles, 'budgets': limits})
         return self.status(identifier)
 
@@ -172,8 +269,9 @@ class WorkflowEngine:
         if not row:
             raise KeyError('Unknown workflow')
         value = dict(row)
-        for key in ('criteria', 'providers', 'budgets'):
+        for key in ('criteria', 'providers', 'budgets', 'model_overrides'):
             value[key] = _load(value[key])
+        value['budgets'] = dict(DEFAULT_BUDGETS, **value['budgets'])
         return value
 
     def _task(self, db, task_id):
@@ -182,6 +280,7 @@ class WorkflowEngine:
             raise KeyError('Unknown task')
         value = dict(row)
         value['evidence'] = _load(value['evidence'], {})
+        value['depends_on'] = [r[0] for r in db.execute('SELECT depends_on FROM w5_dependencies WHERE task_id=? ORDER BY depends_on', (task_id,))]
         return value
 
     def _new_task(self, db, workflow, title, description='', parent_id=None, executor=None, reviewer=None):
@@ -208,13 +307,22 @@ class WorkflowEngine:
         self._checkpoint(db, workflow['id'], 'TASK_CREATED', {'title': title, 'executor': executor, 'reviewer': reviewer}, identifier)
         return self._task(db, identifier)
 
-    def create_task(self, workflow_id, title, description='', parent_id=None, executor=None, reviewer=None):
+    def create_task(self, workflow_id, title, description='', parent_id=None, executor=None, reviewer=None, depends_on=None):
         with self.store.connect() as db:
             db.execute('BEGIN IMMEDIATE')
             workflow = self._workflow(db, workflow_id)
-            if workflow['status'] in TERMINAL or workflow['lease_until'] and workflow['lease_until'] > time.time():
+            if workflow['status'] in TERMINAL or workflow.get('lease_owner'):
                 raise ValueError('Cannot alter a running or terminal workflow plan')
-            return self._new_task(db, workflow, title, description, parent_id, executor, reviewer)
+            task = self._new_task(db, workflow, title, description, parent_id, executor, reviewer)
+            dependencies = list(depends_on or [])
+            if len(dependencies) > 1000 or any(not isinstance(v, str) for v in dependencies):
+                raise ValueError('Invalid task dependencies')
+            for dependency in set(dependencies):
+                prior = self._task(db, dependency)
+                if prior['workflow_id'] != workflow_id:
+                    raise ValueError('Dependency outside workflow')
+                db.execute('INSERT INTO w5_dependencies VALUES(?,?)', (task['id'], dependency))
+            return self._task(db, task['id'])
 
     def delegate(self, task_id, to_provider, from_provider=None):
         with self.store.connect() as db:
@@ -224,7 +332,7 @@ class WorkflowEngine:
             source = from_provider or task['executor']
             if source != task['executor'] or not provider_identifier(to_provider) or source == to_provider:
                 raise ValueError('Delegation must name the current executor and a different known provider')
-            if task['status'] not in ('PENDING', 'BLOCKED') or workflow['lease_until'] and workflow['lease_until'] > time.time():
+            if task['status'] not in ('PENDING', 'BLOCKED') or workflow.get('lease_owner'):
                 raise ValueError('Cannot delegate an active or verified task')
             if task['delegation_depth'] >= workflow['budgets']['max_depth']:
                 raise ValueError('Delegation depth budget exhausted')
@@ -246,15 +354,170 @@ class WorkflowEngine:
         with self.store.connect() as db:
             db.execute('BEGIN IMMEDIATE')
             workflow = self._workflow(db, task['workflow_id'])
-            if not workflow['lease_until'] or workflow['lease_until'] <= time.time():
+            if not workflow.get('lease_owner'):
                 db.execute("UPDATE w5_workflows SET status='READY',reason=?,updated_at=? WHERE id=?",
                     ('User-approved provider failover; destination approvals checked before dispatch', time.time(), task['workflow_id']))
         return result
 
-    def approve(self, workflow_id, kind, scope, actor='user'):
-        """Trusted operator endpoint. This method is deliberately not a model tool."""
-        if actor != 'user':
-            raise PermissionError('Only an authenticated user may grant approval')
+    def transition_role(self, workflow_id, role, to_provider, actor='user'):
+        """Authorized planner/reviewer handoff without resetting executor sessions."""
+        if actor != 'user' or role not in ('planner', 'reviewer') or not provider_identifier(to_provider):
+            raise PermissionError('A user-authorized planner/reviewer transition is required')
+        if not self._approved(workflow_id, 'failover', role=role, to_provider=to_provider):
+            raise PermissionError('Explicit role failover approval required')
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            workflow = self._workflow(db, workflow_id)
+            if workflow['status'] in TERMINAL or workflow.get('lease_owner'):
+                raise ValueError('Wait for the active runner before role handoff')
+            if db.execute("SELECT 1 FROM w5_actions WHERE workflow_id=? AND state IN ('RUNNING','UNCERTAIN')", (workflow_id,)).fetchone():
+                raise PermissionError('Unknown outcomes must be reconciled before handoff')
+            previous = workflow['providers'][role]
+            if previous == to_provider:
+                return self.status(workflow_id)
+            workflow['providers'][role] = to_provider
+            db.execute("UPDATE w5_workflows SET providers=?,status='READY',reason=NULL,updated_at=? WHERE id=?",
+                       (_json(workflow['providers']), time.time(), workflow_id))
+            if role == 'reviewer':
+                db.execute("UPDATE w5_tasks SET reviewer=?,status=CASE WHEN status='REVIEWING' THEN 'TESTING' ELSE status END WHERE workflow_id=? AND status!='VERIFIED'",
+                           (to_provider, workflow_id))
+            handoff = {'role': role, 'from': previous, 'to': to_provider,
+                       'objective': workflow['objective'], 'criteria': workflow['criteria'],
+                       'pending_tasks': [dict(r) for r in db.execute("SELECT id,title,status FROM w5_tasks WHERE workflow_id=? AND status!='VERIFIED'", (workflow_id,))]}
+            self._checkpoint(db, workflow_id, 'ROLE_HANDOFF', handoff)
+        return self.status(workflow_id)
+
+    def task_status(self, workflow_id, task_id):
+        with self.store.connect() as db:
+            self._workflow(db, workflow_id)
+            task = self._task(db, task_id)
+            if task['workflow_id'] != workflow_id:
+                raise PermissionError('Task outside selected workflow')
+            return task
+
+    def action_results(self, workflow_id):
+        """Return visible result fields only; never replay opaque reasoning/history."""
+        with self.store.connect() as db:
+            self._workflow(db, workflow_id)
+            records = []
+            for row in db.execute('SELECT id,task_id,role,provider,state,response,started_at,finished_at FROM w5_actions WHERE workflow_id=? ORDER BY started_at', (workflow_id,)):
+                value = dict(row)
+                response = _load(value.pop('response'), {})
+                value['result'] = {k: response[k] for k in ('status', 'output', 'usage', 'error_kind', 'usage_accounting', 'tokens_accounted') if k in response}
+                records.append(value)
+            return records
+
+    def context_report(self, workflow_id):
+        with self.store.connect() as db:
+            self._workflow(db, workflow_id)
+            result=[]
+            for row in db.execute("SELECT id,role,provider,request,response FROM w5_actions WHERE workflow_id=? AND role IN ('planner','executor','reviewer') ORDER BY started_at",(workflow_id,)):
+                request=_load(row['request'],{});response=_load(row['response'],{})
+                try: prompt=_load(request.get('prompt'),{})
+                except (ValueError,TypeError): prompt={}
+                result.append({'action_id':row['id'],'role':row['role'],'provider':row['provider'],
+                               'context':prompt.get('context'), 'reported_usage':response.get('usage'),
+                               'accounting':response.get('usage_accounting')})
+            return result
+
+    def verify_task(self, workflow_id, task_id):
+        """Inspect current evidence freshness without granting completion."""
+        task=self.task_status(workflow_id,task_id)
+        workflow=self.status(workflow_id)
+        recorded=task['evidence'].get('review',{}).get('snapshot_hash')
+        try:current=self._snapshot(workflow)['hash']
+        except (OSError,ValueError,RuntimeError):current=None
+        historical=task['status']=='VERIFIED'
+        return {'task_id':task['id'],'verified':bool(historical and recorded and current==recorded),
+                'recorded_verified':historical,'recorded_snapshot':recorded,'current_snapshot':current,
+                'evidence':task['evidence'],'mutated':False,
+                'basis':'Current filtered project snapshot matches the engine-tested and reviewed snapshot'}
+
+    def request_approval(self, workflow_id, kind, scope, reason):
+        """Untrusted request inbox; inserting a request grants no capability."""
+        from .store import safe_text
+        if kind not in {'sharing','cost','native_agent_access','native_agent_write','command','recovery','failover','operations'} or not isinstance(scope, dict):
+            raise ValueError('Invalid approval request')
+        if not isinstance(reason, str) or not reason.strip() or len(reason) > 2000 or len(_json(scope)) > 8000:
+            raise ValueError('Bounded approval reason/scope required')
+        safe_text(reason); safe_text(_json(scope))
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            self._workflow(db, workflow_id)
+            active=db.execute('SELECT id FROM w5_approvals WHERE workflow_id=? AND kind=? AND scope_hash=? AND revoked=0',(workflow_id,kind,_hash(scope))).fetchone()
+            if active:return {'id':active[0],'status':'ALREADY_APPROVED','grants_permission':False}
+            prior = db.execute("SELECT id FROM w5_requests WHERE workflow_id=? AND kind=? AND scope=? AND status='PENDING'", (workflow_id, kind, _json(scope))).fetchone()
+            if prior:
+                return {'id': prior[0], 'status': 'PENDING', 'grants_permission': False}
+            if db.execute("SELECT COUNT(*) FROM w5_requests WHERE workflow_id=? AND status='PENDING'",(workflow_id,)).fetchone()[0]>=100:
+                raise ValueError('Pending approval request limit reached')
+            identifier = _id()
+            db.execute('INSERT INTO w5_requests(id,workflow_id,kind,scope,reason,created_at) VALUES(?,?,?,?,?,?)',
+                       (identifier, workflow_id, kind, _json(scope), reason, time.time()))
+            self._checkpoint(db, workflow_id, 'APPROVAL_REQUESTED', {'request_id': identifier, 'kind': kind})
+        return {'id': identifier, 'status': 'PENDING', 'grants_permission': False}
+
+    def resolve_request(self, workflow_id, request_id, decision='approve', actor='user'):
+        if actor!='user' or decision not in ('approve','deny'):
+            raise PermissionError('Only the authenticated user may approve or deny a request')
+        target='APPROVED' if decision=='approve' else 'DENIED'
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            self._workflow(db,workflow_id)
+            request=db.execute('SELECT * FROM w5_requests WHERE id=? AND workflow_id=?',(request_id,workflow_id)).fetchone()
+            if not request:raise KeyError('Request outside selected workflow')
+            if request['status']!='PENDING':
+                if request['status']!=target:raise ValueError('Request already resolved; use revoke to change an approval')
+                return {'id':request_id,'status':target,'reused':True}
+            approval_id=None
+            if decision=='approve':
+                scope=self._approval_scope(request['kind'],_load(request['scope']))
+                existing=db.execute('SELECT id FROM w5_approvals WHERE workflow_id=? AND kind=? AND scope_hash=? AND revoked=0',
+                                    (workflow_id,request['kind'],_hash(scope))).fetchone()
+                approval_id=existing[0] if existing else _id()
+                if not existing:
+                    db.execute('INSERT INTO w5_approvals(id,workflow_id,kind,scope,scope_hash,actor,created_at) VALUES(?,?,?,?,?,?,?)',
+                               (approval_id,workflow_id,request['kind'],_json(scope),_hash(scope),actor,time.time()))
+                    self._checkpoint(db,workflow_id,'USER_APPROVAL',{'id':approval_id,'kind':request['kind'],'scope_hash':_hash(scope)})
+            db.execute('UPDATE w5_requests SET status=? WHERE id=?',(target,request_id))
+            self._checkpoint(db,workflow_id,'APPROVAL_REQUEST_RESOLVED',{'request_id':request_id,'status':target,'approval_id':approval_id})
+            return {'id':request_id,'status':target,'approval_id':approval_id,
+                    'note':'Request resolution does not revoke other existing approvals'}
+
+    def submit_review(self, workflow_id, task_id, review):
+        from .store import safe_text
+        self.task_status(workflow_id, task_id)
+        if not isinstance(review, str) or not review.strip() or len(review) > 8000:
+            raise ValueError('Bounded review text required')
+        safe_text(review)
+        with self.store.connect() as db:
+            self._checkpoint(db, workflow_id, 'ADVISORY_REVIEW_SUBMITTED', {'text': review, 'verified': False}, task_id)
+        return {'recorded': True, 'verified': False, 'note': 'External review is advisory; trusted test/reviewer gates remain required'}
+
+    def request_correction(self, workflow_id, task_id, reason):
+        from .store import safe_text
+        if not isinstance(reason, str) or not reason.strip() or len(reason) > 2000:
+            raise ValueError('Bounded correction reason required')
+        safe_text(reason)
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            workflow = self._workflow(db, workflow_id)
+            task = self._task(db, task_id)
+            if task['workflow_id'] != workflow_id:
+                raise PermissionError('Task outside selected workflow')
+            if workflow['status'] in TERMINAL or workflow.get('lease_owner'):
+                raise ValueError('Cannot change a running or terminal workflow')
+            if db.execute("SELECT 1 FROM w5_actions WHERE workflow_id=? AND state IN ('RUNNING','UNCERTAIN')", (workflow_id,)).fetchone():
+                raise PermissionError('Reconcile unknown outcomes before correction')
+            if task['attempts'] >= workflow['budgets']['max_retries']:
+                raise ValueError('Correction budget exhausted')
+            db.execute("UPDATE w5_tasks SET status='PENDING',attempts=attempts+1,error=?,updated_at=? WHERE id=?", (reason, time.time(), task_id))
+            db.execute("UPDATE w5_actions SET consumed=1 WHERE workflow_id=? AND task_id=? AND state='COMPLETED'",(workflow_id,task_id))
+            db.execute("UPDATE w5_workflows SET status='READY',reason=NULL WHERE id=?", (workflow_id,))
+            self._checkpoint(db, workflow_id, 'CORRECTION_REQUESTED', {'reason': reason}, task_id)
+        return self.task_status(workflow_id, task_id)
+
+    def _approval_scope(self, kind, scope):
         allowed = {'sharing', 'cost', 'native_agent_access', 'native_agent_write', 'command', 'recovery', 'failover', 'operations'}
         if kind not in allowed or not isinstance(scope, dict):
             raise ValueError('Invalid approval kind or scope')
@@ -279,8 +542,20 @@ class WorkflowEngine:
                 raise ValueError('Test command must remain in the project')
             scope['cwd'] = relative.as_posix()
             scope['timeout'] = min(600, max(1, int(scope.get('timeout', 60))))
+        return scope
+
+    def approve(self, workflow_id, kind, scope, actor='user'):
+        """Trusted operator endpoint. This method is deliberately not a model tool."""
+        if actor != 'user':
+            raise PermissionError('Only an authenticated user may grant approval')
+        scope=self._approval_scope(kind,scope)
         with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
             self._workflow(db, workflow_id)
+            existing = db.execute('SELECT id FROM w5_approvals WHERE workflow_id=? AND kind=? AND scope_hash=? AND revoked=0',
+                                  (workflow_id, kind, _hash(scope))).fetchone()
+            if existing:
+                return {'id': existing[0], 'kind': kind, 'scope': scope, 'actor': actor, 'reused': True}
             identifier = _id()
             db.execute('INSERT INTO w5_approvals(id,workflow_id,kind,scope,scope_hash,actor,created_at) VALUES(?,?,?,?,?,?,?)',
                        (identifier, workflow_id, kind, _json(scope), _hash(scope), actor, time.time()))
@@ -321,10 +596,13 @@ class WorkflowEngine:
 
     def resume(self, workflow_id):
         with self.store.connect() as db:
+            project_id=self._workflow(db,workflow_id)['project_id']
+        self.reconcile_ownership(project_id)
+        with self.store.connect() as db:
             workflow = self._workflow(db, workflow_id)
             if workflow['status'] in TERMINAL:
                 raise ValueError('Terminal workflow cannot be resumed')
-            if workflow['lease_until'] and workflow['lease_until'] > time.time():
+            if workflow.get('lease_owner'):
                 raise ValueError('Wait for the active worker to finish before resuming')
             uncertain = list(db.execute("SELECT * FROM w5_actions WHERE workflow_id=? AND state IN ('RUNNING','UNCERTAIN')", (workflow_id,)))
         for action in uncertain:
@@ -352,6 +630,14 @@ class WorkflowEngine:
             workflow = self._workflow(db, workflow_id)
             workflow['tasks'] = [self._task(db, row['id']) for row in db.execute('SELECT id FROM w5_tasks WHERE workflow_id=? ORDER BY created_at,id', (workflow_id,))]
             workflow['pending_actions'] = [dict(row) for row in db.execute("SELECT id,task_id,role,provider,state,started_at FROM w5_actions WHERE workflow_id=? AND state IN ('RUNNING','UNCERTAIN')", (workflow_id,))]
+            workflow['approval_requests'] = [dict(r, scope=_load(r['scope'])) for r in db.execute("SELECT * FROM w5_requests WHERE workflow_id=? AND status='PENDING' ORDER BY created_at", (workflow_id,))]
+            workflow['provider_calls'] = db.execute("SELECT COUNT(*) FROM w5_actions WHERE workflow_id=? AND role IN ('planner','executor','reviewer')", (workflow_id,)).fetchone()[0]
+            workflow['sessions'] = [dict(r) for r in db.execute('SELECT task_id,provider,role,session_id FROM w5_sessions WHERE workflow_id=?', (workflow_id,))]
+            workflow['health'] = ('heartbeat_late' if workflow.get('lease_owner') and (not workflow['lease_until'] or workflow['lease_until']<=time.time())
+                                  else 'active' if workflow.get('lease_owner')
+                                  else 'recovery_required' if workflow['pending_actions'] else 'idle')
+            if workflow['health']=='heartbeat_late':
+                workflow['health_detail']='Heartbeat is late. Pause or stop the owning runner and inspect persisted evidence; the engine does not steal ownership from a live process.'
             workflow.pop('lease_owner', None)
             workflow['cost_accounting'] = 'conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap'
             workflow['token_accounting'] = 'reported where available; otherwise explicitly estimated UTF-8 bytes/4'
@@ -377,6 +663,13 @@ class WorkflowEngine:
         if limits['max_cost'] > 0 and workflow['cost_used'] >= limits['max_cost']:
             return 'Workflow cost budget exhausted'
         return None
+
+    def _provider_budget(self, workflow):
+        with self.store.connect() as db:
+            used = db.execute("SELECT COUNT(*) FROM w5_actions WHERE workflow_id=? AND role IN ('planner','executor','reviewer')", (workflow['id'],)).fetchone()[0]
+        if used >= workflow['budgets']['max_provider_calls']:
+            return 'Provider-call budget exhausted'
+        return self._budget(workflow)
 
     def _gate(self, workflow, provider, role, registry):
         identifier = workflow['id']
@@ -404,7 +697,14 @@ class WorkflowEngine:
         with self.store.connect() as db:
             row = db.execute('SELECT * FROM w5_sessions WHERE workflow_id=? AND task_id=? AND provider=? AND role=?',
                              (workflow_id, task_id or '', provider, role)).fetchone()
+            if row and row['session_id']:
+                self._check_chat_session(db,provider,row['session_id'])
             return dict(row) if row else {'session_id': None, 'history': '[]'}
+
+    def _check_chat_session(self, db, provider, session_id):
+        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='chats'").fetchone():
+            if db.execute('SELECT 1 FROM chats WHERE provider=? AND session_id=?',(provider,session_id)).fetchone():
+                raise PermissionError('Provider session belongs to a separate chat conversation')
 
     def _invoke(self, workflow, task, role, provider, registry, prompt, cancel_event):
         task_id = task['id'] if task else None
@@ -426,6 +726,10 @@ class WorkflowEngine:
             result = _load(cached['response'], {})
             result['_action_id'], result['_snapshot_hash'] = cached['id'], cached['after_hash']
             return result
+        budget_error = self._provider_budget(workflow)
+        if budget_error:
+            self._set_status(workflow['id'], 'BUDGET_EXHAUSTED', budget_error)
+            return None
         session = self._session(workflow['id'], task_id, provider, role)
         operations = ['list_directory', 'read_file', 'search', 'git_diff']
         if role == 'executor':
@@ -441,14 +745,19 @@ class WorkflowEngine:
             self._set_status(workflow['id'], 'BUDGET_EXHAUSTED', 'Insufficient remaining context/token budget')
             return None
         query = task['title'] + ' ' + task['description'] if task else workflow['objective']
-        context = self.store.context(workflow['project_id'], query, budget=min(2000, remaining // 2),
-                                     critical=[workflow['objective']] + workflow['criteria'])
+        context_options={'budget':min(workflow['budgets']['max_context_tokens'], remaining // 2),
+                         'critical':[workflow['objective']] + workflow['criteria']}
+        context = (self.store.full_context(workflow['project_id'],**context_options) if workflow.get('context_mode')=='full_index'
+                   else self.store.context(workflow['project_id'],query,**context_options))
         prompt = dict(prompt, context={'content': context['content'], 'references': context['references'],
-                                      'estimated_tokens': context['estimated_tokens'], 'id': context['id']})
+                                      'estimated_tokens': context['estimated_tokens'], 'id': context['id'],
+                                      'excluded':context['excluded'],'budget':context['budget'],'bytes':context['bytes']})
         request = {'project': project, 'prompt': _json(prompt), 'role': role, 'session_id': session['session_id'],
                    'timeout': min(workflow['budgets']['call_timeout'], max(1, workflow['budgets']['max_seconds'] - int(time.time() - workflow['started_at']))),
                    'allowed_operations': operations, 'history': _load(session['history'], []),
                    'max_output_tokens': min(workflow['budgets']['max_output_tokens'], workflow['budgets']['max_tokens'] - workflow['tokens_used'])}
+        if workflow.get('model_overrides',{}).get(role):
+            request['model']=workflow['model_overrides'][role]
         estimate_input = max(1, (len(request['prompt'].encode('utf-8')) + len(_json(request['history']).encode('utf-8')) + 3) // 4)
         if estimate_input >= remaining:
             self._set_status(workflow['id'], 'BUDGET_EXHAUSTED', 'Prompt/transcript exceeds remaining estimated token budget')
@@ -456,6 +765,9 @@ class WorkflowEngine:
         request['max_output_tokens'] = min(request['max_output_tokens'], remaining - estimate_input)
         reservation = 0 if getattr(registry, 'offline', False) else self._approved(workflow['id'], 'cost', provider=provider)[-1]['scope']['max_call_cost']
         journal_request = dict(request, cost_reservation=reservation)
+        journal_request['context_package_id'] = context['id']
+        journal_request['provider_model'] = request.get('model') or registry.get(provider).status().get('model')
+        journal_request['offline_mock'] = bool(getattr(registry,'offline',False))
         action_id = _id()
         with self.store.connect() as db:
             db.execute('INSERT INTO w5_actions(id,workflow_id,task_id,role,provider,state,request,before_hash,started_at) VALUES(?,?,?,?,?,?,?,?,?)',
@@ -463,6 +775,24 @@ class WorkflowEngine:
             db.execute('UPDATE w5_workflows SET cost_used=cost_used+? WHERE id=?', (reservation, workflow['id']))
             self._checkpoint(db, workflow['id'], 'ACTION_STARTED', {'role': role, 'provider': provider}, task_id, action_id)
         request['cancel_event'] = cancel_event
+        event_count = [0]
+        def visible_event(event):
+            if event_count[0] >= 64 or not isinstance(event,dict):
+                return
+            from .store import safe_text
+            kind=event.get('type')
+            if kind not in ('text','usage','tool_call','completed','cancelled','timeout','error','session'):
+                return
+            value={'type':kind,'provider':provider,'role':role}
+            if kind=='text':
+                try: value['text']=safe_text(str(event.get('text',''))[:2000])
+                except ValueError: value['text']='[Recognizable sensitive output withheld]'
+            if kind=='tool_call': value['operation']=(event.get('tool_call') or {}).get('name')
+            if kind=='usage': value['usage']={k:v for k,v in (event.get('usage') or {}).items() if isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v)}
+            with self.store.connect() as db:
+                self._checkpoint(db,workflow['id'],'PROVIDER_EVENT',value,task_id,action_id)
+            event_count[0]+=1
+        request['event_callback'] = visible_event
         try:
             result = registry.invoke(provider, request)
             if not isinstance(result, dict):
@@ -471,6 +801,7 @@ class WorkflowEngine:
                 raise ValueError('Provider changed the exact persistent session ID')
             if result.get('session_id'):
                 with self.store.connect() as db:
+                    self._check_chat_session(db,provider,result['session_id'])
                     collision = db.execute('SELECT 1 FROM w5_sessions WHERE provider=? AND session_id=? AND NOT(workflow_id=? AND task_id=? AND role=?) LIMIT 1',
                         (provider, result['session_id'], workflow['id'], task_id or '', role)).fetchone()
                 if collision:
@@ -490,6 +821,8 @@ class WorkflowEngine:
                 raise ValueError('Invalid provider cost usage')
             cost = max(0.0, reported_cost - reservation)
             stored = {key: value for key, value in result.items() if key not in ('events',)}
+            if result.get('status') not in ('completed', 'tool_calls'):
+                result['error_kind'] = stored['error_kind'] = classify_failure(result)
             # Provider approval requests are ordinary output, never capability grants.
             stored['usage_accounting'] = 'reported' if measured else 'estimated_utf8_bytes_div4'
             stored['cost_accounting'] = 'reported_or_reserved_maximum' if reservation else 'offline_mock'
@@ -498,6 +831,7 @@ class WorkflowEngine:
             with self.store.connect() as db:
                 db.execute('BEGIN IMMEDIATE')
                 if result.get('session_id'):
+                    self._check_chat_session(db,provider,result['session_id'])
                     collision = db.execute('SELECT 1 FROM w5_sessions WHERE provider=? AND session_id=? AND NOT(workflow_id=? AND task_id=? AND role=?) LIMIT 1',
                         (provider, result['session_id'], workflow['id'], task_id or '', role)).fetchone()
                     if collision:
@@ -510,6 +844,8 @@ class WorkflowEngine:
                     db.execute('INSERT OR REPLACE INTO w5_sessions(workflow_id,task_id,provider,role,session_id,history) VALUES(?,?,?,?,?,?)',
                                (workflow['id'], task_id or '', provider, role, result['session_id'], _json(result.get('history', request['history']))))
                 self._checkpoint(db, workflow['id'], 'ACTION_COMPLETED', {'status': result.get('status'), 'before_hash': initial['hash'], 'after_hash': final['hash'], 'tokens': used, 'accounting': stored['usage_accounting']}, task_id, action_id)
+                if result.get('error_kind'):
+                    self._checkpoint(db, workflow['id'], 'PROVIDER_FAILURE_CLASSIFIED', {'category': result['error_kind'], 'provider': provider, 'role': role}, task_id, action_id)
             if role != 'executor' and initial['hash'] != final['hash']:
                 self._set_status(workflow['id'], 'FAILED', 'Read-only provider modified the project')
                 return None
@@ -519,7 +855,7 @@ class WorkflowEngine:
         except Exception as error:
             with self.store.connect() as db:
                 db.execute("UPDATE w5_actions SET state='UNCERTAIN',response=?,finished_at=? WHERE id=?",
-                           (_json({'error': type(error).__name__, 'message': str(error)[:500]}), time.time(), action_id))
+                           (_json({'error': type(error).__name__}), time.time(), action_id))
                 self._checkpoint(db, workflow['id'], 'ACTION_OUTCOME_UNCERTAIN', {'error': type(error).__name__}, task_id, action_id)
             self._set_status(workflow['id'], 'RECOVERY_REQUIRED', 'Provider action outcome uncertain; explicit recovery approval required')
             return None
@@ -579,6 +915,10 @@ class WorkflowEngine:
         self._task_evidence(task['id'], 'BLOCKED' if exhausted else 'PENDING', evidence, reason, increment=not exhausted)
         with self.store.connect() as db:
             self._checkpoint(db, workflow['id'], 'CORRECTION_LIMIT' if exhausted else 'CORRECTION_REQUIRED', {'reason': reason}, task['id'])
+        self.store.add_memory(workflow['project_id'],'error','Workflow correction '+task['title'][:200],
+            _json({'workflow_id':workflow['id'],'task_id':task['id'],'reason':reason,
+                   'attempt':task['attempts'],'resolved':False}),kind='observed',
+            source='engine-correction:'+workflow['id'],confidence=1.0,expires_at=time.time()+30*86400)
         if exhausted:
             self._set_status(workflow['id'], 'BLOCKED', 'Correction budget exhausted: ' + task['title'])
         return not exhausted
@@ -627,6 +967,91 @@ class WorkflowEngine:
             result = self._invoke(workflow, task, role, provider, registry, prompt, cancel_event)
         return result
 
+    def _response(self, workflow, task, role, provider, registry, prompt, cancel_event):
+        """Bounded continuation of known incomplete output; never retry unknown effects."""
+        fingerprints = set()
+        task_id = task['id'] if task else None
+        while True:
+            result = self._invoke(self.status(workflow['id']), task, role, provider, registry, prompt, cancel_event)
+            result = self._handle_tools(self.status(workflow['id']), task, provider, role, result, registry, prompt, cancel_event)
+            if not result or cancel_event.is_set() or self.status(workflow['id'])['status'] != 'RUNNING':
+                return None
+            incomplete = result.get('status') == 'incomplete' or classify_failure(result) == 'incomplete'
+            if result.get('status') == 'completed' and role in ('planner', 'reviewer'):
+                try:
+                    structured=_decode_object(result.get('output', ''))
+                    if role=='planner':
+                        items=structured.get('tasks')
+                        if not isinstance(items,list) or not items or any(not isinstance(item,dict) or not isinstance(item.get('title'),str) or not item['title'].strip() for item in items):
+                            incomplete=True
+                    elif structured.get('decision') not in ('approve','changes_requested') or not isinstance(structured.get('criteria'),list):
+                        incomplete=True
+                except (ValueError, TypeError):
+                    incomplete = True
+            if result.get('status') == 'completed' and not incomplete:
+                return result
+            category = 'invalid_response' if incomplete and result.get('status') == 'completed' else classify_failure(result)
+            with self.store.connect() as db:
+                prior = [r for r in db.execute("SELECT data FROM w5_checkpoints WHERE workflow_id=? AND task_id IS ? AND event='PROVIDER_CONTINUATION'", (workflow['id'], task_id))
+                         if _load(r['data']).get('role') == role]
+                fingerprint = _hash([result.get('output'), result.get('_snapshot_hash')])
+                repeated = fingerprint in fingerprints or any(_load(r['data']).get('fingerprint') == fingerprint for r in prior)
+                if incomplete and len(prior) < workflow['budgets']['max_continuations'] and not repeated:
+                    db.execute('UPDATE w5_actions SET consumed=1 WHERE id=?', (result['_action_id'],))
+                    self._checkpoint(db, workflow['id'], 'PROVIDER_CONTINUATION', {'role': role, 'category': category, 'fingerprint': fingerprint}, task_id, result['_action_id'])
+                    continue_allowed = True
+                else:
+                    continue_allowed = False
+                    if category in ('network', 'timeout', 'unknown'):
+                        db.execute("UPDATE w5_actions SET state='UNCERTAIN' WHERE id=?", (result['_action_id'],))
+                    else:
+                        db.execute('UPDATE w5_actions SET consumed=1 WHERE id=?', (result['_action_id'],))
+                    self._checkpoint(db, workflow['id'], 'PROVIDER_BLOCKED', {'provider': provider, 'role': role, 'category': category, 'no_progress': repeated}, task_id, result['_action_id'])
+            if continue_allowed:
+                fingerprints.add(fingerprint)
+                prompt = dict(prompt, continuation='Continue the existing task without repeating completed changes. Return the requested complete response; preserve prior tool results and acceptance criteria.')
+                continue
+            if category in ('usage_limit','authentication') and role in ('planner','reviewer'):
+                destination=self._authorized_handoff(workflow,task,role,provider,registry)
+                if destination:
+                    provider=destination
+                    if task and role=='reviewer': task['reviewer']=destination
+                    workflow=self.status(workflow['id'])
+                    prompt=dict(prompt,handoff='Continue the pending role using the persisted task/test evidence. Existing executor work and sessions are preserved.')
+                    continue
+            if task and role == 'executor':
+                self._task_evidence(task_id, 'BLOCKED', task['evidence'], 'Provider failure: ' + category)
+            status = 'RECOVERY_REQUIRED' if category in ('network', 'timeout', 'unknown') else 'BLOCKED'
+            self._set_status(workflow['id'], status, 'Provider ' + category + ('; no progress detected' if repeated else '; inspect connection or approve a safe handoff'))
+            return None
+
+    def _authorized_handoff(self, workflow, task, role, provider, registry):
+        """Use only previously granted destination/cost scopes; never invent fallback."""
+        with self.store.connect() as db:
+            transitions=db.execute("SELECT COUNT(*) FROM w5_checkpoints WHERE workflow_id=? AND event='AUTOMATIC_ROLE_HANDOFF'",(workflow['id'],)).fetchone()[0]
+        if transitions>=workflow['budgets']['max_depth']: return None
+        for approval in reversed(self._approved(workflow['id'],'failover',role=role)):
+            target=approval['scope'].get('to_provider')
+            if not provider_identifier(target) or target==provider: continue
+            try:
+                if registry.get(target).status().get('available') is False or self._gate(self.status(workflow['id']),target,role,registry): continue
+            except (ValueError,KeyError,RuntimeError): continue
+            with self.store.connect() as db:
+                db.execute('BEGIN IMMEDIATE')
+                current=self._workflow(db,workflow['id'])
+                if current['status']!='RUNNING':return None
+                still=db.execute('SELECT revoked FROM w5_approvals WHERE id=?',(approval['id'],)).fetchone()
+                if not still or still[0]:continue
+                current['providers'][role]=target
+                db.execute('UPDATE w5_workflows SET providers=?,updated_at=? WHERE id=?',(_json(current['providers']),time.time(),workflow['id']))
+                if role=='reviewer':
+                    db.execute("UPDATE w5_tasks SET reviewer=? WHERE workflow_id=? AND status!='VERIFIED'",(target,workflow['id']))
+                self._checkpoint(db,workflow['id'],'AUTOMATIC_ROLE_HANDOFF',
+                    {'role':role,'from':provider,'to':target,'approval_id':approval['id'],
+                     'preserved_executor_sessions':True,'task_id':task['id'] if task else None})
+            return target
+        return None
+
     def _execute_tool(self, workflow, task, provider, parent_action, call, tools, role=None):
         identifier = _hash([parent_action, call['id']])
         project = self.store.project(workflow['project_id'])['path']
@@ -663,21 +1088,29 @@ class WorkflowEngine:
 
     def run(self, workflow_id, registry):
         owner, stop, cancel_event = _id(), threading.Event(), threading.Event()
+        owner_pid=os.getpid()
+        try:owner_birth=self._process_birth(owner_pid)
+        except (OSError,ValueError,NotImplementedError):owner_birth=None
+        with self.store.connect() as db:
+            project_id=self._workflow(db,workflow_id)['project_id']
+        self.reconcile_ownership(project_id)
         with self.store.connect() as db:
             db.execute('BEGIN IMMEDIATE')
             workflow = self._workflow(db, workflow_id)
             if workflow['status'] in TERMINAL or workflow['status'] in ('PAUSED', 'RECOVERY_REQUIRED', 'BLOCKED', 'BUDGET_EXHAUSTED'):
                 return self.status(workflow_id)
-            active_project = db.execute('SELECT id FROM w5_workflows WHERE project_id=? AND id!=? AND lease_until>?',
-                                        (workflow['project_id'], workflow_id, time.time())).fetchone()
-            if active_project or workflow['lease_until'] and workflow['lease_until'] > time.time():
+            active_project = db.execute('SELECT id FROM w5_workflows WHERE project_id=? AND id!=? AND lease_owner IS NOT NULL',
+                                        (workflow['project_id'], workflow_id)).fetchone()
+            unknown_project=db.execute("SELECT a.id FROM w5_actions a JOIN w5_workflows w ON w.id=a.workflow_id WHERE w.project_id=? AND w.id!=? AND w.status NOT IN ('CANCELLED','COMPLETED','FAILED') AND a.state IN ('RUNNING','UNCERTAIN') LIMIT 1",
+                                       (workflow['project_id'],workflow_id)).fetchone()
+            if active_project or workflow['lease_owner'] or unknown_project:
                 return dict(self.status(workflow_id), busy=True)
             uncertain = db.execute("SELECT id FROM w5_actions WHERE workflow_id=? AND state IN ('RUNNING','UNCERTAIN') LIMIT 1", (workflow_id,)).fetchone()
             if uncertain:
                 db.execute("UPDATE w5_workflows SET status='RECOVERY_REQUIRED',reason='Unfinished action requires recovery approval' WHERE id=?", (workflow_id,))
                 return dict(workflow, status='RECOVERY_REQUIRED')
-            db.execute("UPDATE w5_workflows SET status='RUNNING',reason=NULL,lease_owner=?,lease_until=?,started_at=COALESCE(started_at,?),updated_at=? WHERE id=?",
-                       (owner, time.time()+60, time.time(), time.time(), workflow_id))
+            db.execute("UPDATE w5_workflows SET status='RUNNING',reason=NULL,lease_owner=?,lease_until=?,lease_pid=?,lease_start_ticks=?,started_at=COALESCE(started_at,?),updated_at=? WHERE id=?",
+                       (owner, time.time()+60, owner_pid, owner_birth, time.time(), time.time(), workflow_id))
         def heartbeat():
             while not stop.wait(1):
                 with self.store.connect() as db:
@@ -690,12 +1123,19 @@ class WorkflowEngine:
         thread.start()
         try:
             workflow = self.status(workflow_id)
+            indexed = self.store.index(workflow['project_id'])
+            with self.store.connect() as db:
+                self._checkpoint(db, workflow_id, 'CONTEXT_INDEX_REFRESHED', indexed)
+            if not workflow['tasks'] and workflow.get('execution_policy')=='single_task':
+                with self.store.connect() as db:
+                    self._new_task(db,workflow,workflow['objective'])
+                    self._checkpoint(db,workflow_id,'SINGLE_TASK_POLICY',{'planning_skipped':True,'independent_review_required':True})
+                workflow=self.status(workflow_id)
             if not workflow['tasks']:
                 prompt = {'role': 'planner', 'objective': workflow['objective'], 'criteria': workflow['criteria'],
                           'instruction': 'Return JSON {"tasks":[{"title":"...","description":"..."}]}. No approvals or commands may be granted.',
                           'max_tasks': workflow['budgets']['max_tasks']}
-                result = self._invoke(workflow, None, 'planner', workflow['providers']['planner'], registry, prompt, cancel_event)
-                result = self._handle_tools(workflow, None, workflow['providers']['planner'], 'planner', result, registry, prompt, cancel_event)
+                result = self._response(workflow, None, 'planner', workflow['providers']['planner'], registry, prompt, cancel_event)
                 if not result:
                     return self.status(workflow_id)
                 plan = _decode_object(result.get('output', ''))
@@ -717,6 +1157,14 @@ class WorkflowEngine:
                     self._set_status(workflow_id, 'BUDGET_EXHAUSTED', reason)
                     break
                 unfinished = [t for t in workflow['tasks'] if t['status'] != 'VERIFIED']
+                task_map = {t['id']: t for t in workflow['tasks']}
+                eligible = [t for t in unfinished if t['status'] not in ('PENDING', 'EXECUTING') or all(
+                    task_map[d]['status'] in ('TESTING', 'REVIEWING', 'VERIFIED') and task_map[d]['evidence'].get('execution')
+                    for d in t.get('depends_on', []))]
+                if unfinished and not eligible:
+                    self._set_status(workflow_id, 'BLOCKED', 'Task dependencies require completion or recovery')
+                    break
+                unfinished = eligible
                 unfinished.sort(key=lambda t: (t['status'] not in ('PENDING', 'EXECUTING'), -t['depth'], t['created_at']))
                 task = unfinished[0] if unfinished else None
                 if task is None:
@@ -729,15 +1177,20 @@ class WorkflowEngine:
                             self._task_evidence(item['id'], 'TESTING', item['evidence'], 'Final tree changed after review')
                         continue
                     summary = {'workflow_id': workflow_id, 'snapshot_hash': current,
+                               'correction_rounds':sum(t['attempts'] for t in workflow['tasks']),
+                               'prior_corrections_resolved':True,
                                'criteria': workflow['criteria'], 'tasks': [
                                    {'id': t['id'], 'reviewer': t['reviewer'],
                                     'test_exit_codes': [c['exit_code'] for c in t['evidence']['tests']['commands']],
                                     'review_action': t['evidence']['review']['action_id']} for t in workflow['tasks']]}
-                    memory = self.store.add_memory(workflow['project_id'], 'verification',
+                    prior=[m for m in self.store.memories(workflow['project_id']) if m['scope']=='verification'
+                           and m['source']=='workflow:'+workflow_id and m['source_hash']==current and m['body']==_json(summary)]
+                    memory = prior[0] if prior else self.store.add_memory(workflow['project_id'], 'verification',
                         'Workflow verification ' + workflow_id, _json(summary), kind='verified',
                         source='workflow:' + workflow_id, source_hash=current, confidence=1.0, verified_at=time.time())
                     with self.store.connect() as db:
                         self._checkpoint(db, workflow_id, 'VERIFICATION_MEMORY_SAVED', {'memory_id': memory['id']})
+                    self.store.index(workflow['project_id'])
                     self._set_status(workflow_id, 'COMPLETED')
                     break
                 if task['status'] == 'BLOCKED':
@@ -750,8 +1203,7 @@ class WorkflowEngine:
                               'task': {'title': task['title'], 'description': task['description']},
                               'previous_review': evidence.get('review'), 'test_failures': evidence.get('tests'),
                               'instruction': 'Implement within authorized scope. Never grant approvals or claim independent verification.'}
-                    result = self._invoke(workflow, task, 'executor', task['executor'], registry, prompt, cancel_event)
-                    result = self._handle_tools(workflow, task, task['executor'], 'executor', result, registry, prompt, cancel_event)
+                    result = self._response(workflow, task, 'executor', task['executor'], registry, prompt, cancel_event)
                     if not result:
                         break
                     if self.status(workflow_id)['status'] != 'RUNNING' or cancel_event.is_set():
@@ -763,6 +1215,7 @@ class WorkflowEngine:
                         break
                     evidence['execution'] = {'action_id': result['_action_id'], 'snapshot_hash': result['_snapshot_hash'], 'provider': task['executor']}
                     self._task_evidence(task['id'], 'TESTING', evidence)
+                    self.store.index(workflow['project_id'])
                     if any(t['id'] != task['id'] and t['status'] in ('PENDING', 'EXECUTING') for t in self.status(workflow_id)['tasks']):
                         continue
                 workflow = self.status(workflow_id)
@@ -787,8 +1240,7 @@ class WorkflowEngine:
                           'task': {'title': task['title'], 'description': task['description']},
                           'snapshot_hash': tests['snapshot_hash'], 'test_evidence': tests,
                           'instruction': 'Independently inspect actual files/diff. Return JSON with decision approve or changes_requested, exact snapshot_hash, rationale, and criteria [{criterion,met,evidence}]. Do not modify files.'}
-                result = self._invoke(self.status(workflow_id), task, 'reviewer', task['reviewer'], registry, prompt, cancel_event)
-                result = self._handle_tools(self.status(workflow_id), task, task['reviewer'], 'reviewer', result, registry, prompt, cancel_event)
+                result = self._response(self.status(workflow_id), task, 'reviewer', task['reviewer'], registry, prompt, cancel_event)
                 if not result:
                     break
                 if self.status(workflow_id)['status'] != 'RUNNING' or cancel_event.is_set():
@@ -812,10 +1264,13 @@ class WorkflowEngine:
             return self.status(workflow_id)
         except Exception as error:
             status = 'RECOVERY_REQUIRED' if self.status(workflow_id)['pending_actions'] else 'BLOCKED'
-            self._set_status(workflow_id, status, type(error).__name__ + ': ' + str(error)[:500])
+            from .store import safe_text
+            try: detail=safe_text(str(error)[:500])
+            except ValueError: detail='Sensitive error details withheld'
+            self._set_status(workflow_id, status, type(error).__name__ + ': ' + detail)
             return self.status(workflow_id)
         finally:
             stop.set()
             thread.join(timeout=3)
             with self.store.connect() as db:
-                db.execute('UPDATE w5_workflows SET lease_owner=NULL,lease_until=NULL WHERE id=? AND lease_owner=?', (workflow_id, owner))
+                db.execute('UPDATE w5_workflows SET lease_owner=NULL,lease_until=NULL,lease_pid=NULL,lease_start_ticks=NULL WHERE id=? AND lease_owner=?', (workflow_id, owner))

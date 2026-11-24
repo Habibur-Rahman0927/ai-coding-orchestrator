@@ -11,13 +11,21 @@ SCHEMAS={
  'get_project_context':{'query':'string','budget':'integer'},
  'search_project_memory':{'query':'string'},
  'get_workflow_status':{'workflow_id':'string'},
- 'create_workflow':{'objective':'string','criteria':'array'},
- 'create_task':{'workflow_id':'string','title':'string'},
+ 'create_workflow':{'objective':'string','criteria':'array','planner':'string','executor':'string','reviewer':'string'},
+ 'create_task':{'workflow_id':'string','title':'string','description':'string','executor':'string','reviewer':'string','depends_on':'array'},
  'delegate_task':{'workflow_id':'string','task_id':'string','to_provider':'string'},
  'pause_workflow':{'workflow_id':'string'},
  'resume_workflow':{'workflow_id':'string'},
  'run_workflow':{'workflow_id':'string'},
+ 'get_task_status':{'workflow_id':'string','task_id':'string'},
+ 'get_execution_results':{'workflow_id':'string'},
+ 'submit_review':{'workflow_id':'string','task_id':'string','review':'string'},
+ 'request_correction':{'workflow_id':'string','task_id':'string','reason':'string'},
+ 'verify_task':{'workflow_id':'string','task_id':'string'},
+ 'request_approval':{'workflow_id':'string','kind':'string','scope':'object','reason':'string'},
 }
+OPTIONAL = {'get_project_context':{'budget'}, 'create_workflow':{'planner','executor','reviewer'},
+            'create_task':{'description','executor','reviewer','depends_on'}}
 
 class Bridge:
     def __init__(self,store,project_id,engine=None,registry=None):
@@ -38,10 +46,10 @@ class Bridge:
         if not isinstance(args,dict) or set(args)-set(spec): raise ValueError('Unexpected arguments')
         for key,kind in spec.items():
             if key not in args:
-                if key=='budget':continue
+                if key in OPTIONAL.get(name,set()):continue
                 raise ValueError('Missing required argument')
             value=args[key]
-            if (kind=='string' and not isinstance(value,str)) or (kind=='integer' and type(value)!=int) or (kind=='array' and (not isinstance(value,list) or not all(isinstance(x,str) for x in value))):
+            if (kind=='string' and not isinstance(value,str)) or (kind=='integer' and type(value)!=int) or (kind=='array' and (not isinstance(value,list) or not all(isinstance(x,str) for x in value))) or (kind=='object' and not isinstance(value,dict)):
                 raise ValueError('Incorrect argument type')
         if 'workflow_id' in args:
             state=self.engine.status(args['workflow_id'])
@@ -49,13 +57,21 @@ class Bridge:
         if name=='discover_providers':return self.registry.discover()
         if name=='get_project_context':return self.store.context(self.project_id,args['query'],args.get('budget',2000))
         if name=='search_project_memory':return self.store.search(self.project_id,args['query'])
-        if name=='create_workflow':return self.engine.create(self.project_id,args['objective'],args['criteria'])
-        if name=='create_task':return self.engine.create_task(args['workflow_id'],args['title'])
+        if name=='create_workflow':return self.engine.create(self.project_id,args['objective'],args['criteria'],providers={k:args[k] for k in ('planner','executor','reviewer') if k in args})
+        if name=='create_task':return self.engine.create_task(args['workflow_id'],args['title'],**{k:args[k] for k in ('description','executor','reviewer','depends_on') if k in args})
         if name=='delegate_task':
             if not any(task.get('id')==args['task_id'] for task in state.get('tasks',[])):
                 raise PermissionError('Task outside selected workflow')
             return self.engine.delegate(args['task_id'],args['to_provider'])
         if name=='get_workflow_status':return state
+        if name=='get_execution_results':return self.engine.action_results(args['workflow_id'])
+        if name in ('get_task_status','verify_task'):
+            task=self.engine.task_status(args['workflow_id'],args['task_id'])
+            if name=='verify_task': return self.engine.verify_task(args['workflow_id'],args['task_id'])
+            return task
+        if name=='submit_review':return self.engine.submit_review(args['workflow_id'],args['task_id'],args['review'])
+        if name=='request_correction':return self.engine.request_correction(args['workflow_id'],args['task_id'],args['reason'])
+        if name=='request_approval':return self.engine.request_approval(args['workflow_id'],args['kind'],args['scope'],args['reason'])
         if name=='pause_workflow':return self.engine.pause(args['workflow_id'])
         if name=='resume_workflow':return self.engine.resume(args['workflow_id'])
         if name=='run_workflow':return self.engine.run(args['workflow_id'],self.registry)
@@ -77,7 +93,7 @@ class Bridge:
             elif method=='ping':result={}
             elif method=='tools/list':
                 result={'tools':[{'name':name,'description':name.replace('_',' ')+' within the explicitly selected project',
-                                  'inputSchema':{'type':'object','properties':{k:({'type':v,'items':{'type':'string'}} if v=='array' else {'type':v}) for k,v in schema.items()},'required':[k for k in schema if k!='budget'],'additionalProperties':False}}
+                                  'inputSchema':{'type':'object','properties':{k:({'type':v,'items':{'type':'string'}} if v=='array' else {'type':v}) for k,v in schema.items()},'required':[k for k in schema if k not in OPTIONAL.get(name,set())],'additionalProperties':False}}
                                   for name,schema in SCHEMAS.items()]}
             elif method=='tools/call':
                 try:

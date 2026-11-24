@@ -125,6 +125,8 @@ class Store:
                        (event,project_id,json.dumps(details or {}),stamp()))
 
     def register(self,path,exclusions=()):
+        if not isinstance(exclusions,(list,tuple)) or len(exclusions)>100 or any(not isinstance(x,str) or len(x)>256 for x in exclusions):
+            raise ValueError('Exclusions must be a bounded list of path patterns')
         original=Path(path).absolute()
         if native.is_link(original): raise PermissionError('Project root is a link/reparse point')
         root=original.resolve()
@@ -135,7 +137,7 @@ class Store:
         if root == Path.home().resolve(): raise ValueError('A whole home directory cannot be registered')
         pid=digest(str(root).encode())[:16]
         with self.connect() as db:
-            db.execute('INSERT OR IGNORE INTO projects VALUES(?,?,?,?)',(pid,str(root),stamp(),json.dumps(list(exclusions))))
+            db.execute('INSERT INTO projects VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET exclusions=excluded.exclusions',(pid,str(root),stamp(),json.dumps(list(exclusions))))
         self.audit('project_registered',pid)
         return self.project(pid)
 
@@ -303,7 +305,21 @@ class Store:
         capacity=int(budget)*4
         if len(prefix.encode())>capacity: raise ValueError('Critical requirements exceed context budget; increase budget explicitly')
         chunks=[prefix] if prefix else [];seen=set();refs=[];excluded=[]
-        for r in self.search(pid,query,limit=100):
+        candidates=self.search(pid,query,limit=100)
+        # Root instructions are untrusted references, not permission grants. Keep
+        # them visible even when their prose does not match the task's keywords.
+        project=self.project(pid);root=Path(project['path']);exclusions=json.loads(project['exclusions'])
+        for name in reversed(('AGENTS.md','CLAUDE.md')):
+            if not allowed(name,exclusions) or git_ignored(root,name): continue
+            with self.connect() as db:
+                row=db.execute('SELECT * FROM documents WHERE project_id=? AND path=?',(pid,name)).fetchone()
+            if row and not any(r.get('source')==name for r in candidates):
+                try:
+                    body=read_source(root,name).decode('utf-8');safe_text(body)
+                    stale=digest(body.encode())!=row['hash']
+                except (OSError,ValueError,UnicodeError): stale=True
+                candidates.insert(0,dict(row,source=name,source_hash=row['hash'],stale=stale))
+        for r in candidates:
             if r['stale']: excluded.append({'source':r.get('source'),'reason':'stale'});continue
             body=r['body'];lines=body.splitlines();terms=re.findall(r'\w+',query.lower())
             matching=[i for i,line in enumerate(lines) if any(t in line.lower() for t in terms)]
@@ -328,6 +344,40 @@ class Store:
                     result['id']=prior['id']
                     return result
             db.execute('INSERT INTO context_packages VALUES(?,?,?,?,?,?)',(cid,pid,query,content,json.dumps(metadata),stamp()))
+            db.execute('DELETE FROM context_packages WHERE project_id=? AND id NOT IN (SELECT id FROM context_packages WHERE project_id=? ORDER BY created_at DESC LIMIT 20)',(pid,pid))
+        return result
+
+    def full_context(self,pid,budget=2000,critical=None):
+        """Explicit benchmark control: repeat the entire permitted indexed corpus.
+
+        Fail rather than silently truncate an oversized baseline. Normal workflows
+        use retrieval. This method performs no provider calls or sharing grants.
+        """
+        if not 64<=int(budget)<=32000: raise ValueError('Invalid full-context budget')
+        project=self.project(pid);root=Path(project['path']);exclusions=json.loads(project['exclusions'])
+        chunks=[safe_text(x) for x in (critical or [])];refs=[];excluded=[]
+        with self.connect() as db:
+            rows=[dict(r) for r in db.execute('SELECT path,hash,body FROM documents WHERE project_id=? ORDER BY path',(pid,))]
+        for row in rows:
+            name=row['path']
+            if not allowed(name,exclusions) or git_ignored(root,name): continue
+            try:
+                raw=read_source(root,name);safe_text(raw.decode('utf-8'))
+            except (OSError,ValueError,UnicodeError):
+                excluded.append({'source':name,'reason':'unsafe'});continue
+            if digest(raw)!=row['hash']:
+                excluded.append({'source':name,'reason':'stale'});continue
+            chunks.append('\n[Untrusted reference: %s]\n%s'%(name,row['body']))
+            refs.append({'source':name,'hash':row['hash'],'line':1})
+            if len('\n'.join(chunks).encode())>int(budget)*4:
+                raise ValueError('Full indexed context exceeds explicit context budget')
+        content='\n'.join(chunks);size=len(content.encode())
+        if size>int(budget)*4: raise ValueError('Critical requirements exceed context budget')
+        result={'id':ident(),'project_id':pid,'content':content,'references':refs,'excluded':excluded,
+                'bytes':size,'estimated_tokens':math.ceil(size/4),'token_measurement':'estimate_utf8_bytes_div_4',
+                'budget':int(budget),'critical':list(critical or []),'mode':'full_index'}
+        with self.connect() as db:
+            db.execute('INSERT INTO context_packages VALUES(?,?,?,?,?,?)',(result['id'],pid,'[explicit full-index benchmark]',content,json.dumps({k:v for k,v in result.items() if k!='content'}),stamp()))
             db.execute('DELETE FROM context_packages WHERE project_id=? AND id NOT IN (SELECT id FROM context_packages WHERE project_id=? ORDER BY created_at DESC LIMIT 20)',(pid,pid))
         return result
 

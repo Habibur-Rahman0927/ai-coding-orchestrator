@@ -1,0 +1,35 @@
+{
+  "platform": {
+    "os": "Darwin",
+    "architecture": "arm64",
+    "python": "3.9.6"
+  },
+  "fixture": {
+    "source_files": 101,
+    "mock_providers": true,
+    "live_provider_calls": 0
+  },
+  "startup_to_bound_backend_ms": 19.118,
+  "idle_sample_seconds": 1,
+  "idle_process_cpu_percent": 0.012,
+  "process_peak_rss_bytes": 31457280,
+  "memory_measurement": "peak for entire measurement process, not isolated steady-state RSS",
+  "initial_index_ms": 46.97,
+  "repeat_index_ms": 28.636,
+  "repeat_index_bytes_read": 0,
+  "context_latency_median_ms": 21.876,
+  "static_http_median_ms": 0.428,
+  "mock_workflow_duration_ms": 1136.481,
+  "mock_workflow_process_cpu_seconds": 0.7306,
+  "workflow_status": "COMPLETED",
+  "correction_rounds": 1,
+  "checkpoint_count": 25,
+  "checkpoint_read_ms": 0.59,
+  "database_growth_during_workflow_bytes": 20480,
+  "limitations": [
+    "single short local sample",
+    "CPU excludes test child processes and providers",
+    "no before/after optimization claim",
+    "browser responsiveness covered separately by interaction tests"
+  ]
+}

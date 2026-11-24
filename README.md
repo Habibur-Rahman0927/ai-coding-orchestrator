@@ -8,6 +8,9 @@ V5 development adds an isolated local workspace, persistent project knowledge,
 provider adapters, workflows, and an authenticated dashboard. Start with the
 [V5 workspace guide](docs/v5/WORKSPACE.md) and [verification evidence](docs/v5/RESULTS.md).
 This is an unpublished development implementation, not a fully verified V5 release.
+Phase 2 adds guided setup, automatic local browser authentication and managed
+startup: [start with one command](docs/v5/PHASE2-START.md), then read the
+[Phase 2 evidence and limitations](docs/v5/PHASE2-RESULTS.md).
 
 ## Platform and requirements
 

@@ -28,4 +28,6 @@ def provider_config(store):
 
 def registry_for(store):
     from .providers import ProviderRegistry
-    return ProviderRegistry(config=provider_config(store))
+    from .credentials import CredentialManager
+    credentials = CredentialManager(store)
+    return ProviderRegistry(config=provider_config(store), credential_resolver=credentials.resolve, credential_status=credentials.status)
