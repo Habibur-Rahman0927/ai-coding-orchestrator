@@ -1,0 +1,594 @@
+{
+  "schema": 1,
+  "date": "2026-11-25",
+  "live_provider_calls": 0,
+  "workloads": [
+    {
+      "workload": "A",
+      "name": "Backend calculation defect and reviewer correction",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "5f6fda6f-735c-4eb6-be00-5aa27a4de3b0",
+      "session_ids": [
+        "ade358d5-8f91-4e33-b13e-b01964ec0224",
+        "1c3a7dd5-4936-49d3-a776-c7e30ec847ee"
+      ],
+      "provider_mock_calls": 6,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "ade358d5-8f91-4e33-b13e-b01964ec0224",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "ade358d5-8f91-4e33-b13e-b01964ec0224",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "1c3a7dd5-4936-49d3-a776-c7e30ec847ee",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "ade358d5-8f91-4e33-b13e-b01964ec0224",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "ade358d5-8f91-4e33-b13e-b01964ec0224",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "1c3a7dd5-4936-49d3-a776-c7e30ec847ee",
+          "resumed": true
+        }
+      ],
+      "correction_rounds": 1,
+      "review_observations": [
+        {
+          "decision": "changes_requested",
+          "file_checks": {
+            "billing.py": false,
+            "test_acceptance.py": false
+          },
+          "engine_tests_passed": true
+        },
+        {
+          "decision": "approve",
+          "file_checks": {
+            "billing.py": true,
+            "test_acceptance.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0,
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 3,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.586,
+      "final_source_hashes": {
+        "billing.py": "84eb1ef5b1c62599fcd131276c858abcb4674e51ee18fc9474e369ebd4197092",
+        "test_acceptance.py": "3eac8496e41ba317b654e41239921cd519f67b755079cf8dc84d0d52b3dde507"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ]
+    },
+    {
+      "workload": "B",
+      "name": "Frontend counter reset verified by actual browser interaction",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "efa28539-5489-4a41-89ee-1afcc12cd3e5",
+      "session_ids": [
+        "3239a427-ee02-4663-95ef-258c1471f7a9",
+        "0df5e3bd-b684-43c7-a8ca-5c4de34b083d"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "3239a427-ee02-4663-95ef-258c1471f7a9",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "3239a427-ee02-4663-95ef-258c1471f7a9",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "0df5e3bd-b684-43c7-a8ca-5c4de34b083d",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "index.html": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "actual_browser_cdp",
+      "browser_acceptance": {
+        "status": "PASS",
+        "browser": "Chrome/144.0.7559.109",
+        "protocol": "1.3",
+        "sandbox_disabled": false,
+        "provider_mode": "deterministic_offline",
+        "installed_dependencies": false,
+        "elapsed_ms": 698,
+        "checks": [
+          {
+            "name": "Frontend counter increment and Reset acceptance in actual Chrome",
+            "status": "PASS",
+            "elapsed_ms": 37
+          }
+        ],
+        "page_errors": []
+      },
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 2.538,
+      "final_source_hashes": {
+        "index.html": "fde43d03e8ada3a13279518a157bcc010893f77ed81654eda3069e48591b286c"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ]
+    },
+    {
+      "workload": "C",
+      "name": "Local API handler failure contract (no HTTP listener)",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "6152dd98-282d-4698-be67-a26649a09e1e",
+      "session_ids": [
+        "538d74bb-25b5-4dc6-8e3c-48a3f3e38bb4",
+        "482a6a72-7189-407c-b315-94f3810ea686"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "538d74bb-25b5-4dc6-8e3c-48a3f3e38bb4",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "538d74bb-25b5-4dc6-8e3c-48a3f3e38bb4",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "482a6a72-7189-407c-b315-94f3810ea686",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "api.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.357,
+      "final_source_hashes": {
+        "api.py": "d65b0369adc61fcd125958e81ca7a9c68b20dd3c0b5e1b74d15d6c93e47e5943"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ]
+    },
+    {
+      "workload": "D",
+      "name": "Stable deduplication algorithmic bottleneck",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "8372941d-4b2e-400b-a062-30d5af9c7497",
+      "session_ids": [
+        "8560b08c-e207-4b9b-a679-cfaad7a7f7f1",
+        "aa1296ad-b7da-421f-b477-67f587170d48"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "8560b08c-e207-4b9b-a679-cfaad7a7f7f1",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "8560b08c-e207-4b9b-a679-cfaad7a7f7f1",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "aa1296ad-b7da-421f-b477-67f587170d48",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "dedupe.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": 0,
+      "performance_before": {
+        "sample_count": 7,
+        "median_seconds": 0.0013361470000745612,
+        "samples_seconds": [
+          0.0013264489998618956,
+          0.0013361470000745612,
+          0.0013390559997787932,
+          0.0013669830004801042,
+          0.0014245880001908517,
+          0.0012925250002808752,
+          0.001294450999921537
+        ],
+        "equality_and_hash_operations": 262144,
+        "input_values": 1024,
+        "unique_values": 512
+      },
+      "performance_after": {
+        "sample_count": 7,
+        "median_seconds": 1.7500000467407517e-05,
+        "samples_seconds": [
+          2.137400042556692e-05,
+          1.846899976953864e-05,
+          1.7533999198349193e-05,
+          1.7353000657749362e-05,
+          1.6485000742250122e-05,
+          1.6404999769292772e-05,
+          1.7500000467407517e-05
+        ],
+        "equality_and_hash_operations": 1536,
+        "input_values": 1024,
+        "unique_values": 512
+      },
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.541,
+      "final_source_hashes": {
+        "dedupe.py": "6e7d4433ebe41091d0514514f48c26c34631730a0e71e92c31f99bfee391f609"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ]
+    },
+    {
+      "workload": "E",
+      "name": "Multi-file refactor with compatibility acceptance",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "dadcfe8b-715c-410a-8524-b3dc4d3235b8",
+      "session_ids": [
+        "0e933e3d-b4fd-444f-a88a-8ed42a762ec7",
+        "1aceff2a-aeea-496c-97fb-96da4a1e94d8"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "0e933e3d-b4fd-444f-a88a-8ed42a762ec7",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "0e933e3d-b4fd-444f-a88a-8ed42a762ec7",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "1aceff2a-aeea-496c-97fb-96da4a1e94d8",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "normalize.py": true,
+            "render.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 2,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.35,
+      "final_source_hashes": {
+        "normalize.py": "3e8334d50ed180bed8d52d7d0019fe86537648d374db10eda9f128e36c47c2e5",
+        "render.py": "b6e6cc2e079106d62e823d415ca700264ef52a5d92c9850aa1fee83e1a9c1e87"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ]
+    },
+    {
+      "workload": "F",
+      "name": "Deliberate regression mutation detected by actual tests",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "562aa6ee-70d2-4f93-b462-c703d14d04db",
+      "session_ids": [
+        "82ba81da-681f-48da-9953-459980517e95",
+        "1f5356d0-ed31-4646-86db-03e0443c6300"
+      ],
+      "provider_mock_calls": 5,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "82ba81da-681f-48da-9953-459980517e95",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "82ba81da-681f-48da-9953-459980517e95",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "82ba81da-681f-48da-9953-459980517e95",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "82ba81da-681f-48da-9953-459980517e95",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "1f5356d0-ed31-4646-86db-03e0443c6300",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 1,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "maths.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        1,
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 2,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.561,
+      "final_source_hashes": {
+        "maths.py": "e77335c804a116a2e8a7445a96ea133bd60d7bbe5361606d933bcb5509392962"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ]
+    },
+    {
+      "workload": "G",
+      "name": "Documentation and knowledge recovery through fresh controller",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "9bbbea83-7369-47ff-af30-98ffdf62fb84",
+      "session_ids": [
+        "64e79d8c-856c-4d70-a4a2-223c4507e9c5",
+        "329a915d-d846-4040-96fa-c3199a581ef1"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "64e79d8c-856c-4d70-a4a2-223c4507e9c5",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "64e79d8c-856c-4d70-a4a2-223c4507e9c5",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "329a915d-d846-4040-96fa-c3199a581ef1",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "README.md": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": true,
+      "patch_replay_count_after_restart": 0,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 6,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.39,
+      "final_source_hashes": {
+        "README.md": "f54a8d3a9c8a65efcca244669abaa260b1d25593d00eeed819a90e1827d98206"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ]
+    }
+  ]
+}

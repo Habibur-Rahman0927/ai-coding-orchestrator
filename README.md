@@ -6,17 +6,36 @@ engine updates and project payload updates are separate operations.
 
 V5 development adds an isolated local workspace, persistent project knowledge,
 provider adapters, workflows, and an authenticated dashboard. Start with the
-[V5 workspace guide](docs/v5/WORKSPACE.md) and [verification evidence](docs/v5/RESULTS.md).
+[V5 workspace guide](docs/v5/WORKSPACE.md) and verification evidence (source checkout: `docs/v5/RESULTS.md`; omitted from packages).
 This is an unpublished development implementation, not a fully verified V5 release.
 Phase 2 adds guided setup, automatic local browser authentication and managed
 startup: [start with one command](docs/v5/PHASE2-START.md), then read the
-[Phase 2 evidence and limitations](docs/v5/PHASE2-RESULTS.md).
+Phase 2 evidence and limitations (source checkout: `docs/v5/PHASE2-RESULTS.md`; omitted from packages).
+
+## V5 local evaluation
+
+From this checkout, start the isolated workspace with:
+
+```sh
+python3 -B engine/orchestrator.py open
+python3 -B engine/orchestrator.py workspace status
+python3 -B engine/orchestrator.py workspace doctor
+```
+
+The first command starts or reuses the background service and opens the authenticated
+dashboard. Choose one agent and an optional project, then describe a task in Chat.
+See the [daily-use and team evaluation guide](docs/v5/DAILY-USE.md).
+A pre-existing global `orchestrator` can still be an older installation; these
+checkout commands select the reviewed source. Read the [candidate scope](docs/v5/RELEASE-CANDIDATE.md)
+and [operations guide](docs/v5/OPERATIONS.md) before installation or recovery.
+V5 is for local evaluation: native platform acceptance and live provider behavior
+are not certified by the mocked and synthetic test evidence.
 
 ## Platform and requirements
 
 V4.3.0 is an unpublished cross-platform candidate with native macOS and Windows
 adapters. See the [cross-platform guide](docs/CROSS-PLATFORM.md) and
-[measured verification status](docs/CROSS-PLATFORM-RESULTS.md) before using it.
+measured verification status (source checkout: `docs/CROSS-PLATFORM-RESULTS.md`; omitted from packages) before using it.
 The immutable 4.1.0 project payload remains the default; select the 4.3.0
 candidate explicitly for non-Linux evaluation.
 

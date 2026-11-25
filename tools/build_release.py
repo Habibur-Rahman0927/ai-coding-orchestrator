@@ -17,7 +17,7 @@ import tarfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'engine/lib'))
 import ccx_platform as portable
-from ccx_install import InstallError, code_version, verify_source, atomic_write, safe, target
+from ccx_install import InstallError, code_version, verify_source, atomic_write, safe, target, user_documents, runtime_data_path
 
 
 def build(source, output, key=None):
@@ -42,8 +42,11 @@ def build(source, output, key=None):
             if name in ('README.md', 'docs', 'install.ps1', 'uninstall.ps1'):
                 continue
             raise InstallError('Missing required source: ' + name, 6)
-        for path in [root] + (sorted(root.rglob('*')) if root.is_dir() else []):
+        selected = list(user_documents(source).values()) if name == 'docs' else [root] + (sorted(root.rglob('*')) if root.is_dir() else [])
+        for path in selected:
             rel = path.relative_to(source).as_posix()
+            if rel == 'engine/.engine.lock':
+                continue  # Native Windows runtime coordination; never a code artifact.
             portable.validate_relative(rel)
             folded = rel.casefold()
             if folded in spellings and spellings[folded] != rel:
@@ -51,8 +54,8 @@ def build(source, output, key=None):
             spellings[folded] = rel
             parts = Path(rel).parts
             forbidden = ('*.jsonl', 'auth.json', '.credentials*', 'config.toml', '*.pem',
-                         'id_rsa*', 'id_ed25519*', '.env*')
-            if (portable.is_link(path) or any(p in ('registry', 'backups', 'engine-backups', 'test-reports', '__pycache__') for p in parts)
+                         'id_rsa*', 'id_ed25519*', '.env*', '*.sqlite*', '*.db', '*.log')
+            if (portable.is_link(path) or runtime_data_path(rel) or any(p in ('registry', 'backups', 'engine-backups', 'test-reports', '__pycache__') for p in parts)
                     or any(fnmatch.fnmatch(p, pattern) for p in parts for pattern in forbidden)
                     or re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\.json', path.name)):
                 raise InstallError('Forbidden distribution path: ' + rel, 6)
@@ -70,6 +73,14 @@ def build(source, output, key=None):
     if not re.fullmatch(r'\d+\.\d+\.\d+', version) or version != code_version(source / 'engine/orchestrator.py'):
         raise InstallError('VERSION disagrees with ENGINE_VERSION or is not semver', 6)
     verify_source(source)
+    workspace_file=source/'engine/lib/ccx_workspace/__init__.py'
+    workspace_version=code_version(workspace_file,'__version__') if workspace_file.is_file() else None
+    development=bool(workspace_version and ('dev' in workspace_version or 'rc' in workspace_version))
+    payload['RELEASE-INFO.json']=(json.dumps({'engine_version':version,'workspace_version':workspace_version,
+        'release_scope':'local_evaluation_only' if development else 'engine_distribution',
+        'production_ready':False,'signature':'detached SHA256SUMS.sig when explicitly signed',
+        'runtime_requirements':{'python':'>=3.8','git':'required'},
+        'compatibility':'Native platform and provider verification must be read separately; metadata is not a readiness certification'},sort_keys=True,indent=2)+'\n').encode()
     manifest = {'version': version, 'files': {r: hashlib.sha256(data).hexdigest() for r, data in sorted(payload.items())}}
     payload['MANIFEST.json'] = (json.dumps(manifest, sort_keys=True, indent=2) + '\n').encode()
     top = 'claude-codex-orchestrator-' + version

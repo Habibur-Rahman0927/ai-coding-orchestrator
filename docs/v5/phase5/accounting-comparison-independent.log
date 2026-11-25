@@ -1,0 +1,9 @@
+test_equivalent_contract_does_not_subtract_cached_tokens (test_v5_phase5_comparison.ComparisonContractTests.test_equivalent_contract_does_not_subtract_cached_tokens) ... ok
+test_missing_or_different_dispatch_contract_withholds_reduction (test_v5_phase5_comparison.ComparisonContractTests.test_missing_or_different_dispatch_contract_withholds_reduction) ... ok
+test_swapped_role_models_cannot_verify_optimization (test_v5_phase5_comparison.ComparisonContractTests.test_swapped_role_models_cannot_verify_optimization) ... ok
+test_contract_hash_binds_actual_output_cap_after_budget_clipping (test_v5_phase5_comparison.DispatchedBudgetContractTests.test_contract_hash_binds_actual_output_cap_after_budget_clipping) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.465s
+
+OK

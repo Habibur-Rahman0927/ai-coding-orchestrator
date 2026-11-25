@@ -122,4 +122,4 @@ key explicitly in Providers if desired.
 
 The engine version has not been republished or retagged. A reviewed unique release
 version, native platform acceptance and release signing are still required before
-team production distribution. See [measured results](PHASE2-RESULTS.md).
+team production distribution. See measured results (source checkout: `docs/v5/PHASE2-RESULTS.md`; omitted from packages).

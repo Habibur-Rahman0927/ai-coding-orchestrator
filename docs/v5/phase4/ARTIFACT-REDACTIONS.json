@@ -1,0 +1,13 @@
+{
+  "reason": "Release builder rejects absolute home-directory paths even when username is a placeholder. Replace only checkout prefix in retained evidence; original preserved in entry checkpoint.",
+  "files": [
+    "docs/v5/qa-phase3/storage-independent-review.log",
+    "docs/v5/qa-phase3/storage-fts-before.log",
+    "docs/v5/qa-phase3/final-verified.log",
+    "docs/v5/qa-phase3/storage-before.log",
+    "docs/v5/qa-phase3/approval-before.log",
+    "docs/v5/qa-phase3/final-expanded.log"
+  ],
+  "test_results_changed": false,
+  "release_guard_changed": false
+}

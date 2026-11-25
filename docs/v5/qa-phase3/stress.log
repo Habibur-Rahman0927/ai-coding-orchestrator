@@ -1,0 +1,12 @@
+test_duplicate_starts_are_blocked_while_other_project_runs (test_v5_phase3_stress.StressTests.test_duplicate_starts_are_blocked_while_other_project_runs) ... ok
+test_malformed_usage_after_real_effect_requires_reconciliation (test_v5_phase3_stress.StressTests.test_malformed_usage_after_real_effect_requires_reconciliation) ... ok
+test_pause_and_cancel_at_review_return_cannot_mark_verified (test_v5_phase3_stress.StressTests.test_pause_and_cancel_at_review_return_cannot_mark_verified) ... ok
+test_post_completion_edit_invalidates_current_evidence_without_deleting_history (test_v5_phase3_stress.StressTests.test_post_completion_edit_invalidates_current_evidence_without_deleting_history) ... ok
+test_quiet_healthy_command_runs_to_natural_completion (test_v5_phase3_stress.StressTests.test_quiet_healthy_command_runs_to_natural_completion) ... ok
+test_repeated_preapproved_failover_is_depth_bounded (test_v5_phase3_stress.StressTests.test_repeated_preapproved_failover_is_depth_bounded) ... ok
+test_repeated_workflows_preserve_history_and_bound_context_cache (test_v5_phase3_stress.StressTests.test_repeated_workflows_preserve_history_and_bound_context_cache) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 5.879s
+
+OK

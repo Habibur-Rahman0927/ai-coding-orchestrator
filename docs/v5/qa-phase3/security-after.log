@@ -1,0 +1,13 @@
+test_command_output_credential_is_not_returned (test_v5_phase3_security.SecurityBoundaryTests.test_command_output_credential_is_not_returned) ... ok
+test_fifo_reads_are_rejected_without_blocking (test_v5_phase3_security.SecurityBoundaryTests.test_fifo_reads_are_rejected_without_blocking) ... ok
+test_fifo_swap_during_open_is_rejected_without_blocking (test_v5_phase3_security.SecurityBoundaryTests.test_fifo_swap_during_open_is_rejected_without_blocking) ... ok
+test_historical_diff_credential_is_not_returned (test_v5_phase3_security.SecurityBoundaryTests.test_historical_diff_credential_is_not_returned) ... ok
+test_indexed_source_replaced_by_fifo_is_stale (test_v5_phase3_security.SecurityBoundaryTests.test_indexed_source_replaced_by_fifo_is_stale) ... ok
+test_nested_transcripts_and_structured_credential_values (test_v5_phase3_security.SecurityBoundaryTests.test_nested_transcripts_and_structured_credential_values) ... ok
+test_patch_cannot_introduce_recognizable_credential (test_v5_phase3_security.SecurityBoundaryTests.test_patch_cannot_introduce_recognizable_credential) ... ok
+test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.573s
+
+OK

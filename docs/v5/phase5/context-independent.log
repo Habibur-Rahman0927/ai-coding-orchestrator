@@ -1,0 +1,18 @@
+test_concurrent_duplicate_submission_is_atomic (test_v5_phase5_context.ContextOptimizationTests.test_concurrent_duplicate_submission_is_atomic) ... ok
+test_dedup_does_not_revive_superseded_or_expired_record (test_v5_phase5_context.ContextOptimizationTests.test_dedup_does_not_revive_superseded_or_expired_record) ... ok
+test_distributed_symbol_snippets_have_original_line_references (test_v5_phase5_context.ContextOptimizationTests.test_distributed_symbol_snippets_have_original_line_references) ... ok
+test_exact_memory_dedup_preserves_evidence_and_scope (test_v5_phase5_context.ContextOptimizationTests.test_exact_memory_dedup_preserves_evidence_and_scope) ... ok
+test_exact_path_and_no_fts_fallback (test_v5_phase5_context.ContextOptimizationTests.test_exact_path_and_no_fts_fallback) ... ok
+test_exact_path_ranking_rejects_suffix_filename_matches (test_v5_phase5_context.ContextOptimizationTests.test_exact_path_ranking_rejects_suffix_filename_matches) ... ok
+test_existing_fts_rebuilds_after_fallback_updates (test_v5_phase5_context.ContextOptimizationTests.test_existing_fts_rebuilds_after_fallback_updates) ... ok
+test_newly_available_fts_backfills_existing_index_without_source_reads (test_v5_phase5_context.ContextOptimizationTests.test_newly_available_fts_backfills_existing_index_without_source_reads) ... ok
+test_policy_check_batched_and_fresh_ignore_respected (test_v5_phase5_context.ContextOptimizationTests.test_policy_check_batched_and_fresh_ignore_respected) ... ok
+test_rank_before_limit_recovers_rare_symbol (test_v5_phase5_context.ContextOptimizationTests.test_rank_before_limit_recovers_rare_symbol) ... ok
+test_role_priority_changes_optional_context_without_dropping_critical_rules (test_v5_phase5_context.ContextOptimizationTests.test_role_priority_changes_optional_context_without_dropping_critical_rules) ... ok
+test_same_content_touch_does_not_reparse_or_rewrite_search (test_v5_phase5_context.ContextOptimizationTests.test_same_content_touch_does_not_reparse_or_rewrite_search) ... ok
+test_tight_budget_constraints_and_stale_source (test_v5_phase5_context.ContextOptimizationTests.test_tight_budget_constraints_and_stale_source) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.664s
+
+OK

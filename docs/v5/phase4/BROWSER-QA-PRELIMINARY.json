@@ -1,0 +1,147 @@
+{
+  "date": "2026-11-25",
+  "stage": "preliminary_before_final_workflow_correction_and_expiry_assertion",
+  "source_revision": "c933c04063b16d6c47b430f512fadd26b9d1e0a1",
+  "source_note": "Working tree includes uncommitted QA changes. Hashes below captured after this run; they identify harness and dashboard sources, not a clean commit.",
+  "source_sha256": {
+    "tests/browser/test_workspace_cdp.cjs": "05f57e57ab88c7641691759c61b5737a110ab40fa35279111d0f46b940b5dc69",
+    "tests/browser/cdp_workspace_fixture.py": "7e9f3343f5bcb3f3c1fd614b091af40ea5b4013c5e0c128e54dba67b98c1d22a",
+    "tests/browser/test_workspace_browser.py": "8bed778f9e361f31c93ef006a41bfe0704d14dc08ef091c02e6c52c6284ba405",
+    "engine/lib/ccx_workspace/server.py": "1795d4285efb8841a0a2af0d035a474e0c7db769365902f06d15cbba6c492a2a",
+    "engine/lib/ccx_workspace/web/app.js": "e95b33ecefa55ac9a568c6cbd48346eb90310a764984f43b9033d2161e8d1667",
+    "engine/lib/ccx_workspace/web/index.html": "229ddeb2edc8fd9708760d762f0281bdd4bed88dbc711017b31a5572ff52a805",
+    "engine/lib/ccx_workspace/web/style.css": "3a8a830167ed78f203f24d218ccc725bd979886fc873aebf4aea06dd0b408434"
+  },
+  "command": "node tests/browser/test_workspace_cdp.cjs --report=/tmp/ccx-phase4-cdp-browser.json",
+  "exit_code": 0,
+  "result": {
+    "status": "PASS",
+    "browser": "Chrome/144.0.7559.109",
+    "protocol": "1.3",
+    "sandbox_disabled": false,
+    "provider_mode": "deterministic_offline",
+    "installed_dependencies": false,
+    "elapsed_ms": 24887,
+    "checks": [
+      {
+        "name": "Bootstrap login and complete six-step setup with project preview/register/index",
+        "status": "PASS",
+        "elapsed_ms": 1483
+      },
+      {
+        "name": "Provider configuration and disposable session-only credential save/remove",
+        "status": "PASS",
+        "elapsed_ms": 731
+      },
+      {
+        "name": "Workflow UI approval gates, actual patch/test, independent rejection and correction, refresh",
+        "status": "PASS",
+        "elapsed_ms": 8109
+      },
+      {
+        "name": "Memory add/search and context assembly through rendered controls",
+        "status": "PASS",
+        "elapsed_ms": 991
+      },
+      {
+        "name": "Active workflow pause/resume/cancel and no completed status after cancellation",
+        "status": "PASS",
+        "elapsed_ms": 4679
+      },
+      {
+        "name": "Standalone chat consent, visible streaming, refresh, and exact session continuation",
+        "status": "PASS",
+        "elapsed_ms": 6826
+      },
+      {
+        "name": "Invalid project feedback, labelled controls, responsive layout, diagnostics",
+        "status": "PASS",
+        "elapsed_ms": 854
+      },
+      {
+        "name": "Logout persists across refresh, consumed bootstrap refused, expired sessions return login",
+        "status": "PASS",
+        "elapsed_ms": 409
+      }
+    ],
+    "page_errors": [],
+    "http_errors": [
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/api/projects/preview",
+        "status": 400
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/api/auth/bootstrap",
+        "status": 401
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 401
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      }
+    ]
+  }
+}

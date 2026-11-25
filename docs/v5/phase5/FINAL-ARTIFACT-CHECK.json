@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "scope": "Unsigned local packaging validation, not publication/release",
+  "artifacts": [
+    {
+      "name": "SHA256SUMS",
+      "sha256": "ff82c0ce3f0a2a722458a624cac99743c4346412fdd82c33ec500300efd2d6f5"
+    },
+    {
+      "name": "claude-codex-orchestrator-4.3.0.tar.gz",
+      "sha256": "4cac318c966ac6a75434977ea5d2dcc9953513e06d9dc831876e7ccaa07536f5"
+    }
+  ],
+  "note": "Validation included final evidence docs; this receipt and inventory update written afterward."
+}

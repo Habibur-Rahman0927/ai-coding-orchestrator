@@ -1,0 +1,26 @@
+test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) ... ok
+test_registry_checks_accumulated_text_before_stream_callback (test_v5_phase3_output.OutputSecurityTests.test_registry_checks_accumulated_text_before_stream_callback) ... FAIL
+test_registry_refuses_sensitive_nested_provider_events (test_v5_phase3_output.OutputSecurityTests.test_registry_refuses_sensitive_nested_provider_events) ... ok
+test_workflow_checks_split_telemetry_from_registry (test_v5_phase3_output.OutputSecurityTests.test_workflow_checks_split_telemetry_from_registry) ... FAIL
+test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) ... ok
+
+======================================================================
+FAIL: test_registry_checks_accumulated_text_before_stream_callback (test_v5_phase3_output.OutputSecurityTests.test_registry_checks_accumulated_text_before_stream_callback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_output.py", line 65, in test_registry_checks_accumulated_text_before_stream_callback
+    self.assertNotIn(marker(), ''.join(e.get('text', '') for e in callbacks))
+AssertionError: 'ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB' unexpectedly found in 'ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+
+======================================================================
+FAIL: test_workflow_checks_split_telemetry_from_registry (test_v5_phase3_output.OutputSecurityTests.test_workflow_checks_split_telemetry_from_registry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_output.py", line 81, in test_workflow_checks_split_telemetry_from_registry
+    self.assertNotIn(marker(), ''.join(texts))
+AssertionError: 'ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB' unexpectedly found in 'ghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBghp_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.498s
+
+FAILED (failures=2)

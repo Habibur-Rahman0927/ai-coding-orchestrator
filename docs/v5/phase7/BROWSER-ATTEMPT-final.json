@@ -1,0 +1,293 @@
+{
+  "status": "FAIL",
+  "browser": "Chrome/144.0.7559.109",
+  "protocol": "1.3",
+  "sandbox_disabled": false,
+  "provider_mode": "deterministic_offline",
+  "installed_dependencies": false,
+  "elapsed_ms": 54898,
+  "checks": [
+    {
+      "name": "Bootstrap login and complete two-step setup with project preview/register/index",
+      "status": "PASS",
+      "elapsed_ms": 925,
+      "clicks": 4,
+      "field_changes": 2
+    },
+    {
+      "name": "Provider configuration and disposable session-only credential save/remove",
+      "status": "PASS",
+      "elapsed_ms": 710,
+      "clicks": 5,
+      "field_changes": 3
+    },
+    {
+      "name": "Workflow UI approval gates, actual patch/test, independent rejection and correction, refresh",
+      "status": "PASS",
+      "elapsed_ms": 7842,
+      "clicks": 10,
+      "field_changes": 14
+    },
+    {
+      "name": "Memory add/search and context assembly through rendered controls",
+      "status": "PASS",
+      "elapsed_ms": 1219,
+      "clicks": 8,
+      "field_changes": 5
+    },
+    {
+      "name": "Active workflow pause/resume/cancel and no completed status after cancellation",
+      "status": "PASS",
+      "elapsed_ms": 4658,
+      "clicks": 10,
+      "field_changes": 9
+    },
+    {
+      "name": "Standalone chat consent, visible streaming, refresh, and exact session continuation",
+      "status": "PASS",
+      "elapsed_ms": 6886,
+      "clicks": 6,
+      "field_changes": 6
+    },
+    {
+      "name": "Invalid project feedback, labelled controls, responsive layout, diagnostics",
+      "status": "PASS",
+      "elapsed_ms": 954,
+      "clicks": 7,
+      "field_changes": 1
+    },
+    {
+      "name": "Settings database backup creates a private file and a separate recovered copy retains project knowledge",
+      "status": "PASS",
+      "elapsed_ms": 328,
+      "clicks": 2,
+      "field_changes": 0
+    },
+    {
+      "name": "A second tab cannot authenticate with cookie alone and the original tab remains usable",
+      "status": "PASS",
+      "elapsed_ms": 272,
+      "clicks": 1,
+      "field_changes": 0
+    },
+    {
+      "name": "Solo and Auto task proposals require explicit consent and preserve exact instruction",
+      "status": "PASS",
+      "elapsed_ms": 3894,
+      "clicks": 6,
+      "field_changes": 5
+    },
+    {
+      "name": "Collaborate preset creates bounded workflow and runs through existing approval and verification gates",
+      "status": "PASS",
+      "elapsed_ms": 7908,
+      "clicks": 12,
+      "field_changes": 22
+    },
+    {
+      "name": "Project switching, favorites, appearance and Help persist without cross-project conversations",
+      "status": "PASS",
+      "elapsed_ms": 2116,
+      "clicks": 11,
+      "field_changes": 6
+    },
+    {
+      "name": "Delayed conversation response cannot populate a newly selected project",
+      "status": "PASS",
+      "elapsed_ms": 797,
+      "clicks": 5,
+      "field_changes": 1
+    },
+    {
+      "name": "Logout persists across refresh, consumed bootstrap refused, expired sessions return login",
+      "status": "PASS",
+      "elapsed_ms": 468,
+      "clicks": 1,
+      "field_changes": 0
+    }
+  ],
+  "page_errors": [],
+  "http_errors": [
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/api/projects/preview",
+      "status": 400
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/api/auth/bootstrap",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/session",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 401
+    },
+    {
+      "path": "/api/auth/session",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 401
+    }
+  ],
+  "backup_evidence": {
+    "integrity": "ok",
+    "copy_reopened": true,
+    "projects_match": true,
+    "project_count": 1,
+    "workflow_statuses_match": true,
+    "workflow_count": 2,
+    "memory_marker_recovered": true,
+    "verified_workflow_memory_recovered": true,
+    "private_backup_mode": true,
+    "original_backup_unchanged": true
+  },
+  "error": "Timed out: heading Chat"
+}

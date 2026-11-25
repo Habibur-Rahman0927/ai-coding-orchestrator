@@ -1,0 +1,23 @@
+test_cancellation_before_request_has_no_transport_effect (test_v5_providers.ProviderTests.test_cancellation_before_request_has_no_transport_effect) ... ok
+test_cli_controlled_mock_runs_under_actual_supervisor (test_v5_providers.ProviderTests.test_cli_controlled_mock_runs_under_actual_supervisor) ... ok
+test_cli_requires_native_agent_authorization (test_v5_providers.ProviderTests.test_cli_requires_native_agent_authorization) ... ok
+test_cli_timeout_and_active_cancellation (test_v5_providers.ProviderTests.test_cli_timeout_and_active_cancellation) ... ok
+test_configuration_never_accepts_key_values_or_arbitrary_origin (test_v5_providers.ProviderTests.test_configuration_never_accepts_key_values_or_arbitrary_origin) ... ok
+test_exact_session_and_separate_native_write_authorization (test_v5_providers.ProviderTests.test_exact_session_and_separate_native_write_authorization) ... ok
+test_minimax_independent_api_normalization_and_credential_redaction (test_v5_providers.ProviderTests.test_minimax_independent_api_normalization_and_credential_redaction) ... ok
+test_minimax_tool_continuation_keeps_exact_local_session_and_transcript (test_v5_providers.ProviderTests.test_minimax_tool_continuation_keeps_exact_local_session_and_transcript) ... ok
+test_normalization_omits_reasoning (test_v5_providers.ProviderTests.test_normalization_omits_reasoning) ... ok
+test_tool_call_is_returned_not_executed_and_full_history_preserved (test_v5_providers.ProviderTests.test_tool_call_is_returned_not_executed_and_full_history_preserved) ... ok
+test_unapproved_model_tool_and_redirect_fail_closed (test_v5_providers.ProviderTests.test_unapproved_model_tool_and_redirect_fail_closed) ... ok
+test_authorization_required (test_v5_providers.ScopedToolTests.test_authorization_required) ... ok
+test_gitignored_and_custom_excluded_files_are_not_read_or_listed (test_v5_providers.ScopedToolTests.test_gitignored_and_custom_excluded_files_are_not_read_or_listed) ... ok
+test_new_file_patch_is_explicit_and_never_overwrites (test_v5_providers.ScopedToolTests.test_new_file_patch_is_explicit_and_never_overwrites) ... ok
+test_only_exact_user_approved_command_runs (test_v5_providers.ScopedToolTests.test_only_exact_user_approved_command_runs) ... ok
+test_patch_requires_exact_current_hash_and_unique_context (test_v5_providers.ScopedToolTests.test_patch_requires_exact_current_hash_and_unique_context) ... ok
+test_symlink_and_hardlink_refused (test_v5_providers.ScopedToolTests.test_symlink_and_hardlink_refused) ... ok
+test_traversal_and_sensitive_files_refused (test_v5_providers.ScopedToolTests.test_traversal_and_sensitive_files_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 1.554s
+
+OK

@@ -1,0 +1,234 @@
+{
+  "all_unchanged": true,
+  "file_count": 38,
+  "files": [
+    {
+      "file": "engine/releases/4.1.0/VERSION",
+      "before": "3b10b6ad566eadbcacadb33c591f1ec629593d6adf47442e56e0f61996829ef7",
+      "after": "3b10b6ad566eadbcacadb33c591f1ec629593d6adf47442e56e0f61996829ef7",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/checksums.json",
+      "before": "17277e224a2a33b051f612de5206b5049a73c6717f8adabad30792ae2aa2e176",
+      "after": "17277e224a2a33b051f612de5206b5049a73c6717f8adabad30792ae2aa2e176",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/hooks/completion-gate.py",
+      "before": "0d421ab4e76db41aeadbb522521ed8473557fd2e5de5b0fcb4a38e8095704577",
+      "after": "0d421ab4e76db41aeadbb522521ed8473557fd2e5de5b0fcb4a38e8095704577",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/hooks/session-init.py",
+      "before": "1615ee0f149f55852703947cf24369d0510962ac204b03a72bbfb30fdce3c175",
+      "after": "1615ee0f149f55852703947cf24369d0510962ac204b03a72bbfb30fdce3c175",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/release.json",
+      "before": "ed83b42e73a687495ddba139f7c5d2c24871dc331cd4017483f23e7a8b795837",
+      "after": "ed83b42e73a687495ddba139f7c5d2c24871dc331cd4017483f23e7a8b795837",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/codex-session.py",
+      "before": "8be68051e54feeb8f053986bc59a72ea80bb881ebdf1353f3b2768f9248c9785",
+      "after": "8be68051e54feeb8f053986bc59a72ea80bb881ebdf1353f3b2768f9248c9785",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/context-monitor.py",
+      "before": "920b18fc0568b9d73e5157990a7275d3410a53352383f2c6591eb6879b600743",
+      "after": "920b18fc0568b9d73e5157990a7275d3410a53352383f2c6591eb6879b600743",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/integrity-check.py",
+      "before": "b67c60c2ba93c45cf9032041a3632ccdf3d7c948832e7eb85209068979de775f",
+      "after": "b67c60c2ba93c45cf9032041a3632ccdf3d7c948832e7eb85209068979de775f",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/managed-exec.py",
+      "before": "137fe349d6e75e716caa440547c95834a7512ab30f68accbe26e3d20f9bb6cdb",
+      "after": "137fe349d6e75e716caa440547c95834a7512ab30f68accbe26e3d20f9bb6cdb",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/orchestration-status.py",
+      "before": "7890f0e315e62c8a2266e7033c1b2af48447d1e0347098f3278c2ea175020f0d",
+      "after": "7890f0e315e62c8a2266e7033c1b2af48447d1e0347098f3278c2ea175020f0d",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/recovery-controller.py",
+      "before": "97b7622aafe013981bbeaef7edfcab2a34bf9d2b0d5acd52a2ba59da5b4fae0a",
+      "after": "97b7622aafe013981bbeaef7edfcab2a34bf9d2b0d5acd52a2ba59da5b4fae0a",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/task-state.py",
+      "before": "42bf899ec28a29394e034c89e250fc107fba0b2e4fe01e040f2d69e23fd24428",
+      "after": "42bf899ec28a29394e034c89e250fc107fba0b2e4fe01e040f2d69e23fd24428",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/usage-guard.py",
+      "before": "be0eddc86f03319acbe68aff799e1ecd16d390e009a83b544981cdfba8e73f2a",
+      "after": "be0eddc86f03319acbe68aff799e1ecd16d390e009a83b544981cdfba8e73f2a",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/scripts/watchdog.py",
+      "before": "ac3b314ef74a659275373d5fc6634a59dfe5e5e8d5fbcec22e793ea3d6a60a9b",
+      "after": "ac3b314ef74a659275373d5fc6634a59dfe5e5e8d5fbcec22e793ea3d6a60a9b",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/templates/.gitignore",
+      "before": "e7404ba25b2934e5114967ec90bc0f634d05041310bb23a8cd3c7531c9ecaec1",
+      "after": "e7404ba25b2934e5114967ec90bc0f634d05041310bb23a8cd3c7531c9ecaec1",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/templates/CLAUDE.md",
+      "before": "3c8ad7567ec79262154a6278f7f185e636ad27977b1801813a4c945a04e5d166",
+      "after": "3c8ad7567ec79262154a6278f7f185e636ad27977b1801813a4c945a04e5d166",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.1.0/templates/settings.template.json",
+      "before": "0c72cb2e9132f9fcc203b442ee52cd29b9e925ec4da3b71b4f7f01b4a266c35a",
+      "after": "0c72cb2e9132f9fcc203b442ee52cd29b9e925ec4da3b71b4f7f01b4a266c35a",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/VERSION",
+      "before": "1e5302003691b6fdc7bddc0736eef7ce3adc870e97afdfcfb497dde2a78ed545",
+      "after": "1e5302003691b6fdc7bddc0736eef7ce3adc870e97afdfcfb497dde2a78ed545",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/checksums.json",
+      "before": "baf11f728056d8f4a4b604c9a77f4c9faff8cd34ef29c5f1d148c375b3620942",
+      "after": "baf11f728056d8f4a4b604c9a77f4c9faff8cd34ef29c5f1d148c375b3620942",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/hooks/completion-gate.py",
+      "before": "32a7338582dfb036d748043151750d505b78d913bcf7e4cdbbe3ec759100f07a",
+      "after": "32a7338582dfb036d748043151750d505b78d913bcf7e4cdbbe3ec759100f07a",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/hooks/session-init.py",
+      "before": "bd378e31e589262a445b7399901e9bce50da12f9417b9ec36c27705ca466d3eb",
+      "after": "bd378e31e589262a445b7399901e9bce50da12f9417b9ec36c27705ca466d3eb",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/release.json",
+      "before": "37ff44d5e82f1e8f6dd0fea497cf13a3bd05e8a7701257ca9a7ad7c62fb057de",
+      "after": "37ff44d5e82f1e8f6dd0fea497cf13a3bd05e8a7701257ca9a7ad7c62fb057de",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/ccx_job.py",
+      "before": "b0ccea817e23c21ac2df4e6286fc56308f0a69fbb65ce2ed3bbe27d034fc9ac0",
+      "after": "b0ccea817e23c21ac2df4e6286fc56308f0a69fbb65ce2ed3bbe27d034fc9ac0",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/ccx_platform.py",
+      "before": "38260e73529c3372e3c331582947ff3af9b2da3956f6c60d19e6512d5857a1ec",
+      "after": "38260e73529c3372e3c331582947ff3af9b2da3956f6c60d19e6512d5857a1ec",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/ccx_runtime.py",
+      "before": "f5ba70acab6ddfc4ff11f414105b7d30e8c00a01548967be336c15e7ed5756f5",
+      "after": "f5ba70acab6ddfc4ff11f414105b7d30e8c00a01548967be336c15e7ed5756f5",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/ccx_windows.py",
+      "before": "5836be5649d9d59fab5d1f5d6d1a66f618e1cd1daa7aa5121d9d635cf3389be1",
+      "after": "5836be5649d9d59fab5d1f5d6d1a66f618e1cd1daa7aa5121d9d635cf3389be1",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/codex-session.py",
+      "before": "69ff0fb5ecf6b8143fad0d5b5f049bee0c5b5c6c61182587a7fcc7544253e5a5",
+      "after": "69ff0fb5ecf6b8143fad0d5b5f049bee0c5b5c6c61182587a7fcc7544253e5a5",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/context-monitor.py",
+      "before": "c7177f961c9051e16c3bf2ad818e1c767b2204cf6a9d25d0476a209ed03d08d4",
+      "after": "c7177f961c9051e16c3bf2ad818e1c767b2204cf6a9d25d0476a209ed03d08d4",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/integrity-check.py",
+      "before": "9a1e249453405e2f980aa10c1d59d58817ef2eb0fddcc106787f99f1a2c88103",
+      "after": "9a1e249453405e2f980aa10c1d59d58817ef2eb0fddcc106787f99f1a2c88103",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/managed-exec.py",
+      "before": "99e553d12bba6cccaf5093ec83ef1411d43326a50555ad22640f700a7b464ceb",
+      "after": "99e553d12bba6cccaf5093ec83ef1411d43326a50555ad22640f700a7b464ceb",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/orchestration-status.py",
+      "before": "664cfe019f1de557f9d881e2ad32e091938d4e6889832ac3d693bcd2c09c8edd",
+      "after": "664cfe019f1de557f9d881e2ad32e091938d4e6889832ac3d693bcd2c09c8edd",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/recovery-controller.py",
+      "before": "e1919d6227ad72d183fa7e020379df5fb2e18c97533006fa68afb3e284d65329",
+      "after": "e1919d6227ad72d183fa7e020379df5fb2e18c97533006fa68afb3e284d65329",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/task-state.py",
+      "before": "dc14b090d53fb85b27c1ae8056aa60cf18f230cef46aa0835d4c76bcfe5d1516",
+      "after": "dc14b090d53fb85b27c1ae8056aa60cf18f230cef46aa0835d4c76bcfe5d1516",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/usage-guard.py",
+      "before": "90c23cf1bfe9a08717b6fdefa3426b92d8cb9339b5dce3f3b392970eb60b5bc9",
+      "after": "90c23cf1bfe9a08717b6fdefa3426b92d8cb9339b5dce3f3b392970eb60b5bc9",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/scripts/watchdog.py",
+      "before": "74390dd658bc702e4c19d9a28925e93b7c5e8e54859979aaac8b887423b4374d",
+      "after": "74390dd658bc702e4c19d9a28925e93b7c5e8e54859979aaac8b887423b4374d",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/templates/.gitignore",
+      "before": "e7404ba25b2934e5114967ec90bc0f634d05041310bb23a8cd3c7531c9ecaec1",
+      "after": "e7404ba25b2934e5114967ec90bc0f634d05041310bb23a8cd3c7531c9ecaec1",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/templates/CLAUDE.md",
+      "before": "bfa5eb5dafb9f592679fd7933402f783497fc31b5a3594d1ea48467f89040a0d",
+      "after": "bfa5eb5dafb9f592679fd7933402f783497fc31b5a3594d1ea48467f89040a0d",
+      "unchanged": true
+    },
+    {
+      "file": "engine/releases/4.3.0/templates/settings.template.json",
+      "before": "f9806684c35a8dffbc72f4efe40883eeb77c8eb784f633a3260f0704d45caf1d",
+      "after": "f9806684c35a8dffbc72f4efe40883eeb77c8eb784f633a3260f0704d45caf1d",
+      "unchanged": true
+    }
+  ]
+}

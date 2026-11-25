@@ -1,0 +1,13 @@
+{
+  "source_sha256": "eb744edc4cdbdb8a727c7f89c3619338a03d587bd38159584f18d05244ebfce3",
+  "launch_argv": "python3 -B tools/soak_workspace.py --duration 900 --quiet-seconds 75 --output <temporary>/ccx-phase4-soak.json --report docs/v5/phase4/SOAK-REPORT.md",
+  "backup_count": 50,
+  "backup_bytes": 492675072,
+  "filesystem_free_bytes": 39672606720,
+  "filesystem_total_bytes": 249792131072,
+  "timing": "in-progress preguard run",
+  "optimization_flag": "No -O in launch argv; process environment not yet independently accessible",
+  "launch_environment_PYTHONOPTIMIZE": null,
+  "matching_launch_interpreter_optimize": 0,
+  "optimization_verification": "Same shell/tool environment and python3 -B invocation report optimize=0; running PID unavailable across tool process namespace"
+}

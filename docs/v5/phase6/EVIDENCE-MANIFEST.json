@@ -1,0 +1,122 @@
+[
+  {
+    "path": "ARTIFACT-BROWSER.json",
+    "sha256": "cd5e93a786b4a537e206e6ca093f3df868548dc030b66654b54c92bfe1e2c482"
+  },
+  {
+    "path": "ARTIFACT-BROWSER.log",
+    "sha256": "e414d4f41caaa4f628a8d85a29aab15c202171723834ca3406fd32b8ef7e1768"
+  },
+  {
+    "path": "ARTIFACT.json",
+    "sha256": "06ede07e1a6da6c5e4d16b227110caac3ae0a9284082ca431bb65e45fbe84ad8"
+  },
+  {
+    "path": "BACKUP-BEFORE.log",
+    "sha256": "be6e9571cde124134fe696a7cb28400efc06612624627f453396053afbaa5f20"
+  },
+  {
+    "path": "BROWSER-FAILED-ATTEMPT.json",
+    "sha256": "7eb2cafbb67586cb3bbe32bfa4b7adb97e39279fefe9c139ba293a3bcc4a730a"
+  },
+  {
+    "path": "BROWSER-FAILED-ATTEMPT.log",
+    "sha256": "e5b8b3ef4e89c41093e39fb45443f664ef1a1e1767e973f612a8d2f0d9e2ca1e"
+  },
+  {
+    "path": "BROWSER.json",
+    "sha256": "e6d7244fdfda1284a8a7537c655c48f7c3ee42527d7128a5b4d6eeefc5fbfa7c"
+  },
+  {
+    "path": "BROWSER.log",
+    "sha256": "53e3ec75034b4fb80f3d33a70e555a10aef2140a2450d495c93e7410fbe5c8d9"
+  },
+  {
+    "path": "CHANGED-FILES.json",
+    "sha256": "1dd7b955c5a8bb05087c950600e0ad5db5d68d94329c519f2f92dc1a4d0fbdfc"
+  },
+  {
+    "path": "ENTRY-STATE.json",
+    "sha256": "fa1a864dd4aa06d0c24b5b77051959e50b7a1e3966e1baa1a7e502c25966639a"
+  },
+  {
+    "path": "FINAL-REGRESSION.json",
+    "sha256": "bfa0045e9b0de9264db7aa03a8b9976697d82af2995321f087618614d866b993"
+  },
+  {
+    "path": "FINAL-REGRESSION.log",
+    "sha256": "b45632bd9da78ea91d0664361e3e97b63cc757fc8d2ba1451fb3b9cdc46cd7de"
+  },
+  {
+    "path": "HYGIENE.log",
+    "sha256": "ed5c17a85a26f8cbf3bd35f775b02f3a9936eb3530a146ac40068dad3ec14df2"
+  },
+  {
+    "path": "IMMUTABLE-PAYLOADS.json",
+    "sha256": "6e9af81e15cded521a10ccf756facb3f44fddf98aa619839a5304db5e725e8ad"
+  },
+  {
+    "path": "INSTALLED-LOCK.log",
+    "sha256": "250bdb3e7f6b9c49358eb7979c88e2dff7c9c9a1f05e595cf96fced30d153cf9"
+  },
+  {
+    "path": "INTEGRATION-REVIEW.md",
+    "sha256": "030484b771ba5d25fc5950913cae501c90fba0810377abd214de58ecfef9748c"
+  },
+  {
+    "path": "KEY-CLEANUP.json",
+    "sha256": "77774ef41e34db2d29b9113687782672a72462b20e6b9ca96e79525d99dab9cf"
+  },
+  {
+    "path": "PACKAGING-BEFORE.json",
+    "sha256": "ef914df911559b0ae79f67ca44b313f524cfbc8cfe6ec64e09492f021407817e"
+  },
+  {
+    "path": "PACKAGING-BEFORE.log",
+    "sha256": "661bacf9f715f67e769eeecef7b93462f8209c96a8cbb20465a6a5eac4848508"
+  },
+  {
+    "path": "PHASE6-REPORT.md",
+    "sha256": "4dadc07282e43f9bc001a8c7d2dec772d499b12605ce3bf6d25518fe8c3d0ce1"
+  },
+  {
+    "path": "RESOURCE.json",
+    "sha256": "2da70a0d973623a466b9f4c3d7f6431fec7c9b4fc1a7d36f4828db37727463f3"
+  },
+  {
+    "path": "RUNTIME-BEFORE.log",
+    "sha256": "72ccf87061d206d9e00cdea070649b477a73c148c115ce695ed18684b348b614"
+  },
+  {
+    "path": "SECURITY-REVIEW.md",
+    "sha256": "8c8a6612f094dda5aa1b891e8691193c88d8f763e8a6080c64b108e95cf1e1c1"
+  },
+  {
+    "path": "TARGETED.log",
+    "sha256": "0197823a6718bb5592852ac0506ecf68ffbdbf7aa38b4beb03f54c047460c975"
+  },
+  {
+    "path": "TESTED-SOURCE.json",
+    "sha256": "d1350bffbced86337c71a8d3394cfbb2a45c4dfe68bb96d93924737ac40e51ca"
+  },
+  {
+    "path": "security-archive-sidecar-before.json",
+    "sha256": "e07c44ee8c415b1f3aab43504833ae484b30350ad7c1237f2b407c8bb9a60dca"
+  },
+  {
+    "path": "security-reviewed-source.json",
+    "sha256": "cee9290f9f03d9b88faa4c5e1deb49cb2735efce2d53702e8342793822ede19d"
+  },
+  {
+    "path": "security-sidecar-before.json",
+    "sha256": "99a8754374997e05f774b508f35e659c441ec241e26d97ea0d10def11b4b5026"
+  },
+  {
+    "path": "security-targeted-final.log",
+    "sha256": "5bd4a95771c54458c572783bc62f3a72bf187129e0d6bfd0db1d04c22fd4d9ab"
+  },
+  {
+    "path": "security-update-final.log",
+    "sha256": "cebbf363728627905215ddc265767a491ff8126aebf42773710665a9df26bf25"
+  }
+]

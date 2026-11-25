@@ -1,0 +1,168 @@
+{
+  "status": "PASS",
+  "browser": "Chrome/144.0.7559.109",
+  "protocol": "1.3",
+  "sandbox_disabled": false,
+  "provider_mode": "deterministic_offline",
+  "installed_dependencies": false,
+  "elapsed_ms": 25235,
+  "checks": [
+    {
+      "name": "Bootstrap login and complete six-step setup with project preview/register/index",
+      "status": "PASS",
+      "elapsed_ms": 1518
+    },
+    {
+      "name": "Provider configuration and disposable session-only credential save/remove",
+      "status": "PASS",
+      "elapsed_ms": 696
+    },
+    {
+      "name": "Workflow UI approval gates, actual patch/test, independent rejection and correction, refresh",
+      "status": "PASS",
+      "elapsed_ms": 7794
+    },
+    {
+      "name": "Memory add/search and context assembly through rendered controls",
+      "status": "PASS",
+      "elapsed_ms": 1136
+    },
+    {
+      "name": "Active workflow pause/resume/cancel and no completed status after cancellation",
+      "status": "PASS",
+      "elapsed_ms": 4626
+    },
+    {
+      "name": "Standalone chat consent, visible streaming, refresh, and exact session continuation",
+      "status": "PASS",
+      "elapsed_ms": 6828
+    },
+    {
+      "name": "Invalid project feedback, labelled controls, responsive layout, diagnostics",
+      "status": "PASS",
+      "elapsed_ms": 813
+    },
+    {
+      "name": "Settings database backup creates a private file and a separate recovered copy retains project knowledge",
+      "status": "PASS",
+      "elapsed_ms": 262
+    },
+    {
+      "name": "A second tab cannot authenticate with cookie alone and the original tab remains usable",
+      "status": "PASS",
+      "elapsed_ms": 269
+    },
+    {
+      "name": "Logout persists across refresh, consumed bootstrap refused, expired sessions return login",
+      "status": "PASS",
+      "elapsed_ms": 458
+    }
+  ],
+  "page_errors": [],
+  "http_errors": [
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/api/projects/preview",
+      "status": 400
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/api/auth/bootstrap",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 403
+    },
+    {
+      "path": "/api/auth/session",
+      "status": 401
+    },
+    {
+      "path": "/favicon.ico",
+      "status": 401
+    }
+  ],
+  "backup_evidence": {
+    "integrity": "ok",
+    "copy_reopened": true,
+    "projects_match": true,
+    "project_count": 1,
+    "workflow_statuses_match": true,
+    "workflow_count": 2,
+    "memory_marker_recovered": true,
+    "verified_workflow_memory_recovered": true,
+    "private_backup_mode": true,
+    "original_backup_unchanged": true
+  }
+}

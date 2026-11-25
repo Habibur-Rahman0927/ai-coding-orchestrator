@@ -3,3 +3,13 @@
 .event-stream{max-height:560px;overflow:auto;scrollbar-gutter:stable}
 .setup-steps{display:flex;list-style:none;padding:0;margin:0 0 2rem;gap:.8rem;flex-wrap:wrap}.setup-steps li{display:flex;align-items:center;gap:.5rem;font-size:.875rem;color:var(--muted)}.setup-steps li span{display:grid;place-items:center;width:1.7rem;height:1.7rem;border:1px solid var(--line);border-radius:50%}.setup-steps li.current{color:var(--accent);font-weight:650}.setup-steps li.current span{background:#20382f;border-color:#5e9a80}.chat-messages{display:grid;gap:1rem;max-height:55vh;overflow:auto;margin-bottom:1rem}.chat-message{padding:1rem;border:1px solid var(--line);border-radius:8px;background:#0d1521}.chat-message.user{border-left:3px solid var(--accent)}.chat-message p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.sidebar{overflow-y:auto}.content-shell{min-width:0}.panel,.field,.grid>*,.split>*{min-width:0}.setup-steps+div{max-width:1100px}.inline-check input{flex:none;width:18px;height:18px}.error{color:var(--error)}@media(max-width:760px){.setup-steps{gap:.6rem}.setup-steps li{font-size:.8rem}.setup-steps li:not(.current) span{display:none}.setup-steps li.current{width:100%;font-size:1rem}.chat-messages{max-height:50vh}}
 .event-text{white-space:pre-wrap;overflow-wrap:anywhere}
+:root[data-theme=light]{color-scheme:light;color:#172536;background:#f4f7fb;--muted:#495d73;--line:#b6c4d4;--panel:#fff;--accent:#176448;--ink:#fff;--error:#9d2525}
+:root[data-theme=light] .sidebar,:root[data-theme=light] .topbar,:root[data-theme=light] .login-card,:root[data-theme=light] .panel,:root[data-theme=light] .metric{background:#fff;color:#172536}
+:root[data-theme=light] input,:root[data-theme=light] select,:root[data-theme=light] textarea,:root[data-theme=light] pre,:root[data-theme=light] .chat-message,:root[data-theme=light] .list-button{background:#f4f7fb;color:#172536}
+:root[data-theme=light] button:not(.primary):not(.danger){background:#e9eff6;color:#172536}
+:root[data-theme=light] nav a{color:#344d68}:root[data-theme=light] nav a[aria-current=page]{background:#dcefe6;color:#145438}
+:root[data-theme=light] .tag{background:#e9eff6;color:#344d68}:root[data-theme=light] .tag.good{background:#dcefe6;color:#145438}:root[data-theme=light] .tag.bad{background:#fbe5e4;color:#8a2424}
+nav details{margin-top:1rem}nav summary{padding:.65rem .8rem;color:var(--muted);cursor:pointer}
+:root[data-theme=light] label,:root[data-theme=light] .brand{color:#172536}
+:root[data-theme=light] .tag.warn{background:#fff0d1;color:#704400}
+.panel>button+button{margin-left:.5rem}

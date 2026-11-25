@@ -1,0 +1,34 @@
+{
+  "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+  "files": [
+    {
+      "file": "SOAK-EVIDENCE.json",
+      "original_sha256": "a898a925dd2c361ff01c2e08a225b1f0d69d61d4885572a04355ce7a007f6e0d",
+      "retained_sha256": "a898a925dd2c361ff01c2e08a225b1f0d69d61d4885572a04355ce7a007f6e0d",
+      "redaction": "workspace/temp path prefixes only",
+      "test_values_changed": false
+    },
+    {
+      "file": "SOAK-PROVENANCE.json",
+      "original_sha256": "8496e0d76a3347e1ce5b47a9e72636415d4193fb627aff9bd90cea89d3b41cc8",
+      "retained_sha256": "d12b82a3985c259660a97b13e57f85281af5cb1d4dc3553fb5bcaf2dc2bab985",
+      "redaction": "workspace/temp path prefixes only",
+      "test_values_changed": false
+    },
+    {
+      "file": "SOAK-DATABASE-EVIDENCE.json",
+      "original_sha256": "8f0ce4515abb02df6a30264ba5dec994786139e34f87ecc97f217e07a6e2c23d",
+      "retained_sha256": "8f0ce4515abb02df6a30264ba5dec994786139e34f87ecc97f217e07a6e2c23d",
+      "redaction": "workspace/temp path prefixes only",
+      "test_values_changed": false
+    },
+    {
+      "file": "soak-guard-tests.log",
+      "original_sha256": "3a67320793f3bc2d0f9698f1d2e3566145f103302ade827d4543d28bb9979512",
+      "retained_sha256": "3a67320793f3bc2d0f9698f1d2e3566145f103302ade827d4543d28bb9979512",
+      "redaction": "workspace/temp path prefixes only",
+      "test_values_changed": false
+    }
+  ],
+  "private_sqlite_copied_into_repository": false
+}

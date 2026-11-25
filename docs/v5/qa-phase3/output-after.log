@@ -1,0 +1,8 @@
+test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) ... ok
+test_registry_refuses_sensitive_nested_provider_events (test_v5_phase3_output.OutputSecurityTests.test_registry_refuses_sensitive_nested_provider_events) ... ok
+test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.262s
+
+OK

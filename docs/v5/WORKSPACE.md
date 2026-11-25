@@ -27,8 +27,11 @@ native engine data directory. Override it with `workspace --database PATH ...`.
 The database and its backups contain private project knowledge; protect them as
 local development data. Do not commit or distribute them.
 
-The server prints a loopback URL and the location of a private token file. Paste
-the token into the page. The token is not embedded in the URL or served HTML.
+The server opens a loopback dashboard using a short-lived, single-use bootstrap
+fragment exchanged for a browser session. The page removes the fragment from
+history. The permanent bearer token is never embedded in that URL or served HTML.
+If automatic browser opening fails, use the private token-file path printed by
+the server and paste its token into the page.
 See [dashboard/API details](../V5-DASHBOARD.md).
 
 ## Workflows and authorization
@@ -76,7 +79,10 @@ configuration or existing agent session is modified automatically.
 
 `workspace backup /new/private/path/backup.sqlite3` uses SQLite's online backup
 API and refuses an existing destination. Stop active runners before recovery,
-retain the old database, and open a backup with `workspace --database BACKUP ...`.
+retain the old database, make a separate working copy of the backup, and open that
+copy with `workspace --database RECOVERY_COPY ...`. Keep the backup unchanged.
+There is no automatic restore command. See [operations](OPERATIONS.md) for scope
+and credential recovery limits.
 Recheck project paths after moving machines. Registration IDs are path-derived;
 relocated project rebinding is not automatic.
 
@@ -102,7 +108,7 @@ credentials, dashboard token, or live transcript in a release.
 
 No global installation, signing key creation, publish, or account setup is
 performed by this implementation task. Release signing and native Linux/Windows/
-Intel-Mac acceptance remain separate gates in [RESULTS.md](RESULTS.md).
+Intel-Mac acceptance remain separate gates in RESULTS.md (source checkout: `docs/v5/RESULTS.md`; omitted from packages).
 
 ## Reproduce checks
 

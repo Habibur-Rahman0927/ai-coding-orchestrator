@@ -1,0 +1,17 @@
+test_audit_logs_require_relative_paths_even_for_placeholder_users (test_repository_hygiene.RepositoryHygiene.test_audit_logs_require_relative_paths_even_for_placeholder_users) ... FAIL
+test_candidate_imports_disable_bytecode_before_shared_modules (test_repository_hygiene.RepositoryHygiene.test_candidate_imports_disable_bytecode_before_shared_modules) ... ok
+test_detection_and_scoped_placeholders (test_repository_hygiene.RepositoryHygiene.test_detection_and_scoped_placeholders) ... ok
+test_source_tree (test_repository_hygiene.RepositoryHygiene.test_source_tree) ... ok
+
+======================================================================
+FAIL: test_audit_logs_require_relative_paths_even_for_placeholder_users (test_repository_hygiene.RepositoryHygiene.test_audit_logs_require_relative_paths_even_for_placeholder_users)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_repository_hygiene.py", line 38, in test_audit_logs_require_relative_paths_even_for_placeholder_users
+    self.assertTrue(violations('docs/v5/phase4/failure.log', home + name + b'/project/test.py'))
+AssertionError: [] is not true
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.052s
+
+FAILED (failures=1)

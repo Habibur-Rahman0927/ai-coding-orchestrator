@@ -1,0 +1,14 @@
+{
+  "source_revision": "c933c04063b16d6c47b430f512fadd26b9d1e0a1",
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s tests -v",
+  "discovered": 281,
+  "executed_including_skips": 281,
+  "passed": 264,
+  "failures": 2,
+  "errors": 0,
+  "skipped": 15,
+  "discovery_errors": 0,
+  "duration_seconds": 94.773,
+  "exit_code": 1,
+  "scope": "Before production changes; group-writable source fixture setup fails twice; six loopback skips"
+}

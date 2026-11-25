@@ -258,6 +258,15 @@ class PortableRuntimeTests(unittest.TestCase):
             project = base / 'project'
             shutil.copytree(PAYLOAD / 'scripts', project / '.claude/scripts')
             shutil.copytree(PAYLOAD / 'hooks', project / '.claude/hooks')
+            if os.name != 'nt':
+                # copytree preserves the checkout's modes (often group-writable
+                # under umask 002), unlike install_files(), which writes payloads
+                # privately with mode 0700. Normalize only disposable fixture
+                # copies; keep executable bits and leave runtime permission
+                # enforcement and immutable release originals untouched.
+                for copied in (project / '.claude').rglob('*'):
+                    if copied.is_file():
+                        copied.chmod(copied.stat().st_mode & ~0o022)
             home = base / 'home'
             home.mkdir()
             session, codex_id = str(uuid.uuid4()), str(uuid.uuid4())

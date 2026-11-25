@@ -6,6 +6,7 @@ MiniMax uses the official independent HTTPS API and an environment key reference
 from dataclasses import dataclass, field
 import http.client
 import json
+import math
 import os
 from pathlib import Path
 import queue
@@ -18,7 +19,8 @@ import threading
 import time
 import uuid
 
-from .tools import supervised_command, tool_definitions, SECRET_CONTENT
+from .tools import supervised_command, tool_definitions
+from .security import sensitive_content
 
 MAX_RESPONSE = 4 * 1024 * 1024
 MINIMAX_ENDPOINT = 'https://api.minimax.io/v1/chat/completions'
@@ -76,16 +78,25 @@ def event(kind, **values):
     return dict(type=kind, **values)
 
 
-def normalized_usage(value):
+def normalized_usage(value, provider_id=None):
     value = value if isinstance(value, dict) else {}
     result = {str(key): number for key, number in value.items()
-              if isinstance(number, (int, float)) and not isinstance(number, bool) and number >= 0}
+              if isinstance(number, (int, float)) and not isinstance(number, bool) and math.isfinite(number) and number >= 0}
     for destination, source in (('input_tokens', 'prompt_tokens'), ('output_tokens', 'completion_tokens')):
         if destination not in result and source in result: result[destination] = result[source]
     for parent, key, destination in (('prompt_tokens_details', 'cached_tokens', 'cached_input_tokens'),
-                                     ('completion_tokens_details', 'reasoning_tokens', 'reasoning_tokens')):
+                                     ('completion_tokens_details', 'reasoning_tokens', 'reasoning_tokens'),
+                                     ('input_tokens_details', 'cached_tokens', 'cached_input_tokens'),
+                                     ('output_tokens_details', 'reasoning_tokens', 'reasoning_tokens')):
         number = (value.get(parent) or {}).get(key) if isinstance(value.get(parent), dict) else None
-        if isinstance(number, (int, float)) and not isinstance(number, bool) and number >= 0: result[destination] = number
+        if isinstance(number, (int, float)) and not isinstance(number, bool) and math.isfinite(number) and number >= 0: result[destination] = number
+    if provider_id=='claude' and any(k in value for k in ('cache_read_input_tokens','cache_creation_input_tokens')):
+        # Anthropic cache input fields are disjoint; input_tokens is uncached.
+        uncached=result.pop('input_tokens',None)
+        if uncached is not None: result['uncached_input_tokens']=uncached
+        if 'cache_read_input_tokens' in result: result['cached_input_tokens']=result['cache_read_input_tokens']
+        if uncached is not None and all(k in result for k in ('cache_read_input_tokens','cache_creation_input_tokens')):
+            result['input_tokens']=uncached+result['cache_read_input_tokens']+result['cache_creation_input_tokens']
     return result
 
 
@@ -110,7 +121,7 @@ def normalize_cli(provider_id, data):
         if kind == 'item.completed' and data.get('item', {}).get('type') == 'agent_message':
             return [event('text', text=data['item'].get('text', ''))]
         if kind == 'turn.completed':
-            return [event('usage', usage=normalized_usage(data.get('usage'))), event('completed')]
+            return [event('usage', usage=normalized_usage(data.get('usage'),provider_id)), event('completed')]
         if kind in ('turn.failed', 'error'):
             return [event('error', error='Provider reported a failed turn', error_kind=classify_error(data.get('error') or data.get('subtype') or data.get('result')))]
     else:
@@ -127,7 +138,7 @@ def normalize_cli(provider_id, data):
             else:
                 if isinstance(data.get('result'), str):
                     result.append(event('text', text=data['result'], final=True))
-                result += [event('usage', usage=normalized_usage(data.get('usage'))), event('completed')]
+                result += [event('usage', usage=normalized_usage(data.get('usage'),provider_id)), event('completed')]
         return result
     return []
 
@@ -477,6 +488,8 @@ class ProviderRegistry:
                   'usage': {}, 'tool_calls': [], 'events': [], 'message': None, 'history': [], 'error': None, 'error_kind': None}
         try:
             for item in self.get(provider_id).execute(request):
+                if sensitive_content(item):
+                    raise ValueError('Recognizable sensitive provider event refused')
                 kind = item.get('type')
                 if kind == 'history':
                     result['history'] = item['history']  # Internal-only transcript data.
@@ -484,15 +497,21 @@ class ProviderRegistry:
                 if kind == 'message':
                     result['message'] = item['message']  # Internal-only transcript data.
                     continue
+                # Validate the assembled text before exposing this fragment to
+                # browser telemetry; individually harmless fragments may form a key.
+                if kind == 'text':
+                    combined = item['text'] if item.get('final') else result['output'] + item['text']
+                    if sensitive_content(combined):
+                        result.update(output='', events=[], history=[], message=None, tool_calls=[])
+                        raise ValueError('Recognizable sensitive provider output refused')
+                    result['output'] = combined
                 result['events'].append(item)
                 if request.event_callback and kind in ('text', 'session', 'usage', 'tool_call', 'completed', 'cancelled', 'timeout', 'error'):
                     try:
                         request.event_callback(dict(item))
                     except Exception:
                         pass  # UI telemetry failure cannot change provider authority or turn outcome.
-                if kind == 'text':
-                    result['output'] = item['text'] if item.get('final') else result['output'] + item['text']
-                elif kind == 'session':
+                if kind == 'session':
                     result['session_id'] = item['session_id']
                 elif kind == 'usage':
                     result['usage'].update(item['usage'])

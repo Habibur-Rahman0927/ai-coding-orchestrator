@@ -1,7 +1,16 @@
 # Releasing an engine
 
+The current V5 development snapshot is for local evaluation only. See the
+[candidate guide](v5/RELEASE-CANDIDATE.md). Its engine version remains 4.3.0;
+the generated `RELEASE-INFO.json` explicitly says `production_ready: false`.
+Do not publish this snapshot under an existing version or interpret its checksums
+as publisher authentication. Phase 6 authorizes disposable test signing keys only,
+not a maintainer key, signing this candidate, pushing tags, or publication.
+The procedure below is a future maintainer procedure requiring explicit approval,
+a reviewed new version, resolved release gates, and independently established trust.
+
 For the unpublished 4.3.0 cross-platform candidate, see the
-[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+[cross-platform guide](CROSS-PLATFORM.md) and verification report (source checkout: `docs/CROSS-PLATFORM-RESULTS.md`; omitted from packages).
 
 1. Change root `VERSION` and `ENGINE_VERSION` in `engine/orchestrator.py` together.
    Engine versions and `CLI_VERSION`/project payload versions are separate.

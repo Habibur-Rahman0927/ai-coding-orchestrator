@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-25",
+  "checkout_branch": "main",
+  "checkout_commit": "e408e1a5e990066105137913671eebb808c284e0",
+  "audit_ref": "origin/v5/universal-workspace",
+  "audit_commit": "c933c04063b16d6c47b430f512fadd26b9d1e0a1",
+  "initial_worktree": "clean",
+  "audit_copy": "/tmp/ccx-v5-phase3",
+  "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "live_provider_calls": 0,
+  "status": "LOCAL_CORRECTIONS_VERIFIED_EXTERNAL_GATES_OPEN",
+  "delivery_branch": "v5/phase3-qa"
+}

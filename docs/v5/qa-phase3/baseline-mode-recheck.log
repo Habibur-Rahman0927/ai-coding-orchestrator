@@ -1,0 +1,20 @@
+test_atomic_state_write_does_not_follow_temporary_or_destination_links (test_runtime_portable.PortableRuntimeTests.test_atomic_state_write_does_not_follow_temporary_or_destination_links) ... ok
+test_candidate_inherits_config_without_tomllib (test_runtime_portable.PortableRuntimeTests.test_candidate_inherits_config_without_tomllib) ... ok
+test_initial_monitor_failure_still_cleans_owned_child (test_runtime_portable.PortableRuntimeTests.test_initial_monitor_failure_still_cleans_owned_child) ... ok
+test_mock_agent_persists_exact_session_without_authentication (test_runtime_portable.PortableRuntimeTests.test_mock_agent_persists_exact_session_without_authentication) ... ok
+test_parent_termination_cleans_owned_child (test_runtime_portable.PortableRuntimeTests.test_parent_termination_cleans_owned_child) ... ok
+test_private_state_refuses_symlink_root_and_descendant (test_runtime_portable.PortableRuntimeTests.test_private_state_refuses_symlink_root_and_descendant) ... ok
+test_private_state_repairs_umask_and_legacy_modes_without_bytecode (test_runtime_portable.PortableRuntimeTests.test_private_state_repairs_umask_and_legacy_modes_without_bytecode) ... ok
+test_retry_requires_explicit_idempotency (test_runtime_portable.PortableRuntimeTests.test_retry_requires_explicit_idempotency) ... ok
+test_safe_lock_handles_retain_handoff_path (test_runtime_portable.PortableRuntimeTests.test_safe_lock_handles_retain_handoff_path) ... ok
+test_session_start_exports_validated_identifier (test_runtime_portable.PortableRuntimeTests.test_session_start_exports_validated_identifier) ... ok
+test_success_and_both_streams (test_runtime_portable.PortableRuntimeTests.test_success_and_both_streams) ... ok
+test_timeout_cleans_child_tree (test_runtime_portable.PortableRuntimeTests.test_timeout_cleans_child_tree) ... ok
+test_watchdog_observes_real_process (test_runtime_portable.PortableRuntimeTests.test_watchdog_observes_real_process) ... ok
+test_windows_caller_retains_management_lock_through_tail (test_runtime_portable.PortableRuntimeTests.test_windows_caller_retains_management_lock_through_tail) ... skipped 'Native Windows guardian handoff locking'
+test_workflow_default_activation_gate_pause (test_runtime_portable.PortableRuntimeTests.test_workflow_default_activation_gate_pause) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 11.800s
+
+OK (skipped=1)

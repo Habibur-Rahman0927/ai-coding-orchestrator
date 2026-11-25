@@ -1,0 +1,420 @@
+{
+  "baseline": "preserved Phase5 entry including uncommitted Phase3/4",
+  "self_excluded": true,
+  "files": [
+    {
+      "path": "docs/v5/phase5/ACCOUNTING-COMPARISON-BEFORE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "c4a09699f8c736420fa0cc30c26aea06dd92061deebf8dae9fe5c164fc8160a2"
+    },
+    {
+      "path": "docs/v5/phase5/ACCOUNTING-CONTRACT-BEFORE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "899b36c56a42697121e3b1140b57d258ccd59d309fa03509046ccebf6c5cf9c8"
+    },
+    {
+      "path": "docs/v5/phase5/ACCOUNTING-INDEPENDENT-REVIEW.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "a88fe119cff69a6efd5c4202411f18e62883acc3a219ae6f751ce85deb8a5678"
+    },
+    {
+      "path": "docs/v5/phase5/ACCOUNTING-INDEPENDENT-REVIEW.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "622063fc59dc7da72650c1628b2b2fece2f1d6afc1ccbe5d4cc8129cf0c5d78c"
+    },
+    {
+      "path": "docs/v5/phase5/BASELINE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "e187f4fc7d206e4a9749f92eca4fef0157d17ffec75278fe707ee7fefc6e10ef"
+    },
+    {
+      "path": "docs/v5/phase5/BROWSER-FINAL.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "4949e982b6c0ed72886b3f777f0615aab2d2b92d4461d5e3516fd7050d8eedd9"
+    },
+    {
+      "path": "docs/v5/phase5/BROWSER-FINAL.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "7add2f71154eff717bc98636f9ada651144326950620b0306c227d844ad92901"
+    },
+    {
+      "path": "docs/v5/phase5/BROWSER-QA.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "bdddc2ee9697f3dacab0a880cb5675cd9b549e954d95a6b6f328f482d62ddd95"
+    },
+    {
+      "path": "docs/v5/phase5/BROWSER-QA.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "8148f0e3cca5606a7fbd99a0adb7152c4339ae4da11d689b63fb0d464f4b4390"
+    },
+    {
+      "path": "docs/v5/phase5/BROWSER-REPORT.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "18bf7e74e07913621bafd89258ae9d18962e462ba344b5cc18ce9143cb4ab1b6"
+    },
+    {
+      "path": "docs/v5/phase5/CHECKLIST.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "3ee94ed00b60d011a53d88655e387fd0dd079989648cbeb71ae6eaa9bda87e03"
+    },
+    {
+      "path": "docs/v5/phase5/COMPARISON.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "0918bd2cd8b3e78450623d158fb6284419025f5e4217503a080131566bef2c7f"
+    },
+    {
+      "path": "docs/v5/phase5/CONTEXT-AFTER.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "b45866dfc17656c2b7dc0f4962929793f110178fa6401fca57bc4fd202e74ff4"
+    },
+    {
+      "path": "docs/v5/phase5/CONTEXT-BEFORE.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "93e6d93106991221f1a8973c46ef9607036c7d78e81137adace058c1366da3e0"
+    },
+    {
+      "path": "docs/v5/phase5/ENTRY-STATE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "c1d9e644109088a4c5e32a54b564367ea34e872048d20bca09a73c039b3fed27"
+    },
+    {
+      "path": "docs/v5/phase5/FINAL-ARTIFACT-CHECK.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "86c1d7c91e4c7600d3f33cba1b75f05056b14ef9880e97896b93526913c816ba"
+    },
+    {
+      "path": "docs/v5/phase5/FINAL-HYGIENE.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "469e19f4a86f631fab947611cb86752fafdf79ed5ab020fe88482f4466d1c46b"
+    },
+    {
+      "path": "docs/v5/phase5/FINAL-REGRESSION.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "798345b4068ab2a8603f9f607d132e62a1e9adb9557964f53e77fc1ef8c711f6"
+    },
+    {
+      "path": "docs/v5/phase5/FINAL-REGRESSION.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "a358a85d82eb215f47b3cc98cd39c629499c85d6002c5914bf95347e4335aa92"
+    },
+    {
+      "path": "docs/v5/phase5/IMMUTABLE-PAYLOADS.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "0780840e47c2677bd1a20e4127e92cedf11043d0ee632b2653209c21cfc9bb9f"
+    },
+    {
+      "path": "docs/v5/phase5/IMPLEMENTATION.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "534989d9c16af511cf319a7037973867c67314fe2bc744be725f0cfaf3cf38e9"
+    },
+    {
+      "path": "docs/v5/phase5/INDEPENDENT-AFTER-SAMPLE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "668e274a82764badd38c1c04cbf65e0f70517f1796c15aec46b992aa80a0855a"
+    },
+    {
+      "path": "docs/v5/phase5/INDEPENDENT-BASELINE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "0d940842d505eb46b97733d9c7e092f2ed507293b91380392667fbff68ea6801"
+    },
+    {
+      "path": "docs/v5/phase5/INDEPENDENT-BASELINE.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "c79cf5a9c5eb42b08459a8c47f95f5a56171d67852e447aba32578190607e66b"
+    },
+    {
+      "path": "docs/v5/phase5/INDEPENDENT-REVIEW.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "cbbb170f03ae49ed61ef5ea9aa76b134894ccc2561ef5bd62161308ca279fc0d"
+    },
+    {
+      "path": "docs/v5/phase5/INDEPENDENT-REVIEW.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "e008a522e480f8de03809e6f00d277dfa72479876cb6f4f1003ac8488b910a5b"
+    },
+    {
+      "path": "docs/v5/phase5/INSTALLED-BROWSER.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "8612df1edd47bf1dc4330565480e59fb2d58bc414dbd7d99dbb09227f4278b86"
+    },
+    {
+      "path": "docs/v5/phase5/INSTALLED-BROWSER.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "6e9bd1d989feadebeebaf2e084cb93719b6a1aca54785124ba85975750f63c28"
+    },
+    {
+      "path": "docs/v5/phase5/LEARNING-AFTER.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "67cdcf19a58adcd4fceb71cdefa6d3b0908d8275184431533a1dd9815fc8af70"
+    },
+    {
+      "path": "docs/v5/phase5/LEARNING-BEFORE.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "67e7600b60a81a5db167d853be24f960912e13e1350b3be1614a61a9dc6ea45c"
+    },
+    {
+      "path": "docs/v5/phase5/LEARNING-INDEPENDENT-FAULT.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "04c833196b24e77cf07ebfbd30f3b28dea1cceb934b3ad32419ed26c6b32664f"
+    },
+    {
+      "path": "docs/v5/phase5/MEASUREMENTS.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "f2c2dafe8c2a12c0938d0fbc0400fbea03677517ddd3f4d08a2b2ff4cbc4b6c1"
+    },
+    {
+      "path": "docs/v5/phase5/OPTIMIZED.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "5fc3cb24dee156ccebec9267f19a9adfdc966b47b029cd3c8041eb5546755e25"
+    },
+    {
+      "path": "docs/v5/phase5/PHASE5-REPORT.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "5b28d28421828b29ba105908d81612c4b49215ee7c764ad93da328ec77fadae4"
+    },
+    {
+      "path": "docs/v5/phase5/PILOT-REGRESSION.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "aa3d03133b866ceec6549435331634d832b1a2c6814a77693a5ede345c13964a"
+    },
+    {
+      "path": "docs/v5/phase5/POLICY-HARNESS-FIRST-ATTEMPT.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "bfe70e39b45b4f056e1163f81df180296b903e075866418efa418e35b6bc27c6"
+    },
+    {
+      "path": "docs/v5/phase5/POLICY-MEASUREMENTS.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "cc7803d3f86085bd4cc0b08e1c7f8906c718fa6536754e9f4cd495f8a4e15f03"
+    },
+    {
+      "path": "docs/v5/phase5/PROVIDER-AND-SESSION-BOUNDARIES.md",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "157b487977ed700b83a7f39a2deb8da3c1c8bcaf2ef5531a645d7bdd1318cb77"
+    },
+    {
+      "path": "docs/v5/phase5/SOAK-EVIDENCE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "118192ee7597c16cd40eb239e67ff8fe1d1f1d2e72bc1748d3c4b37d5537b0c0"
+    },
+    {
+      "path": "docs/v5/phase5/TESTED-SOURCE.json",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "c6db86e52fa07bf24a7aefc7be6436ef206179293b3d19f1d4e1921cb8c98300"
+    },
+    {
+      "path": "docs/v5/phase5/USAGE-AFTER.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "965aaf747bbf1d4c998925d7d1bd22baa31724247f1d33583e16c1257c7d232e"
+    },
+    {
+      "path": "docs/v5/phase5/USAGE-BEFORE.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "5bd22860c6cb8b9c15eaec96367e1a3dc6758fa0610dc6efce36832e4599947c"
+    },
+    {
+      "path": "docs/v5/phase5/accounting-comparison-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "a878a697957db5b30af4e6c58e3a7aed8a77e9b6564a1c4ca9f1fb699b0f0860"
+    },
+    {
+      "path": "docs/v5/phase5/accounting-providers-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "142c20d394f6220bcc94eacaa6f574db70cf332f17b5c6f519968b85876dc7e7"
+    },
+    {
+      "path": "docs/v5/phase5/accounting-reliability-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "1428f95412cf4f6535ee2e11d9bad45e8fa20bfbc3e7bef8d43a22afdc893676"
+    },
+    {
+      "path": "docs/v5/phase5/accounting-usage-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "ffe9a90050fcc77edeefe792abc0928e1ffaf5174dc7cb4245b7ec50eb2d3d39"
+    },
+    {
+      "path": "docs/v5/phase5/context-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "4bccd3d1166607be1dd80fc1e857bd9c0c2264aba682b551914f2f5dfdc52b35"
+    },
+    {
+      "path": "docs/v5/phase5/context-old-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "e75e3c0c97f98aa2d645b12bd1791d254f43cab5235eb326f9df6408fc9a5d34"
+    },
+    {
+      "path": "docs/v5/phase5/learning-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "9005c8afa35a6e8720c3d3027c4787aa5da0617d0a8a4149e27a95f3580da430"
+    },
+    {
+      "path": "docs/v5/phase5/memory-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "08d0db3b7038d2cc850dea235d48875586b8b9d934641b0dc68e2f98b4c932f4"
+    },
+    {
+      "path": "docs/v5/phase5/reliability-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "1428f95412cf4f6535ee2e11d9bad45e8fa20bfbc3e7bef8d43a22afdc893676"
+    },
+    {
+      "path": "docs/v5/phase5/storage-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "59a93830fdd58b2c885a2bea148f673b4efcf030edce5f6df0be4056c11dc0b1"
+    },
+    {
+      "path": "docs/v5/phase5/usage-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "ffe9a90050fcc77edeefe792abc0928e1ffaf5174dc7cb4245b7ec50eb2d3d39"
+    },
+    {
+      "path": "docs/v5/phase5/workflows-independent.log",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "c22f4a67b81865d7c4d7f889bdedc6bc31306d75eee75c9b7ec29e425702c00a"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/benchmark.py",
+      "change": "modified",
+      "entry_sha256": "c8b3c42e9555eb55c88982c3c010786e85f732371201497d8f75b0ada984bcc6",
+      "current_sha256": "99339ebe96e55a35591097060adcebc7420ec0de3fb408eb17c4d7ac36aea310"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/providers.py",
+      "change": "modified",
+      "entry_sha256": "1be5be8e30b42c6b74857d42f1cf771bb50d1fd3cdf228e8ac695cf3a12079b1",
+      "current_sha256": "c33f94bb441626d9c891d8b9e31dd935ea24512ff54456e13f3838bf41823287"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/server.py",
+      "change": "modified",
+      "entry_sha256": "1795d4285efb8841a0a2af0d035a474e0c7db769365902f06d15cbba6c492a2a",
+      "current_sha256": "702a5824ff613a73756d2fffcdf6f6cd017681dc1e3d310306133a66d2e90e7e"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/store.py",
+      "change": "modified",
+      "entry_sha256": "e34269d4da1e687f5d6b4ee8e49d2d7fbade5b8f51fb473481caa0377d0725da",
+      "current_sha256": "63c99bea554e9d56a1e3292081d29578f898ecfd957c79e3b59beaa37077821f"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/web/app.js",
+      "change": "modified",
+      "entry_sha256": "e95b33ecefa55ac9a568c6cbd48346eb90310a764984f43b9033d2161e8d1667",
+      "current_sha256": "ac69bcb93423385b59257c0812eb3fec084b17ffa4089adb041eb1dc61139ac2"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/workflows.py",
+      "change": "modified",
+      "entry_sha256": "c9c25f7b1cff28c22bb73ad5caddfff551b3539de72e71a1711e9b3ef3fab927",
+      "current_sha256": "dd0849291f8aa5396e9852fa79f72e3059d0cf1145c789e2e3bfdec5a6d24da5"
+    },
+    {
+      "path": "tests/browser/test_workspace_cdp.cjs",
+      "change": "modified",
+      "entry_sha256": "f6598bd7cd3151df54661c1c6bdd948f3f8c55a2353f24816cd59fa7b42f1d93",
+      "current_sha256": "757becfe13d94286ab136934ba5baf788cbbf3b4f4ca31e7426493f2e6d0f3dd"
+    },
+    {
+      "path": "tests/test_v5_phase4_pilot.py",
+      "change": "modified",
+      "entry_sha256": "cd07fb222bfd642f7687c26981566fb9d9607da1bbcdbf4a395b2e46bd3968ac",
+      "current_sha256": "374671ed5dd577edaa68ac258d6f1f4e826f1805cd3ea4e99a26c46efbdac731"
+    },
+    {
+      "path": "tests/test_v5_phase5_comparison.py",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "05308678d2c3710fc004925e07f172fa39dbf54eaf63e68f8dcc5fc660f6fe16"
+    },
+    {
+      "path": "tests/test_v5_phase5_context.py",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "6e1957fe1d83a8ff1ef84a2cd6f27761a45b844c2b512aad98f84ff69a959243"
+    },
+    {
+      "path": "tests/test_v5_phase5_learning.py",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "39ff3e137ed52fe23ea2062181929cb0c99fe2a160f0403d8ffafb6ab6e5eebb"
+    },
+    {
+      "path": "tests/test_v5_phase5_usage.py",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "461a325ab546784cf3a69556f5c3b7cdfb1c2f57b596dffa8cfc16ca990ffb2d"
+    },
+    {
+      "path": "tools/benchmark_policies.py",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "f62f9b73ba38d9f83200ef0e228e8e4699d45871109e3a81fe7d4074ea128bc5"
+    },
+    {
+      "path": "tools/evaluate_context.py",
+      "change": "added",
+      "entry_sha256": null,
+      "current_sha256": "df2e36cdcf0a9d2f18bdc44067bf08e10fdb4eb9a3f7ebe8ee4d423dfcf32bd1"
+    },
+    {
+      "path": "tools/pilot_workloads.py",
+      "change": "modified",
+      "entry_sha256": "935cded6a6d676e4f991495193b3dfe776147ed4870fcd1f3a3bbed7bac7716a",
+      "current_sha256": "da0a2223222f781a4ca8d9b5f081d87b6b9971084a1ad2b5338be7b3c144bff7"
+    }
+  ]
+}

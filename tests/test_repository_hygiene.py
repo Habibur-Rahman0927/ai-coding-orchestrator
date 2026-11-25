@@ -23,7 +23,7 @@ def violations(relative, data):
     if PRIVATE_KEY.search(data):
         hits.append('private key marker')
     for match in HOME_PATH.finditer(data):
-        allowed = (path.parts[0] in ('tests', 'docs') and match.group(1) in (b'USER', b'someone')
+        allowed = (path.suffix != '.log' and path.parts[0] in ('tests', 'docs') and match.group(1) in (b'USER', b'someone')
                    and match.group(0).startswith(b'/' + b'home/'))
         if not allowed:
             hits.append('absolute personal home path')
@@ -32,6 +32,12 @@ def violations(relative, data):
 
 
 class RepositoryHygiene(unittest.TestCase):
+    def test_audit_logs_require_relative_paths_even_for_placeholder_users(self):
+        home = b'/' + b'home/'
+        for name in (b'USER', b'someone', b'OTHER'):
+            self.assertTrue(violations('docs/v5/phase4/failure.log', home + name + b'/project/test.py'))
+        self.assertFalse(violations('docs/v5/phase4/failure.log', b'<workspace>/tests/test_case.py'))
+
     def test_source_tree(self):
         hits = []
         for directory, dirs, names in os.walk(ROOT, followlinks=False):

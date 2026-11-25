@@ -1,0 +1,56 @@
+test_cancelled_executor_requires_recovery_even_without_visible_change (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_executor_requires_recovery_even_without_visible_change) ... FAIL
+test_cancelled_native_access_is_not_assumed_side_effect_free (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_native_access_is_not_assumed_side_effect_free) ... FAIL
+test_cancelled_planner_resumes_with_new_call_not_cached_cancellation (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_planner_resumes_with_new_call_not_cached_cancellation) ... FAIL
+test_cancelled_planner_with_changed_snapshot_requires_recovery (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_planner_with_changed_snapshot_requires_recovery) ... FAIL
+test_cancelled_reviewer_resumes_without_reexecuting_implementation (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_reviewer_resumes_without_reexecuting_implementation) ... FAIL
+
+======================================================================
+FAIL: test_cancelled_executor_requires_recovery_even_without_visible_change (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_executor_requires_recovery_even_without_visible_change)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase4_resume.py", line 76, in test_cancelled_executor_requires_recovery_even_without_visible_change
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_cancelled_native_access_is_not_assumed_side_effect_free (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_native_access_is_not_assumed_side_effect_free)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase4_resume.py", line 92, in test_cancelled_native_access_is_not_assumed_side_effect_free
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_cancelled_planner_resumes_with_new_call_not_cached_cancellation (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_planner_resumes_with_new_call_not_cached_cancellation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase4_resume.py", line 59, in test_cancelled_planner_resumes_with_new_call_not_cached_cancellation
+    self.assertEqual(result['status'], 'COMPLETED', result['reason'])
+AssertionError: 'BLOCKED' != 'COMPLETED'
+- BLOCKED
++ COMPLETED
+ : Provider cancelled; inspect connection or approve a safe handoff
+
+======================================================================
+FAIL: test_cancelled_planner_with_changed_snapshot_requires_recovery (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_planner_with_changed_snapshot_requires_recovery)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase4_resume.py", line 84, in test_cancelled_planner_with_changed_snapshot_requires_recovery
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_cancelled_reviewer_resumes_without_reexecuting_implementation (test_v5_phase4_resume.ResumeCancelledTests.test_cancelled_reviewer_resumes_without_reexecuting_implementation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase4_resume.py", line 69, in test_cancelled_reviewer_resumes_without_reexecuting_implementation
+    self.assertEqual(result['status'], 'COMPLETED', result['reason'])
+AssertionError: 'BLOCKED' != 'COMPLETED'
+- BLOCKED
++ COMPLETED
+ : Provider cancelled; inspect connection or approve a safe handoff
+
+----------------------------------------------------------------------
+Ran 5 tests in 5.504s
+
+FAILED (failures=5)

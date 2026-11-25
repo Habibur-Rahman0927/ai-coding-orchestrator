@@ -1,0 +1,9 @@
+test_audit_logs_require_relative_paths_even_for_placeholder_users (test_repository_hygiene.RepositoryHygiene.test_audit_logs_require_relative_paths_even_for_placeholder_users) ... ok
+test_candidate_imports_disable_bytecode_before_shared_modules (test_repository_hygiene.RepositoryHygiene.test_candidate_imports_disable_bytecode_before_shared_modules) ... ok
+test_detection_and_scoped_placeholders (test_repository_hygiene.RepositoryHygiene.test_detection_and_scoped_placeholders) ... ok
+test_source_tree (test_repository_hygiene.RepositoryHygiene.test_source_tree) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.135s
+
+OK

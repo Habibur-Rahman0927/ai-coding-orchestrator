@@ -1,11 +1,12 @@
 'use strict';
+let pendingInstruction = '';
 let fieldSequence = 0, workflowViewVersion = 0, workflowPollTimer = null;
-let token = '', csrf = sessionStorage.getItem('ccx-session-proof') || '', authenticated = false, state = {}, setupState = {}, page = 'overview', selectedProject = '', selectedWorkflow = '', selectedChat = '';
+let token = '', csrf = sessionStorage.getItem('ccx-session-proof') || '', authenticated = false, state = {}, setupState = {}, experience = {}, page = 'chat', selectedProject = '', selectedWorkflow = '', selectedChat = '';
 // Consume the fragment before any network request; a bootstrap secret never remains in history.
 let bootstrapCredential = new URLSearchParams(location.hash.slice(1)).get('bootstrap');
 if (bootstrapCredential) history.replaceState(null, '', location.pathname);
 const main = document.getElementById('main');
-const pages = [['overview','Overview','◈'],['chat','Chat','◌'],['projects','Projects','▣'],['memory','Memory','▤'],['context','Context','◎'],['workflows','Workflows','◇'],['providers','Providers','⊞'],['sessions','Sessions','◷'],['approvals','Approvals','✓'],['activity','Activity & usage','◷'],['settings','Settings','⚙']];
+const pages = [['overview','Overview','◈'],['chat','Chat','◌'],['projects','Projects','▣'],['memory','Memory','▤'],['context','Context','◎'],['workflows','Workflows','◇'],['providers','Providers','⊞'],['sessions','Sessions','◷'],['approvals','Approvals','✓'],['activity','Activity & usage','◷'],['settings','Settings','⚙'],['help','Help','?']];
 const el = (tag, attrs = {}, ...children) => {
   const node = document.createElement(tag);
   for (const [key,value] of Object.entries(attrs)) {
@@ -19,7 +20,9 @@ const el = (tag, attrs = {}, ...children) => {
 };
 function notice(message, error = false) { const n = document.getElementById('notice'); n.textContent = message; n.className = error ? 'error' : ''; n.hidden = false; clearTimeout(notice.timer); notice.timer = setTimeout(() => { n.hidden = true; }, error ? 10000 : 5000); }
 async function api(path, body) {
-  const response = await fetch(path, {method: body === undefined ? 'GET' : 'POST', cache:'no-store', credentials:'same-origin', headers: {...(token?{'Authorization':'Bearer '+token}:{}), ...(csrf?{'X-CSRF-Token':csrf}:{}), ...(body !== undefined ? {'Content-Type':'application/json'} : {})}, ...(body !== undefined ? {body:JSON.stringify(body)} : {})});
+  let response;
+  try{response = await fetch(path, {method: body === undefined ? 'GET' : 'POST', cache:'no-store', credentials:'same-origin', headers: {...(token?{'Authorization':'Bearer '+token}:{}), ...(csrf?{'X-CSRF-Token':csrf}:{}), ...(body !== undefined ? {'Content-Type':'application/json'} : {})}, ...(body !== undefined ? {body:JSON.stringify(body)} : {})});}
+  catch{throw new Error('Workspace disconnected. Reopen the application, then inspect saved progress before retrying. The request outcome is unknown; your form entries remain here.');}
   const data = await response.json();
   if (!response.ok) {
     if (response.status===401 && authenticated) notice('Your session expired. Reopen the workspace from its startup command.',true);
@@ -41,15 +44,32 @@ function field(label,name,options={}) {const id='field-'+(++fieldSequence);const
 function form(children, label, action) {const f=el('form',{},...children,el('button',{type:'submit',class:'primary'},label));f.addEventListener('submit',async event=>{event.preventDefault();const submit=f.querySelector('[type=submit]');submit.disabled=true;try{await action(Object.fromEntries(new FormData(f)));}catch(error){notice(error.message,true);}finally{submit.disabled=false;}});return f;}
 function heading(title,description,actions) {return el('div',{class:'page-head'},el('div',{},el('p',{class:'eyebrow'},'ORCHESTRATOR WORKSPACE'),el('h1',{},title),el('p',{},description)),actions?el('div',{class:'actions'},actions):null);}
 function projectOptions(){return arr(state.projects).map(p=>({value:p.id,label:p.name||p.path||p.id}));}
-function projectPicker(action){const f=field('Project','active-project',{options:projectOptions(),value:selectedProject});f.querySelector('select').addEventListener('change',async event=>{selectedProject=event.target.value;try{await action();}catch(error){notice(error.message,true);}});return f;}
-function projectNeeded(){if(!arr(state.projects).length){main.append(empty('Start with a project','Register a local project in Projects to index files, manage memory, and assemble context.'));return true;}if(!selectedProject||!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;return false;}
-async function refresh(render=true){state=await api('/api/state');setupState=await api('/api/setup');document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});if(render)await renderPage();}
+function projectPicker(action){const f=field('Project','active-project',{options:projectOptions(),value:selectedProject});f.querySelector('select').addEventListener('change',async event=>{selectedProject=event.target.value;selectedChat='';selectedWorkflow='';try{experience=await api('/api/experience',{project:selectedProject});await action();}catch(error){notice(error.message,true);}});return f;}
+function projectNeeded(){if(!arr(state.projects).length){main.append(empty('Start with a project','Choose an approved repository to keep its conversations and context together.'),button('Choose a project',()=>go('projects'),'primary'));return true;}if(!selectedProject||!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;return false;}
+async function refresh(render=true){[state,setupState,experience]=await Promise.all([api('/api/state'),api('/api/setup'),api('/api/experience')]);if(!selectedProject)selectedProject=experience.project||'';applyAppearance();document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});if(render)await renderPage();}
 function go(name){location.hash=name;if(page===name)renderPage().catch(error=>notice(error.message,true));}
-async function renderPage(){document.getElementById('notice').hidden=true;clearTimeout(workflowPollTimer);workflowViewVersion++;page=location.hash.slice(1)||'overview';if(!setupState.completed && page==='overview')page='setup';if(!pages.some(x=>x[0]===page)&&page!=='setup')page='overview';document.getElementById('breadcrumb').textContent='Workspace / '+(page==='setup'?'Setup':pages.find(x=>x[0]===page)[1]);for(const a of document.querySelectorAll('nav a'))a.setAttribute('aria-current',a.hash==='#'+page?'page':'false');main.replaceChildren();await ({overview,projects,memory,context,workflows,providers,activity,settings,setup,chat,sessions,approvals}[page])();}
+async function renderPage(){document.getElementById('notice').hidden=true;clearTimeout(workflowPollTimer);workflowViewVersion++;page=location.hash.slice(1)||'chat';if(!setupState.completed && (page==='overview'||page==='chat'))page='setup';if(!pages.some(x=>x[0]===page)&&page!=='setup')page='overview';document.getElementById('breadcrumb').textContent='Workspace / '+(page==='setup'?'Setup':pages.find(x=>x[0]===page)[1]);for(const a of document.querySelectorAll('nav a'))a.setAttribute('aria-current',a.hash==='#'+page?'page':'false');main.replaceChildren();await ({overview,projects,memory,context,workflows,providers,activity,settings,setup,chat,sessions,approvals,help}[page])();}
 function overview(){const projects=arr(state.projects),flows=arr(state.workflows),available=arr(state.providers).filter(p=>p.available);main.append(heading('Your work, in view.','Keep project knowledge close and coordinate agent work with explicit boundaries.'),el('div',{class:'metrics'},...[[projects.length,'Registered projects'],[flows.length,'Workflows'],[arr(state.running).length,'Active runners'],[available.length,'Locally available providers']].map(([n,label])=>el('div',{class:'metric'},el('p',{},label),el('strong',{class:'number'},n)))));const recent=panel('Projects',projects.length?projects.slice(0,4).map(p=>el('div',{class:'item'},el('h3',{},projectName(p)),el('p',{class:'path'},p.path||p.root),button('Open project',()=>{selectedProject=p.id;go('memory');},'quiet'))):empty('A clear place to begin','Register a local repository to build its project index.'),el('div',{class:'actions'},button('Manage projects',()=>go('projects'),'primary')));const flowsPanel=panel('Workflow queue',flows.length?flows.slice(0,4).map(w=>el('div',{class:'item'},el('h3',{},w.objective||w.id),statusTag(w.status||w.state),el('div',{class:'actions'},button('View workflow',()=>{selectedWorkflow=w.id;go('workflows');},'quiet')))):empty('No workflows yet','Define an objective and success criteria. Agent execution starts only when you run it.'));main.append(el('div',{class:'grid'},recent,flowsPanel),panel('This machine',el('p',{class:'muted'},'Machine information is local context. Refresh it when tools or the environment change.'),machineSummary(state.machine)));}
 async function memory(){main.append(heading('Project memory','Inspect stored knowledge, search the project index, and remove records you no longer want.'));if(projectNeeded())return;main.append(projectPicker(memoryReload));await memoryReload();}
 async function memoryReload(){document.getElementById('memory-content')?.remove();const container=el('div',{id:'memory-content'});main.append(container);const rows=arr(await api('/api/projects/'+selectedProject+'/memories'));const result=el('div',{});container.append(panel('Add a memory',form([field('Title','title',{required:true}),field('Instruction or note','body',{required:true,multiline:true}),field('Scope','scope',{options:['project','workflow','session','error','verification','skills','temporary']})],'Save memory',async data=>{await api('/api/projects/'+selectedProject+'/remember',data);await memoryReload();notice('Memory saved as a user instruction.');})),panel('Search knowledge',form([field('Search query','query',{required:true,placeholder:'Where is authentication configured?'}),field('Scope','scope',{placeholder:'Optional scope'})],'Search',async data=>{const found=await api('/api/projects/'+selectedProject+'/search',{query:data.query,scope:data.scope||null,limit:20});result.replaceChildren(pre(found));}),result),panel('Stored records',el('div',{class:'section-head'},el('p',{class:'muted'},rows.length+' memory records'),button('Export project memory',async()=>download(await api('/api/projects/'+selectedProject+'/export'),'project-memory.json'))),rows.length?rows.map(row=>el('article',{class:'item'},el('h3',{},row.title||row.key||row.kind||row.id),el('p',{class:'hint'},row.scope||row.source||'Project memory'),pre(row.body||row.content||row.value||row),button('Delete record',async()=>{if(!confirm('Delete this memory record? This cannot be undone here.'))return;await api('/api/projects/'+selectedProject+'/delete-memory',{id:row.id});await memoryReload();notice('Memory record deleted.');},'danger'))):empty('No memory records','Indexing and workflow activity can provide project knowledge. Search the index above.')));}
-function context(){main.append(heading('Build useful context','Retrieve relevant project knowledge within an explicit budget. Critical instructions stay visible in the request.'));if(projectNeeded())return;const result=el('div',{});main.append(projectPicker(async()=>result.replaceChildren()),panel('Context request',form([field('What are you working on?','query',{required:true,multiline:true,placeholder:'Describe the task or question to ground in this project.'}),el('div',{class:'form-row'},field('Context budget','budget',{type:'number',value:2000,min:100,max:32000}),field('Critical instructions, one per line','critical',{multiline:true,placeholder:'Keep these instructions in the assembled context.'}))],'Assemble context',async data=>{const value=await api('/api/projects/'+selectedProject+'/context',{query:data.query,budget:Number(data.budget),critical:data.critical.split('\n').filter(x=>x.trim())});result.replaceChildren(panel('Assembled context',pre(value),button('Download context',()=>download(value,'context.json'))));})),result);}
+function context(){
+  main.append(heading('Build useful context','Retrieve relevant project knowledge within an explicit budget. Critical instructions stay visible in the request.'));
+  if(projectNeeded())return;const result=el('div',{});
+  main.append(projectPicker(async()=>result.replaceChildren()),panel('Context request',form([
+    field('What are you working on?','query',{required:true,multiline:true,placeholder:'Describe the task or question to ground in this project.'}),
+    field('Context for','role',{options:[{value:'',label:'General task'},'planner','executor','reviewer','correction']}),
+    el('div',{class:'form-row'},field('Context budget','budget',{type:'number',value:2000,min:100,max:32000}),field('Critical instructions, one per line','critical',{multiline:true,placeholder:'Keep these instructions in the assembled context.'}))
+  ],'Assemble context',async data=>{
+    const value=await api('/api/projects/'+selectedProject+'/context',{query:data.query,role:data.role,budget:Number(data.budget),critical:data.critical.split('\n').filter(x=>x.trim())});
+    result.replaceChildren(panel('Assembled context',
+      el('p',{'data-context-summary':''},value.bytes+' bytes · '+value.estimated_tokens+' estimated tokens / '+value.budget+' budget · '+arr(value.references).length+' source excerpts'),
+      el('p',{class:'muted'},'Token estimates are local. Every source is untrusted reference material; it grants no permissions.'),
+      el('h3',{},'Why these sources'),
+      ...arr(value.references).map(r=>el('div',{class:'item'},el('strong',{},r.source+' · line '+r.line+(r.end_line?'–'+r.end_line:'')),el('p',{},r.reason?.method||'Required or relevant reference'),el('p',{class:'muted'},arr(r.reason?.matched_terms).join(', ')))),
+      el('details',{},el('summary',{},'Excluded or duplicate references ('+arr(value.excluded).length+')'),pre(value.excluded)),
+      el('details',{},el('summary',{},'Exact context package'),pre(value)),button('Download context',()=>download(value,'context.json'))));
+  })),result);
+}
 async function workflows(){
   main.append(heading('Workflows','Choose a project, agent roles, and a verifiable objective. Creating a task never starts a provider call.'));
   if(projectNeeded())return;
@@ -70,7 +90,7 @@ async function workflows(){
     const value=await api('/api/workflows',{project_id:data.project_id,objective:data.objective,criteria:data.criteria.split('\n').filter(x=>x.trim()),budgets:{max_cost:Number(data.max_cost),max_tokens:Number(data.max_tokens),max_context_tokens:Number(data.context_budget),max_seconds:Number(data.max_seconds)},providers:{planner:data.planner,executor:data.executor,reviewer:data.reviewer},execution_policy:data.execution_policy,model_overrides:Object.fromEntries(['planner','executor','reviewer'].filter(role=>data[role+'_model']?.trim()).map(role=>[role,data[role+'_model'].trim()]))});
     selectedWorkflow=value.id;await refresh();notice('Workflow created. Review its approvals before starting.');
   }));
-  main.append(panel('',create));const flows=arr(state.workflows);
+  main.append(panel('',create));const flows=arr(state.workflows).filter(w=>w.project_id===selectedProject);
   if(!flows.length){main.append(empty('No workflows yet','Describe a task above. Nothing runs until you choose Run.'));return;}
   if(!selectedWorkflow||!flows.some(w=>w.id===selectedWorkflow))selectedWorkflow=flows[0].id;
   const side=el('div',{},...flows.map(w=>el('button',{class:'list-button',type:'button','aria-pressed':w.id===selectedWorkflow,onclick:()=>{selectedWorkflow=w.id;renderPage().catch(error=>notice(error.message,true));}},el('strong',{},w.objective||w.id),statusTag(w.status||w.state),el('span',{class:'hint'},w.id))));
@@ -117,6 +137,12 @@ async function workflowDetail(target) {
     addTask.querySelector('[type=submit]').disabled=terminal||running;
     live.replaceChildren(statusTag(w.status||w.state),el('p',{class:'muted'},w.runner_error||w.reason||''),el('p',{class:'hint'},'Recorded tokens: '+text(w.usage?.recorded_tokens)+' · Recorded cost: '+text(w.usage?.recorded_cost)),el('details',{},el('summary',{},'Criteria, budgets, and usage'),pre({criteria:w.criteria,budgets:w.budgets,usage:w.usage,providers:w.providers})));
     const tasks = arr(w.tasks);
+    if(w.status==='COMPLETED'){
+      const commands=tasks.flatMap(t=>arr(t.evidence?.tests?.commands));
+      live.append(panel('Verified result',el('h3',{},w.objective),el('p',{},tasks.filter(t=>t.status==='VERIFIED').length+' tasks verified · '+commands.filter(c=>c.exit_code===0).length+' recorded commands passed.'),
+        el('p',{class:'hint'},'Project knowledge records verified workflow evidence. Source changes and limitations remain in the execution and review details.'),
+        el('details',{},el('summary',{},'Tests and review findings'),pre(tasks.map(t=>({task:t.title,tests:t.evidence?.tests,review:t.evidence?.review,execution:t.evidence?.execution}))))));
+    }
     live.append(el('p',{class:'hint'},'Orchestrator: '+text(w.providers?.planner)+' · Executor: '+text(w.providers?.executor)+' · Reviewer: '+text(w.providers?.reviewer)),el('p',{class:'hint'},tasks.filter(t=>t.status==='VERIFIED').length+' of '+tasks.length+' tasks verified'+(w.started_at?' · Elapsed '+Math.max(0,Math.floor((Date.now()/1000-w.started_at)/60))+' min':'')));
     if (!tasks.length && !cards.size) taskList.replaceChildren(empty('No tasks yet','Add an explicit task or let the approved planner produce a bounded plan when you run.'));
     for (const t of tasks) {
@@ -168,13 +194,25 @@ async function workflowDetail(target) {
   if (active) workflowPollTimer = setTimeout(poll,3000);
 }
 
-async function activity(){main.append(heading('Activity & usage','Inspect workflow history and recorded usage. Missing provider usage is shown as unreported, never estimated as zero.'));const flows=arr(state.workflows);if(!flows.length){main.append(empty('No activity yet','Workflow events and usage appear after you create and run work.'));return;}for(const item of flows){const w=await api('/api/workflows/'+item.id);main.append(panel(item.objective||item.id,statusTag(w.status||w.state),el('h3',{},'Usage and budgets'),pre({usage:w.usage??'Unreported',budgets:w.budgets??'Unreported'}),el('details',{},el('summary',{},'Events ('+arr(w.events).length+')'),pre(w.events||[])),button('Open workflow',()=>{selectedWorkflow=item.id;go('workflows');},'quiet')));}}
+async function activity(){
+  main.append(heading('Activity & usage','Reported tokens, local estimates and unknown usage are shown separately. Cached input is not eliminated input.'));
+  const flows=arr(state.workflows);if(!flows.length){main.append(empty('No activity yet','Workflow events and usage appear after you create and run work.'));return;}
+  for(const item of flows){const [w,u]=await Promise.all([api('/api/workflows/'+item.id),api('/api/workflows/'+item.id+'/usage')]);
+    main.append(panel(item.objective||item.id,statusTag(w.status||w.state),el('h3',{},'Provider usage by role'),
+      ...Object.entries(u.role_totals||{}).map(([role,value])=>el('div',{class:'item','data-usage-role':role},el('h3',{},role),el('p',{},value.provider_calls+' provider calls'),el('p',{},'Reported input: '+text(value.reported_totals?.input_tokens)+' · output: '+text(value.reported_totals?.output_tokens)+' · cached input: '+text(value.reported_totals?.cached_tokens)))),
+      el('p',{},'Context bytes prepared: '+text(u.context_bytes_prepared)+' · approval events: '+text(u.approval_events)+' · correction rounds: '+text(u.correction_rounds)),
+      el('p',{class:'muted'},'Approval events are recorded actions, not measured human effort. Native session occupancy and native file reads are unknown. Cost savings are unverified.'),
+      el('details',{},el('summary',{},'Exact usage and budgets'),pre({usage:u,budgets:w.budgets})),
+      el('details',{},el('summary',{},'Events ('+arr(w.events).length+')'),pre(w.events||[])),button('Open workflow',()=>{selectedWorkflow=item.id;go('workflows');},'quiet')));
+  }
+}
 function settings(){
-  const diagnostics=el('div',{});
-  main.append(heading('Workspace settings','Manage onboarding, session security, and local diagnostics.'),
-    panel('Getting started',el('p',{class:'muted'},'Reopen the setup wizard to inspect tools and change application defaults. Existing provider login stays untouched.'),button('Reopen setup',async()=>{await api('/api/setup',{step:1});await refresh(false);go('setup');},'primary')),
+  const diagnostics=el('div',{}),backupResult=el('div',{}),appearance=field('Appearance','appearance',{options:['system','light','dark'],value:experience.appearance||'system'});appearance.querySelector('select').addEventListener('change',async event=>{try{experience=await api('/api/experience',{appearance:event.target.value});applyAppearance();}catch(error){notice(error.message,true);}});
+  main.append(heading('Workspace settings','Manage onboarding, session security, and local diagnostics.'),panel('Appearance',appearance),
+    panel('Getting started',el('p',{class:'muted'},'Reopen the setup wizard to inspect tools and change application defaults. Existing provider login stays untouched.'),button('Advanced workflow defaults',async()=>{await api('/api/setup',{step:4});await refresh(false);go('setup');},'quiet'),button('Reopen setup',async()=>{await api('/api/setup',{step:1});await refresh(false);go('setup');},'primary')),
     el('div',{class:'grid'},panel('Connection & privacy',el('dl',{class:'data-list'},el('dt',{},'Network'),el('dd',{},'IPv4 loopback only'),el('dt',{},'Authentication'),el('dd',{},token?'Manual token in tab memory':'Expiring local browser session'),el('dt',{},'Cross-origin access'),el('dd',{},'Refused')),button('Sign out',disconnect,'danger'),button('Rotate browser credentials',async()=>{if(!confirm('Invalidate all dashboard sessions? Reopen the workspace from its startup command to sign in again.'))return;await api('/api/auth/rotate',{});await disconnect();},'quiet')),
     panel('Machine context',button('Refresh machine information',async()=>{state.machine=await api('/api/machine/refresh',{});await renderPage();}),machineSummary(state.machine))),
+    panel('Backup & recovery',el('p',{class:'muted'},'Create a private database backup. It includes project knowledge and workflow state, but not project files or provider credentials. Recovery requires stopping the current service and reopening a separate backup copy.'),button('Create database backup',async()=>{const result=await api('/api/backups',{});backupResult.replaceChildren(pre(result));notice('Database backup created.');}),backupResult),
     panel('System health',el('p',{class:'muted'},'Check storage, indexing, interrupted workflows, and provider configuration without printing credentials.'),button('Run diagnostics',async()=>{const report=await api('/api/doctor');diagnostics.replaceChildren(pre(report),button('Export redacted report',()=>download(report,'workspace-diagnostics.json')));}),diagnostics));
 }
 function download(value,name){const blob=new Blob([JSON.stringify(value,null,2)+'\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=el('a',{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
@@ -189,7 +227,7 @@ async function enterWorkspace(){
   document.getElementById('token').value='';document.getElementById('login').hidden=true;
   document.getElementById('workspace').hidden=false;await renderPage();
 }
-for(const [name,label,icon]of pages)document.getElementById('navigation').append(el('a',{href:'#'+name},el('span',{class:'nav-icon','aria-hidden':'true'},icon),label));
+const advancedNav=el('details',{},el('summary',{},'Advanced tools'));for(const [name,label,icon]of pages){const link=el('a',{href:'#'+name},el('span',{class:'nav-icon','aria-hidden':'true'},icon),label);(['overview','memory','context','sessions','activity'].includes(name)?advancedNav:document.getElementById('navigation')).append(link);}document.getElementById('navigation').append(advancedNav);
 document.getElementById('login-form').addEventListener('submit',async event=>{event.preventDefault();token=document.getElementById('token').value.trim();try{await enterWorkspace();}catch(error){token='';notice(error.message,true);}});
 document.getElementById('disconnect').addEventListener('click',disconnect);
 document.getElementById('refresh').addEventListener('click',()=>refresh().catch(error=>notice(error.message,true)));
@@ -217,8 +255,89 @@ function machineSummary(machine={}){
 const providerOptions = () => arr(state.providers).map(p=>({value:p.id,label:p.id}));
 const defaults = () => ({planner:'codex',executor:'codex',reviewer:'codex',context_budget:2000,max_cost:0,max_tokens:50000,max_seconds:1800,...setupState.defaults});
 const check = (label,name,hint='') => el('div',{class:'field'},el('label',{class:'inline-check'},el('input',{type:'checkbox',name,value:'yes'}),el('span',{},label)),hint?el('p',{class:'hint'},hint):null);
-function providerStatus(p){return String(p.connection_status||p.status||(p.available?'Authentication unknown':'Unavailable')).replaceAll('_',' ');}
+function providerStatus(p){const status=p.connection_status||p.status;return ({connection_verified:'Connection previously verified',not_installed:'Setup needed',not_configured:'Sign-in or configuration needed',authentication_unknown:'Sign-in not checked',configured:'Configured · connection not tested',usage_restricted:'Usage limit reached',unavailable:'Temporarily unavailable'})[status]||String(status||(p.available?'Sign-in not checked':'Setup needed')).replaceAll('_',' ');}
+function applyAppearance(){const appearance=experience.appearance||'system';document.documentElement.dataset.theme=appearance==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):appearance;}matchMedia('(prefers-color-scheme: light)').addEventListener('change',applyAppearance);
 async function setup(){
+  if(setupState.step===4)return advancedSetup();
+  const projectStep=setupState.step>=5;
+  main.append(heading('Set up your workspace','Choose one agent. Add a project now or later. Your existing sign-in stays with your provider.'),
+    el('ol',{class:'setup-steps','aria-label':'Setup progress'},el('li',{class:projectStep?'':'current'},'1 · Choose an agent'),el('li',{class:projectStep?'current':''},'2 · Project (optional)')));
+  if(!projectStep){
+    const available=arr(state.providers).filter(p=>p.available), choice=available.find(p=>p.id===defaults().executor)||available[0];
+    main.append(panel('Choose your AI provider',el('p',{class:'muted'},'Detected means installed or configured, not signed in. No connection test or paid call runs automatically.'),
+      form([field('Preferred agent','provider',{options:providerOptions(),value:choice?.id||defaults().executor}),
+        ...arr(state.providers).map(p=>el('div',{class:'item'},el('strong',{},p.id+' · '+providerStatus(p)),el('p',{class:'hint'},p.available?'Existing preferences are preserved. Review Providers if sign-in is needed.':'Setup needed. Open the connection options below.')))
+      ],'Use this agent',async data=>{await api('/api/setup',{step:5,defaults:{executor:data.provider}});await refresh(false);await renderPage();}),
+      el('details',{},el('summary',{},'Connection options and diagnostics'),el('div',{id:'setup-providers'}))));
+    renderProviderCards(document.getElementById('setup-providers'));
+  }else{
+    const preview=el('div',{});
+    main.append(panel('Choose a project',el('p',{class:'muted'},'Only this repository will be indexed. Sending its context to an AI still requires your approval.'),projectRegistrationForm(preview)),preview,
+      arr(state.projects).length?panel('Your projects',...arr(state.projects).map(p=>el('div',{class:'item'},projectName(p)))):el('p',{class:'hint'},'You can add a project later from Projects.'),
+      el('div',{class:'actions'},button(arr(state.projects).length?'Start using workspace':'Skip project for now',async()=>{await api('/api/setup',{completed:true,step:6});if(selectedProject)experience=await api('/api/experience',{project:selectedProject});await refresh(false);go('chat');},'primary'),
+        button('Back to providers',async()=>{await api('/api/setup',{step:1});await refresh(false);await renderPage();},'quiet')));
+  }
+}
+function taskComposer(){
+  const projectId=selectedProject,view=workflowViewVersion;
+  const current=()=>selectedProject===projectId&&workflowViewVersion===view;
+  const result=el('div',{}),agent=experience.agents?.[projectId]||defaults().executor;
+  const composer=form([
+    el('div',{class:'form-row'},field('AI provider','provider',{options:providerOptions(),value:agent}),field('Working mode','mode',{options:[{value:'solo',label:'Solo · ask one agent'},{value:'collaborate',label:'Collaborate · implement and review'},{value:'auto',label:'Auto · follow my preset'}]})),
+    field('Task instruction','instruction',{required:true,multiline:true,placeholder:'Ask a question, describe a fix, or request a feature.'}),
+    el('div',{'data-collaboration-options':'',hidden:true},field('Workflow preset','preset',{options:[{value:'question',label:'Ask a question'},{value:'quick_fix',label:'Quick fix'},{value:'feature',label:'Feature development'},{value:'review',label:'Review and test'}]}),
+      field('Collaboration partner','partner',{options:[{value:'',label:'Choose a second agent'},...providerOptions()]}),
+      field('What must pass?','criteria',{multiline:true,placeholder:'Describe the behavior and tests that must pass.'})),
+    el('p',{class:'hint'},'Solo is read-only. Auto uses your preset, not a hidden model ranking. Reviewing a plan never starts work or grants permission.')
+  ],'Start conversation',async data=>{
+    if(data.mode==='solo'){data.partner='';data.preset='question';data.criteria='';}
+    const plan=await api('/api/strategy',{...data,project_id:projectId});
+    if(!current())return;
+    if(data.mode==='solo' && plan.kind==='chat'){
+      const conversation=await api('/api/chats',{project_id:projectId,provider:plan.provider,title:plan.instruction.slice(0,80)});
+      if(!current())return;
+      experience=await api('/api/experience',{project:projectId,agent:data.provider});
+      if(!current())return;
+      selectedChat=conversation.id;pendingInstruction=plan.instruction;await renderPage();return;
+    }
+    result.replaceChildren(panel('Your execution plan',el('h3',{},plan.strategy),el('p',{},plan.reason),el('p',{class:'hint'},plan.authentication),
+      el('details',{},el('summary',{},'Plan, budgets and boundaries'),pre(plan)),
+      button(plan.kind==='chat'?'Open conversation':plan.kind==='continue'?'Inspect previous work':'Create reviewed workflow',async()=>{
+        if(!current())return;
+        const saved=await api('/api/experience',{project:projectId,agent:data.provider});
+        if(!current())return;
+        experience=saved;
+        if(plan.kind==='chat'){
+          const conversation=await api('/api/chats',{project_id:projectId,provider:plan.provider,title:plan.instruction.slice(0,80)});
+          if(!current())return;
+          selectedChat=conversation.id;pendingInstruction=plan.instruction;await renderPage();
+        }else if(plan.kind==='continue'){selectedWorkflow=plan.workflow_id;go('workflows');}else{
+          const workflow=await api('/api/workflows',plan.workflow);if(!current())return;selectedWorkflow=workflow.id;await refresh(false);go('workflows');
+        }
+      },'primary')));
+  });
+  composer.querySelector('[name=mode]').addEventListener('change',event=>{composer.querySelector('[data-collaboration-options]').hidden=event.target.value==='solo';composer.querySelector('[type=submit]').textContent=event.target.value==='solo'?'Start conversation':'Review task';result.replaceChildren();});
+  composer.addEventListener('input',()=>result.replaceChildren());
+  return panel('What would you like to work on?',composer,result);
+}
+function continuation(){
+  const pending=arr(state.workflows).filter(w=>w.project_id===selectedProject&&!['COMPLETED','CANCELLED'].includes(w.status));
+  return pending.length?el('details',{},el('summary',{},'Continue previous work ('+pending.length+')'),...pending.slice(0,10).map(w=>el('div',{class:'item'},el('h3',{},w.objective),statusTag(w.status),button('Inspect and continue',()=>{selectedWorkflow=w.id;go('workflows');},'quiet')))):el('p',{class:'hint'},'Project context is retrieved when you send. Recent conversations appear below; nothing resumes automatically.');
+}
+function help(){
+  main.append(heading('Help','A short guide to doing useful work safely.'),
+    ...[
+      ['Get started','Choose one provider, register an approved Git repository, then open Chat. Existing Codex and Claude sign-in is reused by their installed CLI; detected is not authenticated.'],
+      ['Choose a working mode','Solo opens a read-only conversation. Collaborate drafts implementation and independent review with two selected providers. Auto follows your chosen preset. Review task shows the exact plan before anything is created.'],
+      ['Approve only what you need','Sharing, spending, file operations and named test commands are separate permissions. Existing bounded workflow approvals can be reused. Project selection alone does not authorize sharing.'],
+      ['Continue previous work','Choose the same project in Chat to recover its conversations. Open an unfinished workflow to inspect progress and use Resume. Completed work is not restarted. Unknown actions require inspection before retrying.'],
+      ['Recover safely','Settings can create a private database backup. Stop the service before reopening a separate verified backup copy. A database restore does not undo source files or provider actions.'],
+      ['Update your installation','Use the signed distribution CLI to preview and apply trusted updates. Stop active services and runners first. This development candidate has no production update feed or trusted signature.'],
+      ['Keyboard access','Use Tab and Shift+Tab to move through controls, Enter to activate, and the Skip to workspace link to reach the main view. No browser or IDE shortcuts are overridden.'],
+      ['Troubleshoot','Open Providers for local diagnostics. Live connection tests require explicit consent and may consume usage. Settings → Run diagnostics exports a redacted report. If the backend disconnects, reopen the workspace using its startup command.']
+    ].map(([title,body])=>panel(title,el('p',{},body))),button('Open diagnostics',()=>go('settings'),'primary'));
+}
+async function advancedSetup(){
   const steps=['Environment','Discover providers','Configure providers','Workflow defaults','Register project','Ready'];
   const step=Math.max(1,Math.min(6,Number(setupState.step)||1));
   main.append(heading('Set up your workspace','Connect the tools you choose, set bounded defaults, and add an approved project. No provider request runs during setup.'),
@@ -256,16 +375,23 @@ async function setup(){
 }
 function projectRegistrationForm(preview){return form([
   field('Project directory','path',{required:true,placeholder:'Paste the absolute path of an approved Git repository'}),
-  field('Additional exclusions, one pattern per line','exclusions',{multiline:true,placeholder:'private/**\nlarge-generated/**',hint:'Credential, dependency, cache, and linked-file exclusions always apply.'})
+  el('details',{},el('summary',{},'Additional indexing exclusions'),field('Additional exclusions, one pattern per line','exclusions',{multiline:true,placeholder:'private/**\nlarge-generated/**',hint:'Credential, dependency, cache, and linked-file exclusions always apply.'}))
 ],'Preview project',async data=>{
   const request={path:data.path,exclusions:data.exclusions.split('\n').map(x=>x.trim()).filter(Boolean)};
-  const result=await api('/api/projects/preview',request);
-  preview.replaceChildren(panel('Indexing preview',pre(result),button('Register this project',async()=>{const p=await api('/api/projects',request);selectedProject=p.id;notice('Project registered. Building its initial index…');const indexed=await api('/api/projects/'+p.id+'/index',{});await refresh(false);preview.replaceChildren(panel('Project ready',pre(indexed)));if(page==='setup')await renderPage();else await projects();},'primary')));
+  const view=workflowViewVersion;const result=await api('/api/projects/preview',request);
+  if(view!==workflowViewVersion||!preview.isConnected)return;
+  preview.replaceChildren(panel('Indexing preview',pre(result),button('Register this project',async()=>{const p=await api('/api/projects',request);if(view!==workflowViewVersion||!preview.isConnected)return;selectedProject=p.id;notice('Project registered. Building its initial index…');const indexed=await api('/api/projects/'+p.id+'/index',{});if(view!==workflowViewVersion||!preview.isConnected)return;await refresh(false);if(view!==workflowViewVersion||!preview.isConnected)return;preview.replaceChildren(panel('Project ready',pre(indexed)));if(page==='setup')await renderPage();else await projects();},'primary')));
 });}
 function projects(){
-  main.replaceChildren(heading('Projects','Preview and register an approved Git repository. Indexing excludes sensitive and unrelated files.'));
-  const preview=el('div',{});
-  main.append(el('div',{class:'grid'},panel('Register a project',projectRegistrationForm(preview)),panel('Registered projects',arr(state.projects).length?arr(state.projects).map(p=>el('div',{class:'item'},el('h3',{},projectName(p)),el('p',{class:'path'},p.path),el('div',{class:'actions'},button('Build index',async()=>{notice('Indexing changed files…');const result=await api('/api/projects/'+p.id+'/index',{});preview.replaceChildren(panel('Index complete',pre(result)));notice('Index completed.');}),button('Memory',()=>{selectedProject=p.id;go('memory');},'quiet'),button('Context',()=>{selectedProject=p.id;go('context');},'quiet')))):empty('No registered projects','Preview a repository directory first.'))),preview);
+  main.replaceChildren(heading('Projects','Your repositories stay separate. Switching restores context without rebuilding the index.'));
+  const preview=el('div',{}),list=el('div',{}),search=field('Find a project','project_search',{placeholder:'Search by name or path'});
+  const render=()=>{const query=search.querySelector('input').value.toLowerCase();const favorites=experience.favorites||[],recent=experience.recent||[];
+    const sorted=arr(state.projects).slice().sort((a,b)=>Number(favorites.includes(b.id))-Number(favorites.includes(a.id))||(recent.indexOf(a.id)<0?999:recent.indexOf(a.id))-(recent.indexOf(b.id)<0?999:recent.indexOf(b.id)));
+    list.replaceChildren(...sorted.filter(p=>(projectName(p)+' '+p.path).toLowerCase().includes(query)).map(p=>el('article',{class:'item'},el('h3',{},projectName(p)),el('p',{class:'path'},p.path),el('p',{class:'hint'},(p.id===experience.project?'Last active project · ':'')+arr(state.workflows).filter(w=>w.project_id===p.id&&!['COMPLETED','CANCELLED'].includes(w.status)).length+' unfinished workflows'),
+      el('div',{class:'actions'},button('Open '+projectName(p),async()=>{selectedProject=p.id;selectedChat='';selectedWorkflow='';experience=await api('/api/experience',{project:p.id});go('chat');},'primary'),button(favorites.includes(p.id)?'Remove favorite':'Add favorite',async()=>{experience=await api('/api/experience',{favorite:p.id});render();},'quiet'),button('Refresh context',async()=>{notice('Updating project context…');const result=await api('/api/projects/'+p.id+'/index',{});preview.replaceChildren(panel('Project knowledge ready',pre(result)));notice('Project knowledge updated.');},'quiet')))));
+    if(!list.childElementCount)list.append(empty('No matching projects','Register a repository below or change your search.'));
+  };search.querySelector('input').addEventListener('input',render);render();
+  main.append(panel('Recent and favorite projects',search,list),el('details',{open:!arr(state.projects).length},el('summary',{},'Register a project'),projectRegistrationForm(preview)),preview);
 }
 function renderProviderCards(container){
   container.append(el('div',{class:'grid three'},...arr(state.providers).map(p=>{
@@ -323,7 +449,7 @@ function approvalForm(id,reload){
 }
 async function approvals(){
   main.append(heading('Approval center','Inspect blockers and authorize only the exact capabilities needed for a workflow.'));
-  const flows=arr(state.workflows);
+  const flows=arr(state.workflows).filter(w=>w.project_id===selectedProject);
   if(!flows.length){main.append(empty('No workflows','Create a workflow before granting scoped permissions.'));return;}
   for(const flow of flows){const w=await api('/api/workflows/'+flow.id);main.append(panel(w.objective,statusTag(w.status),el('p',{class:'muted'},w.reason||'No current blocker reported.'),button('Inspect workflow',()=>{selectedWorkflow=w.id;go('workflows');},'quiet'),el('details',{},el('summary',{},'Manage permissions'),approvalForm(w.id,async()=>{await refresh(false);await renderPage();})),pre(arr(w.approvals))));}
 }
@@ -334,15 +460,18 @@ async function sessions(){
 async function chat(){
   main.append(heading('Chat','Ask one agent about your selected project. Switching to orchestration is an explicit action.'));
   if(projectNeeded())return;
-  const chats=arr(await api('/api/chats'));
+  const projectId=selectedProject,view=workflowViewVersion;
+  const chats=arr(await api('/api/chats')).filter(c=>c.project_id===projectId);
+  if(view!==workflowViewVersion||projectId!==selectedProject)return;
   const create=form([field('Project','project_id',{options:projectOptions(),value:selectedProject}),field('Agent','provider',{options:providerOptions(),value:defaults().executor}),field('Conversation name','title',{required:true,placeholder:'Investigate this project'})],'New conversation',async data=>{const c=await api('/api/chats',{...data,mode:'standalone'});selectedChat=c.id;await renderPage();});
-  main.append(panel('Start a standalone conversation',create));
+  main.append(projectPicker(()=>renderPage()),continuation(),taskComposer(),el('details',{},el('summary',{},'Advanced: name a new conversation'),create));
   if(!chats.length){main.append(empty('No conversations','Creating a conversation is local. Sending each message requires explicit sharing and usage approval.'));return;}
   if(!selectedChat||!chats.some(c=>c.id===selectedChat))selectedChat=chats[0].id;
   const select=field('Conversation','conversation',{options:chats.map(c=>({value:c.id,label:(c.title||c.id)+' · '+c.provider})),value:selectedChat});select.querySelector('select').addEventListener('change',event=>{selectedChat=event.target.value;renderPage().catch(error=>notice(error.message,true));});main.append(select);
-  const id=selectedChat,version=++workflowViewVersion,messages=el('div',{class:'chat-messages','aria-live':'polite'}),status=el('p',{class:'hint',role:'status'},'Loading conversation…');
+  const id=selectedChat,version=workflowViewVersion,messages=el('div',{class:'chat-messages','aria-live':'polite'}),status=el('p',{class:'hint',role:'status'},'Loading conversation…');
   const initial=await api('/api/chats/'+id);
-  const sender=form([field('Message','content',{required:true,multiline:true,placeholder:'What would you like to understand or investigate?'}),check('I authorize this message, relevant project context, and provider usage','confirmed','Native CLI access may be broader than filtered project context. Sending can use subscription allowance or incur API charges.'),field('Maximum response tokens','max_output_tokens',{type:'number',min:16,max:2048,value:256})],'Send message',async data=>{
+  if(version!==workflowViewVersion||projectId!==selectedProject)return;
+  const sender=form([field('Message','content',{required:true,multiline:true,placeholder:'What would you like to understand or investigate?'}),check('I authorize this message, relevant project context, and provider usage','confirmed','Native CLI access may be broader than filtered project context. Sending can use subscription allowance or incur API charges.'),el('details',{},el('summary',{},'Response limit'),field('Maximum response tokens','max_output_tokens',{type:'number',min:16,max:2048,value:256}))],'Send message',async data=>{
     if(data.confirmed!=='yes')throw new Error('Authorize sharing and provider usage for this message first.');
     await api('/api/chats/'+id+'/messages',{content:data.content,confirmed:true,max_output_tokens:Number(data.max_output_tokens),timeout:60});sender.querySelector('[name=content]').value='';sender.querySelector('[name=confirmed]').checked=false;await poll();
   });
@@ -353,7 +482,7 @@ async function chat(){
     const d=defaults();const w=await api('/api/workflows',{project_id:initial.project_id,objective,criteria:[criteria],providers:{planner:d.planner,executor:d.executor,reviewer:d.reviewer},budgets:{max_cost:d.max_cost,max_tokens:d.max_tokens}});selectedWorkflow=w.id;await refresh(false);go('workflows');
   },'quiet')));
   let signature='';
-  function renderConversation(value){const list=arr(value.messages);const next=JSON.stringify(list);if(signature!==next){signature=next;messages.replaceChildren(...list.map(message=>el('article',{class:'chat-message '+(message.role||'' )},el('h3',{},message.role==='user'?'You':value.provider||'Agent'),el('p',{},message.content||message.output||''),message.error?el('p',{class:'error'},message.error):null)));}status.textContent=value.running?'Agent is responding…':value.error||(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Inspect provider diagnostics before sending again.':'Conversation '+(value.status==='CANCELLED'?'cancelled':'saved')+'. No agent is currently running.');return Boolean(value.running);}
+  function renderConversation(value){const list=arr(value.messages);const next=JSON.stringify(list);if(signature!==next){signature=next;messages.replaceChildren(...list.map(message=>el('article',{class:'chat-message '+(message.role||'' )},el('h3',{},message.role==='user'?'You':value.provider||'Agent'),el('p',{},message.content||message.output||''),button('Copy response',async()=>{await navigator.clipboard.writeText(message.content||message.output||'');notice('Copied response.');},'quiet'),message.error?el('p',{class:'error'},message.error):null)));}status.textContent=value.running?'Agent is responding…':value.error||(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Inspect provider diagnostics before sending again.':'Conversation '+(value.status==='CANCELLED'?'cancelled':'saved')+'. No agent is currently running.');return Boolean(value.running);}
   async function poll(){if(version!==workflowViewVersion||!authenticated||!messages.isConnected)return;try{const running=renderConversation(await api('/api/chats/'+id));if(running)workflowPollTimer=setTimeout(poll,1500);}catch{status.textContent='Connection interrupted. Your conversation is saved; retrying…';workflowPollTimer=setTimeout(poll,3000);}}
-  if(renderConversation(initial))workflowPollTimer=setTimeout(poll,1500);
+  if(pendingInstruction){sender.querySelector('[name=content]').value=pendingInstruction;pendingInstruction='';}if(renderConversation(initial))workflowPollTimer=setTimeout(poll,1500);
 }

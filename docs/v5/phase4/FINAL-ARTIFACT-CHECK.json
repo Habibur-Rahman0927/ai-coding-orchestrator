@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "command": "python3 -B tools/build_release.py --output-dir /tmp/ccx-phase4-packaging-check",
+  "scope": "Unsigned local packaging validation only; not published or released",
+  "artifacts": [
+    {
+      "name": "SHA256SUMS",
+      "sha256": "c66702dad083df174a0c300908fb7a43664889926c6e784946f32e229cf0ade0"
+    },
+    {
+      "name": "claude-codex-orchestrator-4.3.0.tar.gz",
+      "sha256": "177601afd051a4ab6fb66d08875ce8f43f56c87b875a88ce055721b5a9864bbb"
+    }
+  ],
+  "note": "Run after browser evidence and final regression logs were retained. This receipt and its updated file-inventory hash are written after packaging."
+}

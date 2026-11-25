@@ -13,7 +13,7 @@ def usage_report(store, workflow_id):
     from .workflows import WorkflowEngine
     workflow=WorkflowEngine(store).status(workflow_id)
     fields=('input_tokens','output_tokens','cached_tokens','reasoning_tokens')
-    totals={name:0 for name in fields};missing={name:0 for name in fields};calls=[]
+    totals={name:0 for name in fields};missing={name:0 for name in fields};calls=[];roles={}
     with store.connect() as db:
         rows=list(db.execute("SELECT * FROM w5_actions WHERE workflow_id=? AND role IN ('planner','executor','reviewer') ORDER BY started_at",(workflow_id,)))
     for row in rows:
@@ -25,13 +25,38 @@ def usage_report(store, workflow_id):
             if isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value) and value>=0:
                 totals[name]+=value;measured[name]=value
             else: missing[name]+=1;measured[name]=None
+        role=roles.setdefault(row['role'],{'provider_calls':0,'reported_partial_totals':dict.fromkeys(fields,0),'missing_usage_calls':dict.fromkeys(fields,0),'context_bytes':0,'observable_history_bytes':0})
+        role['provider_calls']+=1
+        for name,value in measured.items():
+            if value is None: role['missing_usage_calls'][name]+=1
+            else: role['reported_partial_totals'][name]+=value
+        context_bytes=len(json.loads(request['prompt']).get('context',{}).get('content','').encode())
+        role['context_bytes']+=context_bytes
+        role['observable_history_bytes']+=len(json.dumps(request.get('history',[]),ensure_ascii=False,separators=(',',':')).encode())
         calls.append({'action_id':row['id'],'provider':row['provider'],'role':row['role'],'state':row['state'],
                       'model':request.get('provider_model'),'offline_mock':request.get('offline_mock',True),
                       'session_id':response.get('session_id'),'usage':measured,
+                      'usage_accounting':response.get('usage_accounting','unknown'),'context_accounting':request.get('context_accounting'),
+                      'execution_contract_hash':request.get('execution_contract_hash'),
                       'initial_snapshot':row['before_hash'], 'context_bytes':len(json.loads(request['prompt']).get('context',{}).get('content','').encode())})
+    for role in roles.values():
+        role['reported_totals']={f:role['reported_partial_totals'][f] if role['missing_usage_calls'][f]==0 else None for f in fields}
+    events=WorkflowEngine(store).checkpoints(workflow_id)
+    with store.connect() as db:
+        tool_rows=list(db.execute("SELECT request FROM w5_actions WHERE workflow_id=? AND role LIKE 'tool:%'",(workflow_id,)))
+    reads=[]
+    for row in tool_rows:
+        value=json.loads(row['request']);call=value.get('call',value)
+        if call.get('name')=='read_file': reads.append(json.dumps(call.get('arguments',{}),sort_keys=True))
     return {'workflow_id':workflow_id,'status':workflow['status'],'objective':workflow['objective'],
             'criteria':workflow['criteria'],'providers':workflow['providers'],'context_mode':workflow.get('context_mode','retrieved'),
-            'provider_calls':len(calls),'all_roles_included':True,'calls':calls,
+            'provider_calls':len(calls),'all_roles_included':True,'calls':calls,'role_totals':roles,
+            'context_bytes_prepared':sum(r['context_bytes'] for r in roles.values()),
+            'observable_history_bytes_prepared':sum(r['observable_history_bytes'] for r in roles.values()),
+            'scoped_file_reads':len(reads),'repeated_scoped_file_reads':len(reads)-len(set(reads)),
+            'native_file_reads':None,'approval_events':sum(e['event']=='USER_APPROVAL' for e in events),
+            'recovery_events':sum(e['event']=='RECOVERY_DECISION' for e in events),
+            'human_effort_measured':False,
             'reported_totals':{name:totals[name] if missing[name]==0 and calls else None for name in fields},
             'reported_partial_totals':totals,'missing_usage_calls':missing,
             'local_tokens_accounted':workflow['tokens_used'],'cost_accounting':workflow['cost_accounting'],
@@ -59,8 +84,11 @@ def compare_workflows(store, baseline_id, optimized_id):
     if baseline['calls'] and optimized['calls']:
         if baseline['calls'][0]['initial_snapshot']!=optimized['calls'][0]['initial_snapshot']:
             reasons.append('Source revisions differ')
-        models=lambda run: sorted(set((c['provider'],c['model'] or '') for c in run['calls']))
+        models=lambda run: sorted(set((c['role'],c['provider'],c['model'] or '') for c in run['calls']))
         if models(baseline)!=models(optimized): reasons.append('Provider/model selections differ')
+    contracts=[{c.get('execution_contract_hash') for c in r['calls']} for r in (baseline,optimized)]
+    if any(None in values or len(values)!=1 for values in contracts) or contracts[0]!=contracts[1]:
+        reasons.append('Equivalent recorded permission/verification/output-budget contracts are required')
     # Native reasoning/speed settings may be inherited externally; until adapters
     # provide a measured settings fingerprint, do not assert strict comparability.
     if any(c['provider'] in ('codex','claude') for r in (baseline,optimized) for c in r['calls']):

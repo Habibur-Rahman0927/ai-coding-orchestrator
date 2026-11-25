@@ -95,6 +95,19 @@ class Dashboard:
 
     def dispatch(self, method, path, body):
         parts = path.strip('/').split('/')
+        if path == '/api/experience' and method in ('GET', 'POST'):
+            from .experience import preferences
+            return preferences(self.store, body if method == 'POST' else None)
+        if path == '/api/strategy' and method == 'POST':
+            from .experience import propose
+            return propose(self.store, self.registry, body)
+        if path == '/api/backups' and method == 'POST':
+            if body:
+                raise DashboardError('Dashboard backups use the private application backup directory; no destination override is accepted.')
+            destination=self.store.path.parent/'backups'/('workspace-'+secrets.token_hex(16)+'.sqlite3')
+            result=self.store.backup(destination)
+            return dict(result,scope='Workspace database only; project files and provider credentials are not included',
+                        recovery='Stop the current service, retain its database, then open a separate copy of this backup with workspace --database PATH. Reconcile interrupted work before retrying.')
         if path == '/api/setup':
             from .onboarding import setup_state, save_setup
             if method == 'POST':save_setup(self.store,body)
@@ -156,7 +169,7 @@ class Dashboard:
                     raise DashboardError('Critical context must be a list of strings.')
                 return self.store.context(project, required(body, 'query'),
                                           budget=bounded_int(body.get('budget', 2000), 100, 32000),
-                                          critical=critical)
+                                          critical=critical, role=body.get('role') or None)
             if method == 'POST' and action == 'delete-memory':
                 return self.store.delete_memory(required(body, 'id'), project)
             if method == 'POST' and action == 'remember':

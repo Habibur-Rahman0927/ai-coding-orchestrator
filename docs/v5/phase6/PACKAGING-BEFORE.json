@@ -1,0 +1,22 @@
+{
+  "artifact_file_count": 302,
+  "evidence_or_log_members": 202,
+  "examples": [
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/ARTIFACT-AFTER.log",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/ARTIFACT-BEFORE.log",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/ARTIFACT-INDEPENDENT-REVIEW.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/ARTIFACT-REDACTIONS.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/BROWSER-ATTEMPTS.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/BROWSER-QA-EVIDENCE.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/BROWSER-QA-LOG.txt",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/BROWSER-QA-PRELIMINARY.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/BROWSER-QA-REPORT.md",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/BROWSER-SMOKE.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/CHANGED-FILES.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/CHECKLIST.md",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/ENTRY-AND-BLOCKERS.md",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/ENTRY-REGRESSION.json",
+    "claude-codex-orchestrator-4.3.0/docs/v5/phase4/ENTRY-REGRESSION.log"
+  ],
+  "scope": "generated repository audit/test evidence; must not ship as end-user runtime distribution"
+}

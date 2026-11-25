@@ -1,0 +1,15 @@
+test_backup_recovery (test_v5_memory.MemoryTests.test_backup_recovery) ... ok
+test_context_budgets_critical_staleness_and_dedup (test_v5_memory.MemoryTests.test_context_budgets_critical_staleness_and_dedup) ... ok
+test_exclusions_gitignore_binary_secret_content (test_v5_memory.MemoryTests.test_exclusions_gitignore_binary_secret_content) ... ok
+test_incremental_index_hashes_and_symbols (test_v5_memory.MemoryTests.test_incremental_index_hashes_and_symbols) ... ok
+test_machine_snapshot_is_cached_and_local (test_v5_memory.MemoryTests.test_machine_snapshot_is_cached_and_local) ... ok
+test_measured_context_benchmark (test_v5_memory.MemoryTests.test_measured_context_benchmark) ... ok
+test_memory_expiration_supersession_verification (test_v5_memory.MemoryTests.test_memory_expiration_supersession_verification) ... ok
+test_restart_and_scope_isolation (test_v5_memory.MemoryTests.test_restart_and_scope_isolation) ... ok
+test_symlink_sources_and_database_refused (test_v5_memory.MemoryTests.test_symlink_sources_and_database_refused) ... ok
+test_transaction_rollback (test_v5_memory.MemoryTests.test_transaction_rollback) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.467s
+
+OK

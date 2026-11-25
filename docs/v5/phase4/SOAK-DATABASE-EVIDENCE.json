@@ -1,0 +1,21 @@
+{
+  "filename": "workspace-final.sqlite3",
+  "sha256": "e001d18d8895ef6e263172838c92044a339eb9cf333d05aed8707353082bf413",
+  "bytes": 31010816,
+  "sqlite_integrity_check": "ok",
+  "progress_elapsed_seconds_at_backup": 895.417,
+  "record_counts": {
+    "projects": 3,
+    "memory": 672,
+    "w5_workflows": 652,
+    "w5_actions": 2321,
+    "w5_checkpoints": 11287
+  },
+  "workflow_status_counts": {
+    "BLOCKED": 143,
+    "COMPLETED": 508,
+    "RUNNING": 1
+  },
+  "scope": "generated fixture state only; no provider traffic or user credentials",
+  "snapshot_timing": "near-final consistent backup; active final workflow may still be running"
+}

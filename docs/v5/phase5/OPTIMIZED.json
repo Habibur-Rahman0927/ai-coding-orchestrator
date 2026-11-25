@@ -1,0 +1,2191 @@
+{
+  "schema": 1,
+  "scope": "Synthetic generated repositories; no provider calls, token savings or human-effort claims",
+  "runtime_store_sha256": "63c99bea554e9d56a1e3292081d29578f898ecfd957c79e3b59beaa37077821f",
+  "repeats": 3,
+  "sizes": [
+    {
+      "generated_noise_files": 32,
+      "indexed_files": 39,
+      "indexed_body_bytes": 16526,
+      "context_package_count": 11,
+      "process_peak_rss_bytes": 30179328,
+      "fresh_controller_decision_recovered": true,
+      "cross_project_isolated": true,
+      "corpus_sha256": "3d3fe56c192fef06c7a31e5211ae165d362477b552f604f47138dcca81b8257a",
+      "initial": {
+        "result": {
+          "project_id": "1dace9bed80a7366",
+          "updated": 39,
+          "unchanged": 0,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 16511,
+          "duration_ms": 17.523
+        },
+        "cost": {
+          "source_reads": 39,
+          "git_processes": 2,
+          "wall_ms": 23.339,
+          "cpu_ms": 17.494
+        }
+      },
+      "unchanged": {
+        "result": {
+          "project_id": "1dace9bed80a7366",
+          "updated": 0,
+          "unchanged": 39,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 0,
+          "duration_ms": 6.299
+        },
+        "cost": {
+          "source_reads": 0,
+          "git_processes": 2,
+          "wall_ms": 10.21,
+          "cpu_ms": 7.523
+        }
+      },
+      "same_content_touch": {
+        "result": {
+          "project_id": "1dace9bed80a7366",
+          "updated": 0,
+          "unchanged": 39,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 100,
+          "duration_ms": 8.772
+        },
+        "cost": {
+          "source_reads": 1,
+          "git_processes": 2,
+          "wall_ms": 13.776,
+          "cpu_ms": 8.802
+        }
+      },
+      "one_file_edit": {
+        "result": {
+          "project_id": "1dace9bed80a7366",
+          "updated": 1,
+          "unchanged": 38,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 115,
+          "duration_ms": 7.977
+        },
+        "cost": {
+          "source_reads": 1,
+          "git_processes": 2,
+          "wall_ms": 12.349,
+          "cpu_ms": 8.439
+        }
+      },
+      "cases": [
+        {
+          "name": "architecture",
+          "query": "atomic transactions architecture",
+          "required": [
+            "atomic transactions"
+          ],
+          "sources": [
+            "architecture.md",
+            "decision:ledger",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 430,
+          "estimated_tokens": 108,
+          "median_ms": 6.921,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 8.778,
+              "cpu_ms": 4.664
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.921,
+              "cpu_ms": 4.459
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.507,
+              "cpu_ms": 4.371
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "architecture.md",
+              "hash": "1e6894150324d144c566a5f1f8d7d2b71a9ab0629f1ffc2e6871bd1d52194ae6",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "transactions",
+                  "architecture"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "transactions"
+                ],
+                "method": "memory_keywords"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rare_symbol_among_common_matches",
+          "query": "ledger reconcile_ledger",
+          "required": [
+            "exact_target_evidence"
+          ],
+          "sources": [
+            "zz_target.py",
+            "AGENTS.md",
+            "architecture.md",
+            "decision:ledger"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 2,
+          "reference_count": 6,
+          "bytes": 1309,
+          "estimated_tokens": 328,
+          "median_ms": 12.948,
+          "samples": [
+            {
+              "source_reads": 36,
+              "git_processes": 3,
+              "wall_ms": 16.13,
+              "cpu_ms": 12.656
+            },
+            {
+              "source_reads": 36,
+              "git_processes": 3,
+              "wall_ms": 12.948,
+              "cpu_ms": 10.403
+            },
+            {
+              "source_reads": 36,
+              "git_processes": 3,
+              "wall_ms": 12.76,
+              "cpu_ms": 10.37
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "zz_target.py",
+              "hash": "4901698edeb186f6bc6272cc25570f0b0f33656772d8936296a716b611e63a2d",
+              "line": 1,
+              "end_line": 4,
+              "reason": {
+                "matched_terms": [
+                  "ledger",
+                  "reconcile_ledger"
+                ],
+                "symbols": [
+                  "reconcile_ledger"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "tests/test_ledger.py",
+              "hash": "17cbacf437353009b228f20638bcb7f277a299782f3be971198c991b0ce3c84d",
+              "line": 1,
+              "end_line": 3,
+              "reason": {
+                "matched_terms": [
+                  "ledger",
+                  "reconcile_ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "architecture.md",
+              "hash": "1e6894150324d144c566a5f1f8d7d2b71a9ab0629f1ffc2e6871bd1d52194ae6",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "method": "memory_keywords"
+              }
+            },
+            {
+              "source": "noise0000.md",
+              "hash": "71c9eb6863de906b6a724a41f57e9129a2fbe780c5955d65606e109badf99f26",
+              "line": 1,
+              "end_line": 12,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "explicit_path",
+          "query": "config/runtime-map.txt",
+          "required": [
+            "routing_convention"
+          ],
+          "sources": [
+            "config/runtime-map.txt",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 2,
+          "bytes": 290,
+          "estimated_tokens": 73,
+          "median_ms": 6.565,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 8.696,
+              "cpu_ms": 4.939
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.565,
+              "cpu_ms": 4.373
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.363,
+              "cpu_ms": 4.32
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "config/runtime-map.txt",
+              "hash": "35d0d88cb19b1008827bab804edf1cfcc2e102896add7f2293f2707fffec7feb",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "config",
+                  "runtime",
+                  "map",
+                  "txt"
+                ],
+                "symbols": [],
+                "exact_path": true,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "distributed_symbols",
+          "query": "begin_payment finish_payment",
+          "required": [
+            "payment_start_evidence",
+            "payment_finish_evidence"
+          ],
+          "sources": [
+            "spread.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 901,
+          "estimated_tokens": 226,
+          "median_ms": 7.481,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.487,
+              "cpu_ms": 4.541
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.481,
+              "cpu_ms": 4.954
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.79,
+              "cpu_ms": 4.399
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "spread.py",
+              "hash": "090e03d6820671ee3cf55163e5349d644b247a4d3673bb3f4bb23ba419f0c953",
+              "line": 1,
+              "end_line": 24,
+              "reason": {
+                "matched_terms": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "symbols": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "spread.py",
+              "hash": "090e03d6820671ee3cf55163e5349d644b247a4d3673bb3f4bb23ba419f0c953",
+              "line": 66,
+              "end_line": 69,
+              "reason": {
+                "matched_terms": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "symbols": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical_solution",
+          "query": "timeout_signature idempotency",
+          "required": [
+            "verified_solution_evidence"
+          ],
+          "sources": [
+            "errors.md",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 2,
+          "bytes": 340,
+          "estimated_tokens": 85,
+          "median_ms": 6.479,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 8.223,
+              "cpu_ms": 4.619
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.479,
+              "cpu_ms": 4.391
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.477,
+              "cpu_ms": 4.297
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "errors.md",
+              "hash": "1ae7612cf56ab322988bb22b0004cf3a0f546018ac1da46b66cf1696a8fc9431",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "timeout_signature",
+                  "idempotency"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "dependency_and_test",
+          "query": "test_transaction zz_target",
+          "required": [
+            "acceptance_test_evidence",
+            "reconcile_ledger"
+          ],
+          "sources": [
+            "tests/test_ledger.py",
+            "zz_target.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 553,
+          "estimated_tokens": 139,
+          "median_ms": 6.746,
+          "samples": [
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 7.9,
+              "cpu_ms": 4.849
+            },
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 6.7,
+              "cpu_ms": 4.654
+            },
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 6.746,
+              "cpu_ms": 4.616
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "tests/test_ledger.py",
+              "hash": "17cbacf437353009b228f20638bcb7f277a299782f3be971198c991b0ce3c84d",
+              "line": 1,
+              "end_line": 3,
+              "reason": {
+                "matched_terms": [
+                  "test_transaction",
+                  "zz_target"
+                ],
+                "symbols": [
+                  "test_transaction"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "zz_target.py",
+              "hash": "4901698edeb186f6bc6272cc25570f0b0f33656772d8936296a716b611e63a2d",
+              "line": 1,
+              "end_line": 4,
+              "reason": {
+                "matched_terms": [
+                  "zz_target"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "persistent_decision",
+          "query": "atomic ledger transactions",
+          "required": [
+            "Use atomic ledger transactions"
+          ],
+          "sources": [
+            "decision:ledger",
+            "architecture.md",
+            "zz_target.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 2,
+          "reference_count": 6,
+          "bytes": 1309,
+          "estimated_tokens": 328,
+          "median_ms": 12.871,
+          "samples": [
+            {
+              "source_reads": 36,
+              "git_processes": 3,
+              "wall_ms": 13.615,
+              "cpu_ms": 10.574
+            },
+            {
+              "source_reads": 36,
+              "git_processes": 3,
+              "wall_ms": 12.871,
+              "cpu_ms": 10.528
+            },
+            {
+              "source_reads": 36,
+              "git_processes": 3,
+              "wall_ms": 12.642,
+              "cpu_ms": 10.3
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "architecture.md",
+              "hash": "1e6894150324d144c566a5f1f8d7d2b71a9ab0629f1ffc2e6871bd1d52194ae6",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "ledger",
+                  "transactions"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "ledger",
+                  "transactions"
+                ],
+                "method": "memory_keywords"
+              }
+            },
+            {
+              "source": "noise0000.md",
+              "hash": "71c9eb6863de906b6a724a41f57e9129a2fbe780c5955d65606e109badf99f26",
+              "line": 1,
+              "end_line": 12,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "tests/test_ledger.py",
+              "hash": "17cbacf437353009b228f20638bcb7f277a299782f3be971198c991b0ce3c84d",
+              "line": 1,
+              "end_line": 3,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "zz_target.py",
+              "hash": "4901698edeb186f6bc6272cc25570f0b0f33656772d8936296a716b611e63a2d",
+              "line": 1,
+              "end_line": 4,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "mandatory_nonmatching_constraint",
+          "query": "unrelated_subject",
+          "required": [
+            "Never deploy."
+          ],
+          "sources": [
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 1,
+          "bytes": 190,
+          "estimated_tokens": 48,
+          "median_ms": 5.313,
+          "samples": [
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 6.632,
+              "cpu_ms": 3.934
+            },
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 5.313,
+              "cpu_ms": 3.874
+            },
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 5.273,
+              "cpu_ms": 3.69
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            }
+          ]
+        }
+      ],
+      "duplicate_memory_records": 1,
+      "stale_rejected": true,
+      "database_bytes": 163840,
+      "context_cache_limit": 20
+    },
+    {
+      "generated_noise_files": 256,
+      "indexed_files": 263,
+      "indexed_body_bytes": 118670,
+      "context_package_count": 11,
+      "process_peak_rss_bytes": 30572544,
+      "fresh_controller_decision_recovered": true,
+      "cross_project_isolated": true,
+      "corpus_sha256": "5706d80b08a476bb56147b723e75e1dfe7ae378321aeff4c2f7482ce91fd2d6a",
+      "initial": {
+        "result": {
+          "project_id": "f40dc0d563984cd0",
+          "updated": 263,
+          "unchanged": 0,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 118655,
+          "duration_ms": 103.964
+        },
+        "cost": {
+          "source_reads": 263,
+          "git_processes": 2,
+          "wall_ms": 107.816,
+          "cpu_ms": 103.488
+        }
+      },
+      "unchanged": {
+        "result": {
+          "project_id": "f40dc0d563984cd0",
+          "updated": 0,
+          "unchanged": 263,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 0,
+          "duration_ms": 37.797
+        },
+        "cost": {
+          "source_reads": 0,
+          "git_processes": 2,
+          "wall_ms": 42.956,
+          "cpu_ms": 39.209
+        }
+      },
+      "same_content_touch": {
+        "result": {
+          "project_id": "f40dc0d563984cd0",
+          "updated": 0,
+          "unchanged": 263,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 100,
+          "duration_ms": 39.533
+        },
+        "cost": {
+          "source_reads": 1,
+          "git_processes": 2,
+          "wall_ms": 43.62,
+          "cpu_ms": 39.65
+        }
+      },
+      "one_file_edit": {
+        "result": {
+          "project_id": "f40dc0d563984cd0",
+          "updated": 1,
+          "unchanged": 262,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 115,
+          "duration_ms": 40.082
+        },
+        "cost": {
+          "source_reads": 1,
+          "git_processes": 2,
+          "wall_ms": 81.554,
+          "cpu_ms": 40.283
+        }
+      },
+      "cases": [
+        {
+          "name": "architecture",
+          "query": "atomic transactions architecture",
+          "required": [
+            "atomic transactions"
+          ],
+          "sources": [
+            "architecture.md",
+            "decision:ledger",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 430,
+          "estimated_tokens": 108,
+          "median_ms": 7.308,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 9.045,
+              "cpu_ms": 5.48
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.308,
+              "cpu_ms": 4.983
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.601,
+              "cpu_ms": 4.586
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "architecture.md",
+              "hash": "1e6894150324d144c566a5f1f8d7d2b71a9ab0629f1ffc2e6871bd1d52194ae6",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "transactions",
+                  "architecture"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "transactions"
+                ],
+                "method": "memory_keywords"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rare_symbol_among_common_matches",
+          "query": "ledger reconcile_ledger",
+          "required": [
+            "exact_target_evidence"
+          ],
+          "sources": [
+            "zz_target.py",
+            "AGENTS.md",
+            "architecture.md",
+            "decision:ledger"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 2,
+          "reference_count": 5,
+          "bytes": 1163,
+          "estimated_tokens": 291,
+          "median_ms": 24.409,
+          "samples": [
+            {
+              "source_reads": 101,
+              "git_processes": 3,
+              "wall_ms": 29.211,
+              "cpu_ms": 25.459
+            },
+            {
+              "source_reads": 101,
+              "git_processes": 3,
+              "wall_ms": 23.851,
+              "cpu_ms": 21.354
+            },
+            {
+              "source_reads": 101,
+              "git_processes": 3,
+              "wall_ms": 24.409,
+              "cpu_ms": 21.881
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "zz_target.py",
+              "hash": "4901698edeb186f6bc6272cc25570f0b0f33656772d8936296a716b611e63a2d",
+              "line": 1,
+              "end_line": 4,
+              "reason": {
+                "matched_terms": [
+                  "ledger",
+                  "reconcile_ledger"
+                ],
+                "symbols": [
+                  "reconcile_ledger"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "tests/test_ledger.py",
+              "hash": "17cbacf437353009b228f20638bcb7f277a299782f3be971198c991b0ce3c84d",
+              "line": 1,
+              "end_line": 3,
+              "reason": {
+                "matched_terms": [
+                  "ledger",
+                  "reconcile_ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "method": "memory_keywords"
+              }
+            },
+            {
+              "source": "noise0000.md",
+              "hash": "71c9eb6863de906b6a724a41f57e9129a2fbe780c5955d65606e109badf99f26",
+              "line": 1,
+              "end_line": 12,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "explicit_path",
+          "query": "config/runtime-map.txt",
+          "required": [
+            "routing_convention"
+          ],
+          "sources": [
+            "config/runtime-map.txt",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 2,
+          "bytes": 290,
+          "estimated_tokens": 73,
+          "median_ms": 7.213,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.899,
+              "cpu_ms": 4.85
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.213,
+              "cpu_ms": 4.858
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.891,
+              "cpu_ms": 4.706
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "config/runtime-map.txt",
+              "hash": "35d0d88cb19b1008827bab804edf1cfcc2e102896add7f2293f2707fffec7feb",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "config",
+                  "runtime",
+                  "map",
+                  "txt"
+                ],
+                "symbols": [],
+                "exact_path": true,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "distributed_symbols",
+          "query": "begin_payment finish_payment",
+          "required": [
+            "payment_start_evidence",
+            "payment_finish_evidence"
+          ],
+          "sources": [
+            "spread.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 901,
+          "estimated_tokens": 226,
+          "median_ms": 6.889,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 8.142,
+              "cpu_ms": 4.843
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.805,
+              "cpu_ms": 4.649
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.889,
+              "cpu_ms": 4.769
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "spread.py",
+              "hash": "090e03d6820671ee3cf55163e5349d644b247a4d3673bb3f4bb23ba419f0c953",
+              "line": 1,
+              "end_line": 24,
+              "reason": {
+                "matched_terms": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "symbols": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "spread.py",
+              "hash": "090e03d6820671ee3cf55163e5349d644b247a4d3673bb3f4bb23ba419f0c953",
+              "line": 66,
+              "end_line": 69,
+              "reason": {
+                "matched_terms": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "symbols": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical_solution",
+          "query": "timeout_signature idempotency",
+          "required": [
+            "verified_solution_evidence"
+          ],
+          "sources": [
+            "errors.md",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 2,
+          "bytes": 340,
+          "estimated_tokens": 85,
+          "median_ms": 6.651,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 8.022,
+              "cpu_ms": 4.783
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.638,
+              "cpu_ms": 4.564
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 6.651,
+              "cpu_ms": 4.587
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "errors.md",
+              "hash": "1ae7612cf56ab322988bb22b0004cf3a0f546018ac1da46b66cf1696a8fc9431",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "timeout_signature",
+                  "idempotency"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "dependency_and_test",
+          "query": "test_transaction zz_target",
+          "required": [
+            "acceptance_test_evidence",
+            "reconcile_ledger"
+          ],
+          "sources": [
+            "tests/test_ledger.py",
+            "zz_target.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 553,
+          "estimated_tokens": 139,
+          "median_ms": 7.182,
+          "samples": [
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 7.999,
+              "cpu_ms": 5.062
+            },
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 7.182,
+              "cpu_ms": 4.992
+            },
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 7.057,
+              "cpu_ms": 4.863
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "tests/test_ledger.py",
+              "hash": "17cbacf437353009b228f20638bcb7f277a299782f3be971198c991b0ce3c84d",
+              "line": 1,
+              "end_line": 3,
+              "reason": {
+                "matched_terms": [
+                  "test_transaction",
+                  "zz_target"
+                ],
+                "symbols": [
+                  "test_transaction"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "zz_target.py",
+              "hash": "4901698edeb186f6bc6272cc25570f0b0f33656772d8936296a716b611e63a2d",
+              "line": 1,
+              "end_line": 4,
+              "reason": {
+                "matched_terms": [
+                  "zz_target"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "persistent_decision",
+          "query": "atomic ledger transactions",
+          "required": [
+            "Use atomic ledger transactions"
+          ],
+          "sources": [
+            "decision:ledger",
+            "architecture.md",
+            "zz_target.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 1,
+          "reference_count": 4,
+          "bytes": 946,
+          "estimated_tokens": 237,
+          "median_ms": 26.814,
+          "samples": [
+            {
+              "source_reads": 103,
+              "git_processes": 3,
+              "wall_ms": 27.027,
+              "cpu_ms": 22.756
+            },
+            {
+              "source_reads": 103,
+              "git_processes": 3,
+              "wall_ms": 26.803,
+              "cpu_ms": 23.892
+            },
+            {
+              "source_reads": 103,
+              "git_processes": 3,
+              "wall_ms": 26.814,
+              "cpu_ms": 23.435
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "architecture.md",
+              "hash": "1e6894150324d144c566a5f1f8d7d2b71a9ab0629f1ffc2e6871bd1d52194ae6",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "ledger",
+                  "transactions"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "ledger",
+                  "transactions"
+                ],
+                "method": "memory_keywords"
+              }
+            },
+            {
+              "source": "noise0000.md",
+              "hash": "71c9eb6863de906b6a724a41f57e9129a2fbe780c5955d65606e109badf99f26",
+              "line": 1,
+              "end_line": 12,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "mandatory_nonmatching_constraint",
+          "query": "unrelated_subject",
+          "required": [
+            "Never deploy."
+          ],
+          "sources": [
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 1,
+          "bytes": 190,
+          "estimated_tokens": 48,
+          "median_ms": 6.007,
+          "samples": [
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 6.745,
+              "cpu_ms": 4.287
+            },
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 6.007,
+              "cpu_ms": 4.259
+            },
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 5.471,
+              "cpu_ms": 3.954
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            }
+          ]
+        }
+      ],
+      "duplicate_memory_records": 1,
+      "stale_rejected": true,
+      "database_bytes": 479232,
+      "context_cache_limit": 20
+    },
+    {
+      "generated_noise_files": 1024,
+      "indexed_files": 1031,
+      "indexed_body_bytes": 468878,
+      "context_package_count": 11,
+      "process_peak_rss_bytes": 30703616,
+      "fresh_controller_decision_recovered": true,
+      "cross_project_isolated": true,
+      "corpus_sha256": "e6fe3d5a9de4fb2d07651e0aa81f4305777d0e137e166fcee09741eb1a257457",
+      "initial": {
+        "result": {
+          "project_id": "779e137534efcddb",
+          "updated": 1031,
+          "unchanged": 0,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 468863,
+          "duration_ms": 472.492
+        },
+        "cost": {
+          "source_reads": 1031,
+          "git_processes": 2,
+          "wall_ms": 478.466,
+          "cpu_ms": 471.589
+        }
+      },
+      "unchanged": {
+        "result": {
+          "project_id": "779e137534efcddb",
+          "updated": 0,
+          "unchanged": 1031,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 0,
+          "duration_ms": 157.739
+        },
+        "cost": {
+          "source_reads": 0,
+          "git_processes": 2,
+          "wall_ms": 163.529,
+          "cpu_ms": 159.71
+        }
+      },
+      "same_content_touch": {
+        "result": {
+          "project_id": "779e137534efcddb",
+          "updated": 0,
+          "unchanged": 1031,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 100,
+          "duration_ms": 150.937
+        },
+        "cost": {
+          "source_reads": 1,
+          "git_processes": 2,
+          "wall_ms": 156.222,
+          "cpu_ms": 151.281
+        }
+      },
+      "one_file_edit": {
+        "result": {
+          "project_id": "779e137534efcddb",
+          "updated": 1,
+          "unchanged": 1030,
+          "deleted": 0,
+          "excluded": 0,
+          "bytes_read": 115,
+          "duration_ms": 154.586
+        },
+        "cost": {
+          "source_reads": 1,
+          "git_processes": 2,
+          "wall_ms": 159.931,
+          "cpu_ms": 154.99
+        }
+      },
+      "cases": [
+        {
+          "name": "architecture",
+          "query": "atomic transactions architecture",
+          "required": [
+            "atomic transactions"
+          ],
+          "sources": [
+            "architecture.md",
+            "decision:ledger",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 430,
+          "estimated_tokens": 108,
+          "median_ms": 7.903,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 9.315,
+              "cpu_ms": 5.607
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.785,
+              "cpu_ms": 5.432
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.903,
+              "cpu_ms": 5.44
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "architecture.md",
+              "hash": "1e6894150324d144c566a5f1f8d7d2b71a9ab0629f1ffc2e6871bd1d52194ae6",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "transactions",
+                  "architecture"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "transactions"
+                ],
+                "method": "memory_keywords"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rare_symbol_among_common_matches",
+          "query": "ledger reconcile_ledger",
+          "required": [
+            "exact_target_evidence"
+          ],
+          "sources": [
+            "zz_target.py",
+            "AGENTS.md",
+            "architecture.md",
+            "decision:ledger"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 2,
+          "reference_count": 5,
+          "bytes": 1163,
+          "estimated_tokens": 291,
+          "median_ms": 26.483,
+          "samples": [
+            {
+              "source_reads": 101,
+              "git_processes": 3,
+              "wall_ms": 27.732,
+              "cpu_ms": 24.068
+            },
+            {
+              "source_reads": 101,
+              "git_processes": 3,
+              "wall_ms": 26.152,
+              "cpu_ms": 23.463
+            },
+            {
+              "source_reads": 101,
+              "git_processes": 3,
+              "wall_ms": 26.483,
+              "cpu_ms": 23.805
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "zz_target.py",
+              "hash": "4901698edeb186f6bc6272cc25570f0b0f33656772d8936296a716b611e63a2d",
+              "line": 1,
+              "end_line": 4,
+              "reason": {
+                "matched_terms": [
+                  "ledger",
+                  "reconcile_ledger"
+                ],
+                "symbols": [
+                  "reconcile_ledger"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "tests/test_ledger.py",
+              "hash": "17cbacf437353009b228f20638bcb7f277a299782f3be971198c991b0ce3c84d",
+              "line": 1,
+              "end_line": 3,
+              "reason": {
+                "matched_terms": [
+                  "ledger",
+                  "reconcile_ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "method": "memory_keywords"
+              }
+            },
+            {
+              "source": "noise0000.md",
+              "hash": "71c9eb6863de906b6a724a41f57e9129a2fbe780c5955d65606e109badf99f26",
+              "line": 1,
+              "end_line": 12,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "explicit_path",
+          "query": "config/runtime-map.txt",
+          "required": [
+            "routing_convention"
+          ],
+          "sources": [
+            "config/runtime-map.txt",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 2,
+          "bytes": 290,
+          "estimated_tokens": 73,
+          "median_ms": 8.025,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 9.016,
+              "cpu_ms": 5.706
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 8.025,
+              "cpu_ms": 5.665
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.729,
+              "cpu_ms": 5.516
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "config/runtime-map.txt",
+              "hash": "35d0d88cb19b1008827bab804edf1cfcc2e102896add7f2293f2707fffec7feb",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "config",
+                  "runtime",
+                  "map",
+                  "txt"
+                ],
+                "symbols": [],
+                "exact_path": true,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "distributed_symbols",
+          "query": "begin_payment finish_payment",
+          "required": [
+            "payment_start_evidence",
+            "payment_finish_evidence"
+          ],
+          "sources": [
+            "spread.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 901,
+          "estimated_tokens": 226,
+          "median_ms": 7.294,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 9.449,
+              "cpu_ms": 5.525
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.21,
+              "cpu_ms": 5.129
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.294,
+              "cpu_ms": 5.171
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "spread.py",
+              "hash": "090e03d6820671ee3cf55163e5349d644b247a4d3673bb3f4bb23ba419f0c953",
+              "line": 1,
+              "end_line": 24,
+              "reason": {
+                "matched_terms": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "symbols": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "spread.py",
+              "hash": "090e03d6820671ee3cf55163e5349d644b247a4d3673bb3f4bb23ba419f0c953",
+              "line": 66,
+              "end_line": 69,
+              "reason": {
+                "matched_terms": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "symbols": [
+                  "begin_payment",
+                  "finish_payment"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "historical_solution",
+          "query": "timeout_signature idempotency",
+          "required": [
+            "verified_solution_evidence"
+          ],
+          "sources": [
+            "errors.md",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 2,
+          "bytes": 340,
+          "estimated_tokens": 85,
+          "median_ms": 7.924,
+          "samples": [
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 8.37,
+              "cpu_ms": 5.339
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.924,
+              "cpu_ms": 5.486
+            },
+            {
+              "source_reads": 2,
+              "git_processes": 3,
+              "wall_ms": 7.225,
+              "cpu_ms": 5.14
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "errors.md",
+              "hash": "1ae7612cf56ab322988bb22b0004cf3a0f546018ac1da46b66cf1696a8fc9431",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "timeout_signature",
+                  "idempotency"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "dependency_and_test",
+          "query": "test_transaction zz_target",
+          "required": [
+            "acceptance_test_evidence",
+            "reconcile_ledger"
+          ],
+          "sources": [
+            "tests/test_ledger.py",
+            "zz_target.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 3,
+          "bytes": 553,
+          "estimated_tokens": 139,
+          "median_ms": 7.837,
+          "samples": [
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 9.104,
+              "cpu_ms": 5.759
+            },
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 7.837,
+              "cpu_ms": 5.49
+            },
+            {
+              "source_reads": 3,
+              "git_processes": 3,
+              "wall_ms": 7.735,
+              "cpu_ms": 5.615
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "tests/test_ledger.py",
+              "hash": "17cbacf437353009b228f20638bcb7f277a299782f3be971198c991b0ce3c84d",
+              "line": 1,
+              "end_line": 3,
+              "reason": {
+                "matched_terms": [
+                  "test_transaction",
+                  "zz_target"
+                ],
+                "symbols": [
+                  "test_transaction"
+                ],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "zz_target.py",
+              "hash": "4901698edeb186f6bc6272cc25570f0b0f33656772d8936296a716b611e63a2d",
+              "line": 1,
+              "end_line": 4,
+              "reason": {
+                "matched_terms": [
+                  "zz_target"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "persistent_decision",
+          "query": "atomic ledger transactions",
+          "required": [
+            "Use atomic ledger transactions"
+          ],
+          "sources": [
+            "decision:ledger",
+            "architecture.md",
+            "zz_target.py",
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 1,
+          "reference_count": 4,
+          "bytes": 946,
+          "estimated_tokens": 237,
+          "median_ms": 26.612,
+          "samples": [
+            {
+              "source_reads": 103,
+              "git_processes": 3,
+              "wall_ms": 30.478,
+              "cpu_ms": 26.703
+            },
+            {
+              "source_reads": 103,
+              "git_processes": 3,
+              "wall_ms": 26.612,
+              "cpu_ms": 23.914
+            },
+            {
+              "source_reads": 103,
+              "git_processes": 3,
+              "wall_ms": 26.387,
+              "cpu_ms": 23.804
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            },
+            {
+              "source": "architecture.md",
+              "hash": "1e6894150324d144c566a5f1f8d7d2b71a9ab0629f1ffc2e6871bd1d52194ae6",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "ledger",
+                  "transactions"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            },
+            {
+              "source": "decision:ledger",
+              "hash": null,
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "matched_terms": [
+                  "atomic",
+                  "ledger",
+                  "transactions"
+                ],
+                "method": "memory_keywords"
+              }
+            },
+            {
+              "source": "noise0000.md",
+              "hash": "71c9eb6863de906b6a724a41f57e9129a2fbe780c5955d65606e109badf99f26",
+              "line": 1,
+              "end_line": 12,
+              "reason": {
+                "matched_terms": [
+                  "ledger"
+                ],
+                "symbols": [],
+                "exact_path": false,
+                "method": "fts_and_metadata"
+              }
+            }
+          ]
+        },
+        {
+          "name": "mandatory_nonmatching_constraint",
+          "query": "unrelated_subject",
+          "required": [
+            "Never deploy."
+          ],
+          "sources": [
+            "AGENTS.md"
+          ],
+          "recall": 1.0,
+          "constraint_preserved": true,
+          "irrelevant_reference_count": 0,
+          "reference_count": 1,
+          "bytes": 190,
+          "estimated_tokens": 48,
+          "median_ms": 6.12,
+          "samples": [
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 7.482,
+              "cpu_ms": 4.578
+            },
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 5.913,
+              "cpu_ms": 4.327
+            },
+            {
+              "source_reads": 1,
+              "git_processes": 2,
+              "wall_ms": 6.12,
+              "cpu_ms": 4.531
+            }
+          ],
+          "references": [
+            {
+              "source": "AGENTS.md",
+              "hash": "9acfd846bb232d1688905fa1bb337ab4096849e641127abb9cf15637ca25b75d",
+              "line": 1,
+              "end_line": 1,
+              "reason": {
+                "method": "required_instruction"
+              }
+            }
+          ]
+        }
+      ],
+      "duplicate_memory_records": 1,
+      "stale_rejected": true,
+      "database_bytes": 1527808,
+      "context_cache_limit": 20
+    }
+  ],
+  "provider_reported_usage": null,
+  "cost": null
+}

@@ -169,6 +169,12 @@ def start(store, port=8765, background=False, browser=True):
 
 
 def run(store, port=8765, browser=True):
+    from ccx_install import workspace_runtime
+    with workspace_runtime():
+        return _run(store,port,browser)
+
+
+def _run(store, port=8765, browser=True):
     from .server import create_server
     state_path,lock_path=paths(store)
     if lock_path.exists():

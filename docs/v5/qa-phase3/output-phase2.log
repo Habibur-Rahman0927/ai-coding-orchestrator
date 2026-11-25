@@ -1,0 +1,14 @@
+test_chat_rejects_session_collision_across_projects (test_v5_phase2.Phase2Tests.test_chat_rejects_session_collision_across_projects) ... ok
+test_chat_requires_explicit_consent_uses_context_and_exact_session (test_v5_phase2.Phase2Tests.test_chat_requires_explicit_consent_uses_context_and_exact_session) ... ok
+test_csrf_origin_and_local_service_ownership (test_v5_phase2.Phase2Tests.test_csrf_origin_and_local_service_ownership) ... ok
+test_interrupted_chat_not_replayed_on_restart (test_v5_phase2.Phase2Tests.test_interrupted_chat_not_replayed_on_restart) ... ok
+test_mcp_verification_reports_changed_snapshot_as_stale (test_v5_phase2.Phase2Tests.test_mcp_verification_reports_changed_snapshot_as_stale) ... ok
+test_rotation_revokes_bearer_and_cookie (test_v5_phase2.Phase2Tests.test_rotation_revokes_bearer_and_cookie) ... ok
+test_setup_defaults_apply_but_fallback_preferences_never_grant_access (test_v5_phase2.Phase2Tests.test_setup_defaults_apply_but_fallback_preferences_never_grant_access) ... ok
+test_setup_persistence_validation_and_explicit_project_preview (test_v5_phase2.Phase2Tests.test_setup_persistence_validation_and_explicit_project_preview) ... ok
+test_single_use_bootstrap_cookie_expiration_logout_and_rotation (test_v5_phase2.Phase2Tests.test_single_use_bootstrap_cookie_expiration_logout_and_rotation) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.886s
+
+OK

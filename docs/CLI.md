@@ -9,7 +9,7 @@ without changing integrity status or exit codes. Inspection, removal, backup,
 and rollback remain available for legacy installations.
 
 For the unpublished 4.3.0 cross-platform candidate, see the
-[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+[cross-platform guide](CROSS-PLATFORM.md) and verification report (source checkout: `docs/CROSS-PLATFORM-RESULTS.md`; omitted from packages).
 
 Engine 4.3.0; CLI/project payload 4.1.0. `--version` reports CLI_VERSION;
 `versions` includes `engine_version`, and `doctor` prints both versions.

@@ -394,7 +394,7 @@ else:
         first = hashlib.sha256(artifact.read_bytes()).hexdigest()
         run(['/bin/sh', src / 'scripts/build-release.sh'])
         self.assertEqual(first, hashlib.sha256(artifact.read_bytes()).hexdigest())
-        for rel, data in (('engine/registry/x.json', '{}'), ('docs/private.txt', '/home/someone/private'),
+        for rel, data in (('engine/registry/x.json', '{}'), ('docs/CLI.md', '/home/someone/private'),
                           ('engine/auth.json', '{}')):
             path = src / rel
             path.parent.mkdir(parents=True, exist_ok=True)

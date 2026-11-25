@@ -1,0 +1,202 @@
+[
+  {
+    "requirement": "Installation",
+    "reference": "\u00a73,31,32 / P1 phase8",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "ccx_install.py; test_distribution, test_portable_install",
+    "observed": "Disposable prefixes, signed/tampered archives, unrelated launcher preservation pass",
+    "remaining": "Native non-Linux lifecycle blocked"
+  },
+  {
+    "requirement": "Startup/shutdown",
+    "reference": "\u00a716,18 / P2 stage2",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "service.py; test_v5_service",
+    "observed": "Real loopback lifetime lock, start/stop/restart and duplicate startup pass",
+    "remaining": "Other OS process supervision blocked"
+  },
+  {
+    "requirement": "First-run setup",
+    "reference": "\u00a727,28 / P2 stage2",
+    "classification": "PARTIALLY_IMPLEMENTED",
+    "source_tests": "onboarding.py, web/app.js; test_v5_phase2",
+    "observed": "Persisted setup/defaults backend tests pass",
+    "remaining": "Actual wizard browser rerun blocked"
+  },
+  {
+    "requirement": "Browser authentication",
+    "reference": "\u00a722,27 / P2 stage2",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "auth.py, server.py; test_v5_server, test_v5_phase2",
+    "observed": "Expiry, bootstrap replay, proof/origin and authenticated HTTP checks pass",
+    "remaining": "Actual browser cookie/storage behavior blocked"
+  },
+  {
+    "requirement": "Credential management",
+    "reference": "\u00a724 / P2 stage2",
+    "classification": "MOCK_TESTED",
+    "source_tests": "credentials.py; test_v5_credentials",
+    "observed": "Disposable mocked vault and secret refusal tests pass",
+    "remaining": "Native vault CRUD not executed; Linux secret-tool absent"
+  },
+  {
+    "requirement": "Machine intelligence",
+    "reference": "\u00a77 / P1 phase1",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "store.py; test_v5_memory",
+    "observed": "Bounded local tool availability and cached machine snapshot pass",
+    "remaining": "Runtime removal/reinstall combinations not exhaustive"
+  },
+  {
+    "requirement": "Project registration",
+    "reference": "\u00a77 / P1 phase1",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "store.py; test_v5_memory, test_v5_phase3_context",
+    "observed": "Explicit Git roots, spaced/Unicode fixtures, isolation pass",
+    "remaining": "Project relocation lifecycle incomplete coverage"
+  },
+  {
+    "requirement": "Incremental indexing",
+    "reference": "\u00a77,29 / P1 phase2",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "store.py; test_v5_memory, test_v5_phase3_context",
+    "observed": "Rename/delete/branch freshness, exclusions, zero repeated content reads pass",
+    "remaining": "Still traverses metadata; 50k-file/stress bounds not exercised"
+  },
+  {
+    "requirement": "Persistent memory",
+    "reference": "\u00a78,9 / P1 phase1",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "store.py; test_v5_phase3_context",
+    "observed": "Concurrent writes, reopen, backup, deletion and three-project scope pass; killed writes, disk-full and partial backup/schema rollback pass",
+    "remaining": "Machine reboot and exhaustive corruption/restore fault matrix not executed"
+  },
+  {
+    "requirement": "Context optimization",
+    "reference": "\u00a710,11 / P1 phase2",
+    "classification": "PARTIALLY_IMPLEMENTED",
+    "source_tests": "store.py; test_v5_phase3_context",
+    "observed": "Required rules preserved; budget failure and stale exclusion pass",
+    "remaining": "Hierarchical summaries/model-specific limits/automatic compaction not established"
+  },
+  {
+    "requirement": "Provider adapters",
+    "reference": "\u00a713 / P1 phase3; P2 stage3",
+    "classification": "MOCK_TESTED",
+    "source_tests": "providers.py; test_v5_providers",
+    "observed": "CLI arguments, HTTP/events, cancellation and missing configuration contracts pass",
+    "remaining": "Live authentication/execution require budget/credentials"
+  },
+  {
+    "requirement": "Multi-agent orchestration",
+    "reference": "\u00a714,15 / P1 phase4",
+    "classification": "MOCK_TESTED",
+    "source_tests": "workflows.py; test_v5_workflows",
+    "observed": "Six routing combinations and distinct same-provider sessions pass",
+    "remaining": "Live delegation/reviewer quality blocked"
+  },
+  {
+    "requirement": "Workflow management",
+    "reference": "\u00a716 / P2 stage4",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "workflows.py; test_v5_workflows, test_v5_phase3_cancel",
+    "observed": "Leases, budgets, dependencies, pause/cancel and actual subprocess effects pass",
+    "remaining": "No parallel write support; full stress/soak not executed"
+  },
+  {
+    "requirement": "Review/correction",
+    "reference": "\u00a717,35 / P1 phase4",
+    "classification": "MOCK_TESTED",
+    "source_tests": "workflows.py; test_v5_workflows",
+    "observed": "Real test commands plus deterministic approve/reject and bounded correction pass",
+    "remaining": "Real model detecting controlled defect not verified"
+  },
+  {
+    "requirement": "Approval policies",
+    "reference": "\u00a721,22,23 / P1 phase4",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "workflows.py, mcp.py; test_v5_phase2_reliability",
+    "observed": "Scoped grants, denial, idempotent resolution, advisory-only MCP pass",
+    "remaining": "Live human-intervention counts unavailable"
+  },
+  {
+    "requirement": "Recovery",
+    "reference": "\u00a718,19 / P2 stage4",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "service.py, workflows.py; test_v5_service",
+    "observed": "Controlled backend crash, unknown outcome and no duplicate replay pass",
+    "remaining": "All fault windows/reboot/native other OS not tested"
+  },
+  {
+    "requirement": "Provider failover",
+    "reference": "\u00a720 / P2 stage4",
+    "classification": "MOCK_TESTED",
+    "source_tests": "workflows.py; test_v5_phase2_reliability",
+    "observed": "Approved destination handoff preserves executor state/session",
+    "remaining": "Real network/exhaustion handoff blocked"
+  },
+  {
+    "requirement": "CLI",
+    "reference": "\u00a730,32 / P1 phase6",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "cli.py, orchestrator.py; test_v5_cli, test_cli_portable",
+    "observed": "Temporary engine CLI paths and existing V4 commands pass",
+    "remaining": "No real user-global install performed"
+  },
+  {
+    "requirement": "MCP",
+    "reference": "\u00a730 / P1 phase6",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "mcp.py; test_v5_mcp, verify_workspace_mcp.py",
+    "observed": "Actual stdio initialize/list/retrieve and scope refusals pass",
+    "remaining": "Native agent-initiated workflow blocked"
+  },
+  {
+    "requirement": "Dashboard",
+    "reference": "\u00a727,28 / P2 stage6",
+    "classification": "BLOCKED",
+    "source_tests": "server.py, web/*; tests/browser/*",
+    "observed": "Backend controls pass; no Phase3 browser execution",
+    "remaining": "Playwright install declined; run actual interaction suites"
+  },
+  {
+    "requirement": "Usage analytics",
+    "reference": "\u00a712 / P2 stage5",
+    "classification": "MOCK_TESTED",
+    "source_tests": "benchmark.py; test_v5_phase2_reliability",
+    "observed": "Estimate/reported separation and comparable-run guards pass",
+    "remaining": "Real repeated A/B and cost/quality evidence blocked"
+  },
+  {
+    "requirement": "Backup/restore",
+    "reference": "\u00a78,26,32 / P1 phase1",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "store.py, ccx_install.py; memory/distribution tests",
+    "observed": "SQLite backup integrity and isolated recovery pass; killed writes, disk-full and partial backup/schema rollback pass",
+    "remaining": "Machine reboot and exhaustive corruption/restore fault matrix not executed"
+  },
+  {
+    "requirement": "Update/rollback",
+    "reference": "\u00a732 / P1 phase8",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "ccx_distribution.py; test_self_update",
+    "observed": "Signed/tampered update, failure and rollback fixtures pass",
+    "remaining": "No publication/global user update"
+  },
+  {
+    "requirement": "Team distribution",
+    "reference": "\u00a731,32 / P1 phase8",
+    "classification": "VERIFIED_AUTOMATED",
+    "source_tests": "tools/build_release.py; test_distribution",
+    "observed": "Packaging/signature/lifecycle fixtures pass",
+    "remaining": "Release promotion withheld"
+  },
+  {
+    "requirement": "Cross-platform",
+    "reference": "\u00a731 / P1 phase8; P2 stage9",
+    "classification": "PARTIALLY_IMPLEMENTED",
+    "source_tests": "ccx_platform.py, ccx_windows.py; platform tests",
+    "observed": "Native Ubuntu24 execution passes; nine host-specific skips",
+    "remaining": "Ubuntu20, macOS variants, Windows, WSL2 not verified here"
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "scope": "Unsigned local evaluation, not production authentication",
+  "sha256": "1d0090bf247bf8b35a613abcc80f2fe84a02561117e0cbd188fbc8a479a2af37",
+  "bytes": 233706,
+  "members": 90,
+  "reproducible": true,
+  "manifest_and_checksum_verified": true,
+  "signature": "NOT PRODUCED: release signing not authorized",
+  "metadata": {
+    "compatibility": "Native platform and provider verification must be read separately; metadata is not a readiness certification",
+    "engine_version": "4.3.0",
+    "production_ready": false,
+    "release_scope": "local_evaluation_only",
+    "runtime_requirements": {
+      "git": "required",
+      "python": ">=3.8"
+    },
+    "signature": "detached SHA256SUMS.sig when explicitly signed",
+    "workspace_version": "5.0.0-dev"
+  },
+  "install_seconds": 0.23705252800209564,
+  "artifact_install_help_start_stop_uninstall": "PASS",
+  "actual_verified_archive_browser_lifecycle": "PASS"
+}

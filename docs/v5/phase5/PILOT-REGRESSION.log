@@ -1,0 +1,12 @@
+test_backend_bug_reviewer_detects_actual_defect_and_corrects (test_v5_phase4_pilot.PilotWorkloads.test_backend_bug_reviewer_detects_actual_defect_and_corrects) ... ok
+test_documentation_knowledge_survives_fresh_controller (test_v5_phase4_pilot.PilotWorkloads.test_documentation_knowledge_survives_fresh_controller) ... ok
+test_harness_refuses_live_execution (test_v5_phase4_pilot.PilotWorkloads.test_harness_refuses_live_execution) ... ok
+test_local_api_failure_and_legacy_inputs (test_v5_phase4_pilot.PilotWorkloads.test_local_api_failure_and_legacy_inputs) ... ok
+test_multifile_refactor_keeps_actual_acceptance (test_v5_phase4_pilot.PilotWorkloads.test_multifile_refactor_keeps_actual_acceptance) ... ok
+test_performance_work_budget_improves_without_semantic_regression (test_v5_phase4_pilot.PilotWorkloads.test_performance_work_budget_improves_without_semantic_regression) ... ok
+test_regression_mutation_really_fails_then_corrects (test_v5_phase4_pilot.PilotWorkloads.test_regression_mutation_really_fails_then_corrects) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 2.805s
+
+OK

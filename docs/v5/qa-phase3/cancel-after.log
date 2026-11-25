@@ -1,0 +1,9 @@
+test_already_cancelled_tool_does_not_spawn (test_v5_phase3_cancel.CancellationTests.test_already_cancelled_tool_does_not_spawn) ... ok
+test_cancel_terminates_owned_command_and_prevents_next_dispatch (test_v5_phase3_cancel.CancellationTests.test_cancel_terminates_owned_command_and_prevents_next_dispatch) ... ok
+test_cancel_terminates_provider_requested_approved_command (test_v5_phase3_cancel.CancellationTests.test_cancel_terminates_provider_requested_approved_command) ... ok
+test_pause_terminates_owned_command_and_prevents_next_dispatch (test_v5_phase3_cancel.CancellationTests.test_pause_terminates_owned_command_and_prevents_next_dispatch) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 3.739s
+
+OK

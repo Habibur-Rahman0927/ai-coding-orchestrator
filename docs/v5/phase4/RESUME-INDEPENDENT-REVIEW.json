@@ -1,0 +1,46 @@
+{
+  "review": "approved for scoped read-only cancellation replay boundary",
+  "production_edits_by_reviewer": false,
+  "workflow_source_sha256": "c9c25f7b1cff28c22bb73ad5caddfff551b3539de72e71a1711e9b3ef3fab927",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s tests -p test_v5_phase4_resume.py -v",
+      "tests_run": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "log": "resume-independent.log"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s tests -p test_v5_phase2_reliability.py -v",
+      "tests_run": 21,
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "log": "resume-independent-reliability.log"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s tests -p test_v5_phase3_cancel.py -v",
+      "tests_run": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "log": "resume-independent-cancel.log"
+    }
+  ],
+  "scope": [
+    "Uses original durable request allowed_operations, including captured native flags",
+    "Only planner/reviewer with scoped read-only operations and unchanged before/after/current snapshot can repeat",
+    "Executor, native access and changed source outcomes become UNCERTAIN and require recovery approval",
+    "Original action history/session mapping and provider-call budgets retained",
+    "Future dispatch still runs approval and budget gates"
+  ],
+  "limits": [
+    "Mock provider cancellation results; no live native CLI or API verification",
+    "Filesystem snapshots have documented same-user concurrent mutation limits",
+    "No automatic retry is authorized for uncertain side effects"
+  ]
+}

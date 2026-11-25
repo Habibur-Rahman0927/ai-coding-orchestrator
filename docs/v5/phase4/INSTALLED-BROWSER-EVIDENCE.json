@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-25",
+  "source_revision": "c933c04063b16d6c47b430f512fadd26b9d1e0a1",
+  "source_note": "Uncommitted QA working tree; hashes captured after frozen installed lifecycle browser run. Product copied locally into a temporary prefix, not downloaded.",
+  "source_sha256": {
+    "tests/browser/test_installed_workspace_cdp.cjs": "4a55dd571cd4c5f654dc1724a8d1623a3e1962802c25ebb695522dce550f6df7",
+    "tests/browser/cdp_installed_fixture.py": "3793ce9b103bb94b5ad37d76c7c181626424bfaea24b8242bd356d246d439f2c",
+    "install.sh": "8e06026b044755ac8fbb254f420d0b82aeade760be8cbeed5ab72610abdb832c",
+    "uninstall.sh": "7f1bd29808e77075820dd3ef49fb4e39c74ad2ecf0969fa4867b4acd35ca989e",
+    "engine/orchestrator.py": "74f60a0f1dbf667b01ec2deb54a828d42adf0bc32156973c0d2b7cc1cce99934",
+    "engine/lib/ccx_install.py": "e8e5ec1a4a6a9a04c5348dfaa235a35e0cb6e4033ad4154b6753999bc1bd57a8",
+    "engine/lib/ccx_workspace/__init__.py": "a9f9f8db0ecc5537e94b12d55fe75d1ee83061eadbcf0efc236fceff0bdae3a6",
+    "engine/lib/ccx_workspace/auth.py": "a09c125cc2c53a969d5e6bcc16fe10ba0550115b955228b888241a2333283738",
+    "engine/lib/ccx_workspace/benchmark.py": "c8b3c42e9555eb55c88982c3c010786e85f732371201497d8f75b0ada984bcc6",
+    "engine/lib/ccx_workspace/chat.py": "4ed27936a7a6a5e48389949e006c7ea978d070c0c4a48d5d31a6393a3b24c2d4",
+    "engine/lib/ccx_workspace/cli.py": "8da29a14569ffd358d1cc58cababbf1656a0621975a6eab6403026b4ff1f855c",
+    "engine/lib/ccx_workspace/credentials.py": "be4fbb5a98d162398f0b404ba8e4a631dd2969844ae8cd9baa82f839e1d5abc6",
+    "engine/lib/ccx_workspace/diagnostics.py": "50335b15afc0878ee3be52a1f5e3f94533cf666c97160bd98fa9133b5444ddf5",
+    "engine/lib/ccx_workspace/mcp.py": "6c3253d7129fd5ccfdb8f07d01c692b7febe3a6ac3cbd0806f6070f29ee7a2d6",
+    "engine/lib/ccx_workspace/migration.py": "67bd925af211b69e1ca8bbf030f9f05c52114cb649d3a62ae2a9fc82410425e9",
+    "engine/lib/ccx_workspace/onboarding.py": "b8b85ef9394d144cfddec685f4546d519fb9e27b828f6ec6681d3cc1d81cbd33",
+    "engine/lib/ccx_workspace/providers.py": "1be5be8e30b42c6b74857d42f1cf771bb50d1fd3cdf228e8ac695cf3a12079b1",
+    "engine/lib/ccx_workspace/security.py": "86bf058bed6a9f83f377bb25b9d21b14efbd39d10d1ad8b4c204345b5017923e",
+    "engine/lib/ccx_workspace/server.py": "1795d4285efb8841a0a2af0d035a474e0c7db769365902f06d15cbba6c492a2a",
+    "engine/lib/ccx_workspace/service.py": "e43da3c7dfd8f839030fdb2147c004e4d2ee8306bf0947f830d67c8e1839c898",
+    "engine/lib/ccx_workspace/settings.py": "9141c67152f37480400fedb0af81e4bcad95494eb419b79f428ec3a37c446de4",
+    "engine/lib/ccx_workspace/store.py": "e34269d4da1e687f5d6b4ee8e49d2d7fbade5b8f51fb473481caa0377d0725da",
+    "engine/lib/ccx_workspace/tools.py": "ca0a03995ca958af3f6cc0ea52902a32733e780a5375c2819e5fffd60f804577",
+    "engine/lib/ccx_workspace/web/app.js": "e95b33ecefa55ac9a568c6cbd48346eb90310a764984f43b9033d2161e8d1667",
+    "engine/lib/ccx_workspace/web/index.html": "229ddeb2edc8fd9708760d762f0281bdd4bed88dbc711017b31a5572ff52a805",
+    "engine/lib/ccx_workspace/web/style.css": "3a8a830167ed78f203f24d218ccc725bd979886fc873aebf4aea06dd0b408434",
+    "engine/lib/ccx_workspace/workflows.py": "c9c25f7b1cff28c22bb73ad5caddfff551b3539de72e71a1711e9b3ef3fab927"
+  },
+  "command": "node tests/browser/test_installed_workspace_cdp.cjs --report=/tmp/ccx-phase4-installed-browser.json",
+  "exit_code": 0,
+  "result": {
+    "status": "PASS",
+    "browser": "Chrome/144.0.7559.109",
+    "sandbox_disabled": false,
+    "dependency_installs": false,
+    "product_installation": "disposable local prefix only",
+    "provider_action_records": 0,
+    "live_provider_operations_requested": false,
+    "elapsed_ms": 8203,
+    "checks": [
+      {
+        "name": "Installed launcher starts actual backend and browser completes setup/project indexing",
+        "status": "PASS",
+        "elapsed_ms": 1433
+      },
+      {
+        "name": "Actual installed backend restart preserves setup and project across fresh browser bootstrap",
+        "status": "PASS",
+        "elapsed_ms": 433
+      },
+      {
+        "name": "Isolated uninstall removes launcher and preserves registered project knowledge/database",
+        "status": "PASS",
+        "elapsed_ms": 5151
+      }
+    ],
+    "page_errors": []
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "result": {
+        "status": "FAIL",
+        "sandbox_disabled": false,
+        "dependency_installs": false,
+        "product_installation": "disposable local prefix only",
+        "provider_action_records": null,
+        "live_provider_operations_requested": false,
+        "elapsed_ms": 547,
+        "checks": [],
+        "page_errors": [],
+        "error": "Installed CLI fixture exited during startup"
+      },
+      "assessment": "Harness assumed prefix/engine/lib; actual installation correctly flattens engine libraries into prefix/lib. Fixed inspection import. Failed before backend startup."
+    },
+    {
+      "attempt": 2,
+      "status": "PASS",
+      "elapsed_ms": 8203,
+      "groups_passed": 3
+    }
+  ]
+}

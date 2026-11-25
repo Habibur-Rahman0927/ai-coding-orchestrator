@@ -1,0 +1,26 @@
+test_default_paths_and_shells (test_distribution.Distribution.test_default_paths_and_shells) ... ok
+test_downgrade (test_distribution.Distribution.test_downgrade) ... ok
+test_dry_run (test_distribution.Distribution.test_dry_run) ... ok
+test_duplicate_and_foreign (test_distribution.Distribution.test_duplicate_and_foreign) ... ok
+test_existing_destination_rollback_and_preservation (test_distribution.Distribution.test_existing_destination_rollback_and_preservation) ... ok
+test_faults_leave_no_trace (test_distribution.Distribution.test_faults_leave_no_trace) ... ok
+test_file_to_directory_upgrade_failure_restores (test_distribution.Distribution.test_file_to_directory_upgrade_failure_restores) ... ok
+test_fresh_spaces_homes_and_init (test_distribution.Distribution.test_fresh_spaces_homes_and_init) ... ok
+test_installed_uninstall_default_prefix (test_distribution.Distribution.test_installed_uninstall_default_prefix) ... ok
+test_legacy_upgrade_and_backup (test_distribution.Distribution.test_legacy_upgrade_and_backup) ... ok
+test_lock_and_symlink_prefix (test_distribution.Distribution.test_lock_and_symlink_prefix) ... ok
+test_manifest (test_distribution.Distribution.test_manifest) ... ok
+test_purge_refuses_registered (test_distribution.Distribution.test_purge_refuses_registered) ... ok
+test_release_conflict (test_distribution.Distribution.test_release_conflict) ... ok
+test_shell_gates (test_distribution.Distribution.test_shell_gates) ... ok
+test_symlinked_parent_paths (test_distribution.Distribution.test_symlinked_parent_paths) ... ok
+test_tampering_and_symlink (test_distribution.Distribution.test_tampering_and_symlink) ... ok
+test_uninstall (test_distribution.Distribution.test_uninstall) ... ok
+test_uninstall_removes_upgrade_backups (test_distribution.Distribution.test_uninstall_removes_upgrade_backups) ... ok
+test_upgrade_recovery_continues_after_path_error (test_distribution.Distribution.test_upgrade_recovery_continues_after_path_error) ... ok
+test_upgrade_rollback (test_distribution.Distribution.test_upgrade_rollback) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 26.830s
+
+OK

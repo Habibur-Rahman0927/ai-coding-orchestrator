@@ -1,0 +1,174 @@
+{
+  "date": "2026-11-25",
+  "stage": "final_after_workflow_resume_correction_and_expiry_assertion",
+  "source_revision": "c933c04063b16d6c47b430f512fadd26b9d1e0a1",
+  "source_note": "Working tree includes uncommitted QA changes. Source hashes captured after final browser run while browser harness and fixture were frozen.",
+  "source_sha256": {
+    "engine/lib/ccx_workspace/__init__.py": "a9f9f8db0ecc5537e94b12d55fe75d1ee83061eadbcf0efc236fceff0bdae3a6",
+    "engine/lib/ccx_workspace/auth.py": "a09c125cc2c53a969d5e6bcc16fe10ba0550115b955228b888241a2333283738",
+    "engine/lib/ccx_workspace/benchmark.py": "c8b3c42e9555eb55c88982c3c010786e85f732371201497d8f75b0ada984bcc6",
+    "engine/lib/ccx_workspace/chat.py": "4ed27936a7a6a5e48389949e006c7ea978d070c0c4a48d5d31a6393a3b24c2d4",
+    "engine/lib/ccx_workspace/cli.py": "8da29a14569ffd358d1cc58cababbf1656a0621975a6eab6403026b4ff1f855c",
+    "engine/lib/ccx_workspace/credentials.py": "be4fbb5a98d162398f0b404ba8e4a631dd2969844ae8cd9baa82f839e1d5abc6",
+    "engine/lib/ccx_workspace/diagnostics.py": "50335b15afc0878ee3be52a1f5e3f94533cf666c97160bd98fa9133b5444ddf5",
+    "engine/lib/ccx_workspace/mcp.py": "6c3253d7129fd5ccfdb8f07d01c692b7febe3a6ac3cbd0806f6070f29ee7a2d6",
+    "engine/lib/ccx_workspace/migration.py": "67bd925af211b69e1ca8bbf030f9f05c52114cb649d3a62ae2a9fc82410425e9",
+    "engine/lib/ccx_workspace/onboarding.py": "b8b85ef9394d144cfddec685f4546d519fb9e27b828f6ec6681d3cc1d81cbd33",
+    "engine/lib/ccx_workspace/providers.py": "1be5be8e30b42c6b74857d42f1cf771bb50d1fd3cdf228e8ac695cf3a12079b1",
+    "engine/lib/ccx_workspace/security.py": "86bf058bed6a9f83f377bb25b9d21b14efbd39d10d1ad8b4c204345b5017923e",
+    "engine/lib/ccx_workspace/server.py": "1795d4285efb8841a0a2af0d035a474e0c7db769365902f06d15cbba6c492a2a",
+    "engine/lib/ccx_workspace/service.py": "e43da3c7dfd8f839030fdb2147c004e4d2ee8306bf0947f830d67c8e1839c898",
+    "engine/lib/ccx_workspace/settings.py": "9141c67152f37480400fedb0af81e4bcad95494eb419b79f428ec3a37c446de4",
+    "engine/lib/ccx_workspace/store.py": "e34269d4da1e687f5d6b4ee8e49d2d7fbade5b8f51fb473481caa0377d0725da",
+    "engine/lib/ccx_workspace/tools.py": "ca0a03995ca958af3f6cc0ea52902a32733e780a5375c2819e5fffd60f804577",
+    "engine/lib/ccx_workspace/web/app.js": "e95b33ecefa55ac9a568c6cbd48346eb90310a764984f43b9033d2161e8d1667",
+    "engine/lib/ccx_workspace/web/index.html": "229ddeb2edc8fd9708760d762f0281bdd4bed88dbc711017b31a5572ff52a805",
+    "engine/lib/ccx_workspace/web/style.css": "3a8a830167ed78f203f24d218ccc725bd979886fc873aebf4aea06dd0b408434",
+    "engine/lib/ccx_workspace/workflows.py": "c9c25f7b1cff28c22bb73ad5caddfff551b3539de72e71a1711e9b3ef3fab927",
+    "engine/lib/ccx_platform.py": "38260e73529c3372e3c331582947ff3af9b2da3956f6c60d19e6512d5857a1ec",
+    "engine/releases/4.3.0/checksums.json": "baf11f728056d8f4a4b604c9a77f4c9faff8cd34ef29c5f1d148c375b3620942",
+    "tests/browser/test_workspace_cdp.cjs": "f6598bd7cd3151df54661c1c6bdd948f3f8c55a2353f24816cd59fa7b42f1d93",
+    "tests/browser/cdp_workspace_fixture.py": "7e9f3343f5bcb3f3c1fd614b091af40ea5b4013c5e0c128e54dba67b98c1d22a",
+    "tests/browser/test_workspace_browser.py": "8bed778f9e361f31c93ef006a41bfe0704d14dc08ef091c02e6c52c6284ba405"
+  },
+  "command": "node tests/browser/test_workspace_cdp.cjs --report=/tmp/ccx-phase4-cdp-browser.json",
+  "exit_code": 0,
+  "result": {
+    "status": "PASS",
+    "browser": "Chrome/144.0.7559.109",
+    "protocol": "1.3",
+    "sandbox_disabled": false,
+    "provider_mode": "deterministic_offline",
+    "installed_dependencies": false,
+    "elapsed_ms": 21390,
+    "checks": [
+      {
+        "name": "Bootstrap login and complete six-step setup with project preview/register/index",
+        "status": "PASS",
+        "elapsed_ms": 1433
+      },
+      {
+        "name": "Provider configuration and disposable session-only credential save/remove",
+        "status": "PASS",
+        "elapsed_ms": 696
+      },
+      {
+        "name": "Workflow UI approval gates, actual patch/test, independent rejection and correction, refresh",
+        "status": "PASS",
+        "elapsed_ms": 4826
+      },
+      {
+        "name": "Memory add/search and context assembly through rendered controls",
+        "status": "PASS",
+        "elapsed_ms": 968
+      },
+      {
+        "name": "Active workflow pause/resume/cancel and no completed status after cancellation",
+        "status": "PASS",
+        "elapsed_ms": 4624
+      },
+      {
+        "name": "Standalone chat consent, visible streaming, refresh, and exact session continuation",
+        "status": "PASS",
+        "elapsed_ms": 6804
+      },
+      {
+        "name": "Invalid project feedback, labelled controls, responsive layout, diagnostics",
+        "status": "PASS",
+        "elapsed_ms": 786
+      },
+      {
+        "name": "Logout persists across refresh, consumed bootstrap refused, expired sessions return login",
+        "status": "PASS",
+        "elapsed_ms": 460
+      }
+    ],
+    "page_errors": [],
+    "http_errors": [
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/api/projects/preview",
+        "status": 400
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/api/auth/bootstrap",
+        "status": 401
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 401
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 403
+      },
+      {
+        "path": "/api/auth/session",
+        "status": 401
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 401
+      }
+    ]
+  }
+}

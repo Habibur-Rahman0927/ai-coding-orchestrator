@@ -13,8 +13,8 @@ release is retained unchanged and remains the default. Do not use the old
 Linux-only runtime to claim macOS or Windows process supervision support.
 Explicitly select the candidate in an isolated project for evaluation.
 
-See [audit and prioritized implementation plan](CROSS-PLATFORM-AUDIT.md) and
-[measured verification report](CROSS-PLATFORM-RESULTS.md). A Windows runner,
+See audit and prioritized implementation plan (source checkout: `docs/CROSS-PLATFORM-AUDIT.md`; omitted from packages) and
+measured verification report (source checkout: `docs/CROSS-PLATFORM-RESULTS.md`; omitted from packages). A Windows runner,
 Windows client machine, and Linux containers must pass before full verification.
 No platform is marked VERIFIED by copying Linux release metadata.
 
