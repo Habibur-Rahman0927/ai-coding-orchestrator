@@ -1,0 +1,66 @@
+name: AI PR description
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: ai-pr-description-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  describe:
+    if: >-
+      vars.AI_PR_DESCRIPTION_ENABLED != 'false' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.type != 'Bot' &&
+      !endsWith(github.event.pull_request.user.login, '[bot]') &&
+      github.event.sender.type != 'Bot'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      # No checkout, external actions, PR code execution, artifacts, or caches.
+      # GITHUB_SHA for pull_request_target is the trusted base revision.
+      - name: Load automation from trusted base revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -I -B - <<'PY'
+          import base64, json, os, pathlib, re, urllib.request
+          try:
+              sha = os.environ['GITHUB_SHA']
+              repo = os.environ['GITHUB_REPOSITORY']
+              assert re.fullmatch(r'[0-9a-f]{40}', sha)
+              assert re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo)
+              url = 'https://api.github.com/repos/' + repo + '/contents/.github/scripts/ai_pr_description.py?ref=' + sha
+              req = urllib.request.Request(url, headers={
+                  'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28'})
+              # Refuse redirects rather than forwarding credentials elsewhere.
+              class NoRedirect(urllib.request.HTTPRedirectHandler):
+                  def redirect_request(self, *args, **kwargs):
+                      return None
+              with urllib.request.build_opener(NoRedirect).open(req, timeout=30) as response:
+                  item = json.loads(response.read(200000))
+              assert item['type'] == 'file' and item['encoding'] == 'base64'
+              pathlib.Path(os.environ['RUNNER_TEMP'], 'ai_pr_description.py').write_bytes(base64.b64decode(item['content']))
+          except Exception:
+              print('Trusted automation unavailable; description unchanged.')
+              raise SystemExit(1)
+          PY
+      - name: Generate and update managed description
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_MODEL: ${{ vars.MINIMAX_MODEL || 'MiniMax-M3.1-Flash' }}
+          AI_PR_MAX_INPUT_TOKENS: ${{ vars.AI_PR_MAX_INPUT_TOKENS || '240000' }}
+          AI_PR_MAX_OUTPUT_TOKENS: ${{ vars.AI_PR_MAX_OUTPUT_TOKENS || '40000' }}
+        run: python3 -I -B "$RUNNER_TEMP/ai_pr_description.py"

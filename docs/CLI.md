@@ -1,4 +1,4 @@
-# Claude-Codex Orchestrator CLI
+# AI Orchestrator CLI
 
 On non-Linux hosts, `init`, `adopt`, `update`, and `migrate-v3` refuse Linux-only payloads
 4.0.0 and 4.1.0 before any backup or write, including dry runs. The default
@@ -14,7 +14,7 @@ For the unpublished 4.3.0 cross-platform candidate, see the
 Engine 4.3.0; CLI/project payload 4.1.0. `--version` reports CLI_VERSION;
 `versions` includes `engine_version`, and `doctor` prints both versions.
 
-`orchestrator` installs and manages the Claude-Codex orchestration layer in Git
+`orchestrator` installs and manages the AI orchestration layer in Git
 projects. The engine lives in `~/.local/share/claude-codex-orchestrator`; the
 command is a symlink at `~/.local/bin/orchestrator`.
 
