@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 from pathlib import Path
 import unittest
 from unittest import mock
@@ -292,6 +293,16 @@ class AutomationTests(unittest.TestCase):
         with self.assertRaises(ai.SafeFailure):
             self.run_task()
         self.assertFalse(self.client.calls)
+
+    def test_workflow_default_budgets_allow_generation(self):
+        workflow = (ROOT / '.github/workflows/ai-pr-description.yml').read_text()
+        for name in ('AI_PR_MAX_INPUT_TOKENS', 'AI_PR_MAX_OUTPUT_TOKENS'):
+            match = re.search(r'vars\.' + name + r"\s*\|\|\s*'([0-9]+)'", workflow)
+            self.assertIsNotNone(match, name)
+            self.env[name] = match.group(1)
+        self.assertIn('updated', self.run_task())
+        self.assertEqual(self.client.calls[0]['max_completion_tokens'],
+                         int(self.env['AI_PR_MAX_OUTPUT_TOKENS']))
 
     def test_minimax_request_contract(self):
         self.env['MINIMAX_MODEL'] = 'MiniMax-M3.1-Flash'

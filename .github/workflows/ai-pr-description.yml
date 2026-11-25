@@ -61,6 +61,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           MINIMAX_MODEL: ${{ vars.MINIMAX_MODEL || 'MiniMax-M3.1-Flash' }}
-          AI_PR_MAX_INPUT_TOKENS: ${{ vars.AI_PR_MAX_INPUT_TOKENS || '240000' }}
-          AI_PR_MAX_OUTPUT_TOKENS: ${{ vars.AI_PR_MAX_OUTPUT_TOKENS || '40000' }}
+          AI_PR_MAX_INPUT_TOKENS: ${{ vars.AI_PR_MAX_INPUT_TOKENS || '24000' }}
+          AI_PR_MAX_OUTPUT_TOKENS: ${{ vars.AI_PR_MAX_OUTPUT_TOKENS || '4000' }}
         run: python3 -I -B "$RUNNER_TEMP/ai_pr_description.py"
