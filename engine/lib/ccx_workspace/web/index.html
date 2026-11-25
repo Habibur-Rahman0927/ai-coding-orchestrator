@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Orchestrator Workspace</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to workspace</a>
+  <section id="login" class="login-shell" aria-labelledby="login-title">
+    <div class="login-card">
+      <span class="brand-mark" aria-hidden="true">O</span>
+      <p class="eyebrow">YOUR LOCAL WORKSPACE</p>
+      <h1 id="login-title">Make the work<br>visible.</h1>
+      <p class="muted">Projects, useful context, and agent workflows in one place. Open the browser window launched by your workspace to sign in automatically.</p>
+      <form id="login-form">
+        <label for="token">Dashboard access token</label>
+        <input id="token" type="password" autocomplete="off" spellcheck="false" required minlength="32" placeholder="Paste from the private token file">
+        <p class="hint">Manual sign-in is a fallback. Run the workspace start command for a fresh automatic sign-in window. If using a token file, its value stays only in this tab’s memory.</p>
+        <button class="primary" type="submit">Open workspace</button>
+      </form>
+    </div>
+  </section>
+  <div id="workspace" class="app-shell" hidden>
+    <aside class="sidebar">
+      <a href="#overview" class="brand"><span class="brand-mark" aria-hidden="true">O</span><span>Orchestrator<small>WORKSPACE / V5</small></span></a>
+      <p class="nav-label">WORKSPACE</p>
+      <nav id="navigation" aria-label="Workspace navigation"></nav>
+      <div class="sidebar-bottom"><span class="local-indicator">Local connection</span><p>No public hosting.<br>Provider calls require approval.</p><button id="disconnect" class="quiet" type="button">Disconnect</button></div>
+    </aside>
+    <div class="content-shell">
+      <header class="topbar"><span id="breadcrumb">Workspace / Overview</span><div><span id="updated" class="hint"></span><button id="refresh" class="quiet" type="button">Refresh</button></div></header>
+      <main id="main" tabindex="-1"></main>
+      <footer>Local data. Explicit approvals. A record of what happened.</footer>
+    </div>
+  </div>
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

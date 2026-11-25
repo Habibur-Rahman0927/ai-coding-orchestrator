@@ -1,0 +1,11 @@
+{
+  "stdio_initialize": true,
+  "tool_discovery": true,
+  "project_memory_retrieval": true,
+  "tool_count": 16,
+  "human_approval_tool_exposed": false,
+  "native_codex_config_resolution": true,
+  "native_agent_invocation": false,
+  "provider_calls": 0,
+  "global_configuration_modified": false
+}

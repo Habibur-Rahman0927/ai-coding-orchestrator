@@ -1716,10 +1716,36 @@ def cmd_distribution_command(args):
         raise OrchestratorError('Distribution operation failed: ' + str(error), 1)
 
 
+def cmd_workspace(args):
+    from ccx_workspace.cli import main as workspace_main
+    arguments = (["--database", args.database] if args.database else []) + args.workspace_args
+    return workspace_main(arguments)
+
+
+def cmd_workspace_service(args):
+    from ccx_workspace.cli import main as workspace_main
+    arguments = (["--database", args.database] if args.database else []) + [args.action]
+    if args.action != "stop":
+        arguments += ["--port", str(args.port)]
+        if args.no_browser: arguments.append("--no-browser")
+        if args.background: arguments.append("--background")
+    return workspace_main(arguments)
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description="Claude-Codex Global Orchestrator")
     parser.add_argument("--version", action="version", version=CLI_VERSION)
     sub = parser.add_subparsers(dest="action", required=True)
+    workspace = sub.add_parser("workspace", help="V5 persistent intelligence and universal workflows")
+    workspace.add_argument("--database")
+    workspace.add_argument("workspace_args", nargs=argparse.REMAINDER)
+    for name in ("start", "stop", "restart", "dashboard"):
+        service = sub.add_parser(name, help="V5 local workspace " + name)
+        service.add_argument("--database")
+        if name != "stop":
+            service.add_argument("--port", type=int, default=8765)
+            service.add_argument("--no-browser", action="store_true")
+            service.add_argument("--background", action="store_true")
 
     def project_cmd(name, help_text):
         command = sub.add_parser(name, help=help_text)
@@ -1814,6 +1840,9 @@ def build_parser():
 
 
 COMMANDS = {
+    "workspace": cmd_workspace,
+    "start": cmd_workspace_service, "stop": cmd_workspace_service,
+    "restart": cmd_workspace_service, "dashboard": cmd_workspace_service,
     "migrate-v3": cmd_legacy_command, "archive-legacy": cmd_legacy_command,
     "distribution": cmd_distribution_command, "self-update": cmd_distribution_command,
     "self-rollback": cmd_distribution_command,

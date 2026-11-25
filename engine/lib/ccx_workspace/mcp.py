@@ -1,0 +1,120 @@
+"""Project-bound MCP stdio tool server. Human approval is intentionally absent.
+
+Protocol: https://modelcontextprotocol.io/specification/2025-11-25/server/tools
+No sockets, cloud registration, provider credentials or automatic live calls.
+"""
+import json
+import sys
+
+SCHEMAS={
+ 'discover_providers':{},
+ 'get_project_context':{'query':'string','budget':'integer'},
+ 'search_project_memory':{'query':'string'},
+ 'get_workflow_status':{'workflow_id':'string'},
+ 'create_workflow':{'objective':'string','criteria':'array','planner':'string','executor':'string','reviewer':'string'},
+ 'create_task':{'workflow_id':'string','title':'string','description':'string','executor':'string','reviewer':'string','depends_on':'array'},
+ 'delegate_task':{'workflow_id':'string','task_id':'string','to_provider':'string'},
+ 'pause_workflow':{'workflow_id':'string'},
+ 'resume_workflow':{'workflow_id':'string'},
+ 'run_workflow':{'workflow_id':'string'},
+ 'get_task_status':{'workflow_id':'string','task_id':'string'},
+ 'get_execution_results':{'workflow_id':'string'},
+ 'submit_review':{'workflow_id':'string','task_id':'string','review':'string'},
+ 'request_correction':{'workflow_id':'string','task_id':'string','reason':'string'},
+ 'verify_task':{'workflow_id':'string','task_id':'string'},
+ 'request_approval':{'workflow_id':'string','kind':'string','scope':'object','reason':'string'},
+}
+OPTIONAL = {'get_project_context':{'budget'}, 'create_workflow':{'planner','executor','reviewer'},
+            'create_task':{'description','executor','reviewer','depends_on'}}
+
+class Bridge:
+    def __init__(self,store,project_id,engine=None,registry=None):
+        store.project(project_id)
+        self.store,self.project_id=store,project_id
+        if engine is None:
+            from .workflows import WorkflowEngine
+            engine=WorkflowEngine(store)
+        if registry is None:
+            from .settings import registry_for
+            registry=registry_for(store)
+        self.engine,self.registry=engine,registry
+        self.initialized=False
+
+    def call(self,name,args):
+        if not isinstance(name,str) or name not in SCHEMAS: raise ValueError('Unknown or unauthorized tool')
+        spec=SCHEMAS[name]
+        if not isinstance(args,dict) or set(args)-set(spec): raise ValueError('Unexpected arguments')
+        for key,kind in spec.items():
+            if key not in args:
+                if key in OPTIONAL.get(name,set()):continue
+                raise ValueError('Missing required argument')
+            value=args[key]
+            if (kind=='string' and not isinstance(value,str)) or (kind=='integer' and type(value)!=int) or (kind=='array' and (not isinstance(value,list) or not all(isinstance(x,str) for x in value))) or (kind=='object' and not isinstance(value,dict)):
+                raise ValueError('Incorrect argument type')
+        if 'workflow_id' in args:
+            state=self.engine.status(args['workflow_id'])
+            if state.get('project_id')!=self.project_id:raise PermissionError('Workflow outside selected project')
+        if name=='discover_providers':return self.registry.discover()
+        if name=='get_project_context':return self.store.context(self.project_id,args['query'],args.get('budget',2000))
+        if name=='search_project_memory':return self.store.search(self.project_id,args['query'])
+        if name=='create_workflow':return self.engine.create(self.project_id,args['objective'],args['criteria'],providers={k:args[k] for k in ('planner','executor','reviewer') if k in args})
+        if name=='create_task':return self.engine.create_task(args['workflow_id'],args['title'],**{k:args[k] for k in ('description','executor','reviewer','depends_on') if k in args})
+        if name=='delegate_task':
+            if not any(task.get('id')==args['task_id'] for task in state.get('tasks',[])):
+                raise PermissionError('Task outside selected workflow')
+            return self.engine.delegate(args['task_id'],args['to_provider'])
+        if name=='get_workflow_status':return state
+        if name=='get_execution_results':return self.engine.action_results(args['workflow_id'])
+        if name in ('get_task_status','verify_task'):
+            task=self.engine.task_status(args['workflow_id'],args['task_id'])
+            if name=='verify_task': return self.engine.verify_task(args['workflow_id'],args['task_id'])
+            return task
+        if name=='submit_review':return self.engine.submit_review(args['workflow_id'],args['task_id'],args['review'])
+        if name=='request_correction':return self.engine.request_correction(args['workflow_id'],args['task_id'],args['reason'])
+        if name=='request_approval':return self.engine.request_approval(args['workflow_id'],args['kind'],args['scope'],args['reason'])
+        if name=='pause_workflow':return self.engine.pause(args['workflow_id'])
+        if name=='resume_workflow':return self.engine.resume(args['workflow_id'])
+        if name=='run_workflow':return self.engine.run(args['workflow_id'],self.registry)
+        raise ValueError('Unsupported tool')
+
+    def message(self,request):
+        mid=request.get('id')
+        if mid is None:return None
+        response={'jsonrpc':'2.0','id':mid}
+        try:
+            method=request.get('method')
+            if request.get('jsonrpc')!='2.0':raise ValueError('Invalid JSON-RPC version')
+            params=request.get('params',{})
+            if not isinstance(params,dict):raise ValueError('Request params must be an object')
+            if method=='initialize':
+                self.initialized=True
+                result={'protocolVersion':'2025-11-25','capabilities':{'tools':{'listChanged':False}},'serverInfo':{'name':'ccx-workspace','version':'5.0.0-dev'}}
+            elif not self.initialized:raise ValueError('Initialize first')
+            elif method=='ping':result={}
+            elif method=='tools/list':
+                result={'tools':[{'name':name,'description':name.replace('_',' ')+' within the explicitly selected project',
+                                  'inputSchema':{'type':'object','properties':{k:({'type':v,'items':{'type':'string'}} if v=='array' else {'type':v}) for k,v in schema.items()},'required':[k for k in schema if k not in OPTIONAL.get(name,set())],'additionalProperties':False}}
+                                  for name,schema in SCHEMAS.items()]}
+            elif method=='tools/call':
+                try:
+                    value=self.call(params.get('name'),params.get('arguments',{}))
+                    result={'content':[{'type':'text','text':json.dumps(value,ensure_ascii=True)}],'isError':False}
+                except (ValueError,KeyError,PermissionError,RuntimeError) as error:
+                    result={'content':[{'type':'text','text':'Operation refused: '+str(error)}],'isError':True}
+            else:raise ValueError('Unsupported method')
+            response['result']=result
+        except (ValueError,TypeError,KeyError):response['error']={'code':-32602,'message':'Invalid or unsupported request'}
+        return response
+
+def serve(store,project_id):
+    bridge=Bridge(store,project_id)
+    while True:
+        line=sys.stdin.readline(1048577)
+        if not line:break
+        if len(line)>1048576:raise ValueError('MCP request exceeds size limit')
+        try:
+            request=json.loads(line)
+            if not isinstance(request,dict):raise ValueError()
+            response=bridge.message(request)
+        except ValueError:response={'jsonrpc':'2.0','id':None,'error':{'code':-32700,'message':'Invalid JSON'}}
+        if response is not None:print(json.dumps(response,ensure_ascii=True),flush=True)

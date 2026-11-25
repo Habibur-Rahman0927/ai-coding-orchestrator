@@ -1,0 +1,68 @@
+{
+  "runs": [
+    {
+      "query": "routing_operation",
+      "baseline_bytes": 108286,
+      "optimized_bytes": 190,
+      "baseline_estimated_tokens": 27072,
+      "optimized_estimated_tokens": 48,
+      "retrieval_ms": 1.844,
+      "reference_count": 1,
+      "provider_reported_usage": null,
+      "cached_tokens": null,
+      "quality_measure": "source references and critical constraints retained; no live task-quality claim"
+    },
+    {
+      "query": "storage_operation",
+      "baseline_bytes": 108286,
+      "optimized_bytes": 190,
+      "baseline_estimated_tokens": 27072,
+      "optimized_estimated_tokens": 48,
+      "retrieval_ms": 1.515,
+      "reference_count": 1,
+      "provider_reported_usage": null,
+      "cached_tokens": null,
+      "quality_measure": "source references and critical constraints retained; no live task-quality claim"
+    },
+    {
+      "query": "recovery_operation",
+      "baseline_bytes": 108286,
+      "optimized_bytes": 193,
+      "baseline_estimated_tokens": 27072,
+      "optimized_estimated_tokens": 49,
+      "retrieval_ms": 1.79,
+      "reference_count": 1,
+      "provider_reported_usage": null,
+      "cached_tokens": null,
+      "quality_measure": "source references and critical constraints retained; no live task-quality claim"
+    }
+  ],
+  "baseline_bytes": 324858,
+  "optimized_bytes": 573,
+  "context_byte_reduction": 324285,
+  "context_byte_reduction_percent": 99.82,
+  "token_counts": "estimated, not provider-reported",
+  "cost_savings": null,
+  "comparison": "same indexed corpus and queries; baseline repeats full indexed context per query",
+  "fixture": "33 generated files: three targeted symbols, thirty unrelated documents",
+  "initial_index": {
+    "project_id": "43d0071479a5f951",
+    "updated": 33,
+    "unchanged": 0,
+    "deleted": 0,
+    "excluded": 0,
+    "bytes_read": 108254,
+    "duration_ms": 14.455
+  },
+  "repeated_index": {
+    "project_id": "43d0071479a5f951",
+    "updated": 0,
+    "unchanged": 33,
+    "deleted": 0,
+    "excluded": 0,
+    "bytes_read": 0,
+    "duration_ms": 4.63
+  },
+  "live_providers": false,
+  "scope": "Synthetic retrieval benchmark; not end-to-end task quality or billing"
+}
