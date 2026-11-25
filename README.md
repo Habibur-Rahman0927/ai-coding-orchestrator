@@ -1,6 +1,6 @@
-# Claude-Codex Orchestrator
+# AI Orchestrator
 
-A Python CLI that installs and manages Claude/Codex orchestration in Git projects.
+A local AI workspace and Python CLI for coordinating AI agents in Git projects.
 The engine manages verified project payloads, per-project approvals and backups;
 engine updates and project payload updates are separate operations.
 

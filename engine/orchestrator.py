@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude-Codex Global Orchestrator: project installation and management CLI.
+"""AI Orchestrator: project installation and management CLI.
 
 Every command that replaces or removes project files requires --yes.
 State (session mappings, workflows, logs) lives under
@@ -1733,7 +1733,7 @@ def cmd_workspace_service(args):
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="Claude-Codex Global Orchestrator")
+    parser = argparse.ArgumentParser(description="AI Orchestrator")
     parser.add_argument("--version", action="version", version=CLI_VERSION)
     sub = parser.add_subparsers(dest="action", required=True)
     workspace = sub.add_parser("workspace", help="V5 persistent intelligence and universal workflows")
