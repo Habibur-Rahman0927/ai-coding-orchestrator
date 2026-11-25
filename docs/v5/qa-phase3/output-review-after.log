@@ -1,0 +1,10 @@
+test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) ... ok
+test_registry_checks_accumulated_text_before_stream_callback (test_v5_phase3_output.OutputSecurityTests.test_registry_checks_accumulated_text_before_stream_callback) ... ok
+test_registry_refuses_sensitive_nested_provider_events (test_v5_phase3_output.OutputSecurityTests.test_registry_refuses_sensitive_nested_provider_events) ... ok
+test_workflow_checks_split_telemetry_from_registry (test_v5_phase3_output.OutputSecurityTests.test_workflow_checks_split_telemetry_from_registry) ... ok
+test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.655s
+
+OK

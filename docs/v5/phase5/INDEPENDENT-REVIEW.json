@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-25",
+  "reviewer_production_edits": false,
+  "test_edits": "Four focused regressions added to tests/test_v5_phase5_context.py",
+  "scope": "Context/memory/index policy, usage accounting/request envelope and engine correction resolution receipts",
+  "status": "APPROVED_WITH_DOCUMENTED_EXTERNAL_LIMITS",
+  "source_sha256": {
+    "store.py": "63c99bea554e9d56a1e3292081d29578f898ecfd957c79e3b59beaa37077821f",
+    "providers.py": "c33f94bb441626d9c891d8b9e31dd935ea24512ff54456e13f3838bf41823287",
+    "workflows.py": "dd0849291f8aa5396e9852fa79f72e3059d0cf1145c789e2e3bfdec5a6d24da5",
+    "benchmark.py": "99339ebe96e55a35591097060adcebc7420ec0de3fb408eb17c4d7ac36aea310"
+  },
+  "test_runs": [
+    {
+      "log": "context-independent.log",
+      "tests": 13,
+      "duration_seconds": 0.664,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    },
+    {
+      "log": "memory-independent.log",
+      "tests": 10,
+      "duration_seconds": 0.272,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    },
+    {
+      "log": "context-old-independent.log",
+      "tests": 9,
+      "duration_seconds": 1.166,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    },
+    {
+      "log": "storage-independent.log",
+      "tests": 11,
+      "duration_seconds": 0.505,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    },
+    {
+      "log": "usage-independent.log",
+      "tests": 6,
+      "duration_seconds": 0.52,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    },
+    {
+      "log": "learning-independent.log",
+      "tests": 2,
+      "duration_seconds": 0.553,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    },
+    {
+      "log": "workflows-independent.log",
+      "tests": 21,
+      "duration_seconds": 6.264,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    },
+    {
+      "log": "reliability-independent.log",
+      "tests": 21,
+      "duration_seconds": 3.219,
+      "result": "PASS",
+      "providers": "offline fixtures only"
+    }
+  ],
+  "extra_findings_corrected": [
+    "Exact path substring false match",
+    "Initial optional FTS availability missing backfill",
+    "Returning optional FTS with existing stale table missing rebuild"
+  ],
+  "live_provider_calls": 0,
+  "independent_test_count": 93,
+  "learning_fault_evidence": "LEARNING-INDEPENDENT-FAULT.json",
+  "role_priority_evidence": "context-independent.log: tight-budget planner/reviewer selection preserves critical instructions"
+}

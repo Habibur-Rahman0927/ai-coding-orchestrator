@@ -1,0 +1,151 @@
+test_command_output_credential_is_not_returned (test_v5_phase3_security.SecurityBoundaryTests.test_command_output_credential_is_not_returned) ... FAIL
+test_fifo_reads_are_rejected_without_blocking (test_v5_phase3_security.SecurityBoundaryTests.test_fifo_reads_are_rejected_without_blocking) ... 
+  test_fifo_reads_are_rejected_without_blocking (test_v5_phase3_security.SecurityBoundaryTests.test_fifo_reads_are_rejected_without_blocking) (mode='tool') ... FAIL
+  test_fifo_reads_are_rejected_without_blocking (test_v5_phase3_security.SecurityBoundaryTests.test_fifo_reads_are_rejected_without_blocking) (mode='store') ... FAIL
+test_historical_diff_credential_is_not_returned (test_v5_phase3_security.SecurityBoundaryTests.test_historical_diff_credential_is_not_returned) ... FAIL
+test_indexed_source_replaced_by_fifo_is_stale (test_v5_phase3_security.SecurityBoundaryTests.test_indexed_source_replaced_by_fifo_is_stale) ... FAIL
+test_patch_cannot_introduce_recognizable_credential (test_v5_phase3_security.SecurityBoundaryTests.test_patch_cannot_introduce_recognizable_credential) ... FAIL
+test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) ... 
+  test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='ghp_AAAA') ... FAIL
+  test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='github_p') ... FAIL
+  test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='password') ... FAIL
+  test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='api_key') ... FAIL
+
+======================================================================
+FAIL: test_command_output_credential_is_not_returned (test_v5_phase3_security.SecurityBoundaryTests.test_command_output_credential_is_not_returned)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 64, in test_command_output_credential_is_not_returned
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_fifo_reads_are_rejected_without_blocking (test_v5_phase3_security.SecurityBoundaryTests.test_fifo_reads_are_rejected_without_blocking) (mode='tool')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 87, in test_fifo_reads_are_rejected_without_blocking
+    result = subprocess.run([sys.executable, '-B', '-c', code,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 2116, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/usr/lib/python3.12/subprocess.py", line 1253, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['/usr/bin/python3', '-B', '-c', "import sys\nsys.path.insert(0, sys.argv[1])\nfrom pathlib import Path\nfrom ccx_workspace.tools import ScopedTools\nfrom ccx_workspace.store import read_source\ntry:\n    if sys.argv[3] == 'tool':\n        ScopedTools(Path(sys.argv[2]), ['read_file']).execute('read_file', {'path':'input.txt'})\n    else:\n        read_source(Path(sys.argv[2]), 'input.txt')\nexcept PermissionError:\n    raise SystemExit(0)\nraise SystemExit(1)\n", '/tmp/ccx-v5-phase3/engine/lib', '/tmp/ccx-phase3-security-86moa9r3/project', 'tool']' timed out after 3 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 91, in test_fifo_reads_are_rejected_without_blocking
+    self.fail('FIFO read blocked instead of rejecting nonregular file')
+AssertionError: FIFO read blocked instead of rejecting nonregular file
+
+======================================================================
+FAIL: test_fifo_reads_are_rejected_without_blocking (test_v5_phase3_security.SecurityBoundaryTests.test_fifo_reads_are_rejected_without_blocking) (mode='store')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 87, in test_fifo_reads_are_rejected_without_blocking
+    result = subprocess.run([sys.executable, '-B', '-c', code,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 2116, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/usr/lib/python3.12/subprocess.py", line 1253, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['/usr/bin/python3', '-B', '-c', "import sys\nsys.path.insert(0, sys.argv[1])\nfrom pathlib import Path\nfrom ccx_workspace.tools import ScopedTools\nfrom ccx_workspace.store import read_source\ntry:\n    if sys.argv[3] == 'tool':\n        ScopedTools(Path(sys.argv[2]), ['read_file']).execute('read_file', {'path':'input.txt'})\n    else:\n        read_source(Path(sys.argv[2]), 'input.txt')\nexcept PermissionError:\n    raise SystemExit(0)\nraise SystemExit(1)\n", '/tmp/ccx-v5-phase3/engine/lib', '/tmp/ccx-phase3-security-86moa9r3/project', 'store']' timed out after 3 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 91, in test_fifo_reads_are_rejected_without_blocking
+    self.fail('FIFO read blocked instead of rejecting nonregular file')
+AssertionError: FIFO read blocked instead of rejecting nonregular file
+
+======================================================================
+FAIL: test_historical_diff_credential_is_not_returned (test_v5_phase3_security.SecurityBoundaryTests.test_historical_diff_credential_is_not_returned)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 58, in test_historical_diff_credential_is_not_returned
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_indexed_source_replaced_by_fifo_is_stale (test_v5_phase3_security.SecurityBoundaryTests.test_indexed_source_replaced_by_fifo_is_stale)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 108, in test_indexed_source_replaced_by_fifo_is_stale
+    result = subprocess.run([sys.executable, '-B', '-c', code,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 2116, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/usr/lib/python3.12/subprocess.py", line 1253, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['/usr/bin/python3', '-B', '-c', "import sys\nsys.path.insert(0, sys.argv[1])\nfrom ccx_workspace.store import Store\nresult = Store(sys.argv[2]).search(sys.argv[3], 'needle')\nassert len(result) == 1 and result[0]['stale'] is True\n", '/tmp/ccx-v5-phase3/engine/lib', '/tmp/ccx-phase3-security-vhukiznx/state/workspace.sqlite', 'd2b34dd8833a773b']' timed out after 3 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 112, in test_indexed_source_replaced_by_fifo_is_stale
+    self.fail('Context freshness blocked on replaced FIFO')
+AssertionError: Context freshness blocked on replaced FIFO
+
+======================================================================
+FAIL: test_patch_cannot_introduce_recognizable_credential (test_v5_phase3_security.SecurityBoundaryTests.test_patch_cannot_introduce_recognizable_credential)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 48, in test_patch_cannot_introduce_recognizable_credential
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='ghp_AAAA')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 40, in test_read_and_search_match_index_secret_policy
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='github_p')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 40, in test_read_and_search_match_index_secret_policy
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='password')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 40, in test_read_and_search_match_index_secret_policy
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+======================================================================
+FAIL: test_read_and_search_match_index_secret_policy (test_v5_phase3_security.SecurityBoundaryTests.test_read_and_search_match_index_secret_policy) (family='api_key')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_security.py", line 40, in test_read_and_search_match_index_secret_policy
+    with self.assertRaises(PermissionError):
+AssertionError: PermissionError not raised
+
+----------------------------------------------------------------------
+Ran 6 tests in 9.315s
+
+FAILED (failures=10)

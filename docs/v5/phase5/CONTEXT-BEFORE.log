@@ -1,0 +1,85 @@
+test_concurrent_duplicate_submission_is_atomic (test_v5_phase5_context.ContextOptimizationTests.test_concurrent_duplicate_submission_is_atomic) ... FAIL
+test_dedup_does_not_revive_superseded_or_expired_record (test_v5_phase5_context.ContextOptimizationTests.test_dedup_does_not_revive_superseded_or_expired_record) ... ok
+test_distributed_symbol_snippets_have_original_line_references (test_v5_phase5_context.ContextOptimizationTests.test_distributed_symbol_snippets_have_original_line_references) ... FAIL
+test_exact_memory_dedup_preserves_evidence_and_scope (test_v5_phase5_context.ContextOptimizationTests.test_exact_memory_dedup_preserves_evidence_and_scope) ... FAIL
+test_exact_path_and_no_fts_fallback (test_v5_phase5_context.ContextOptimizationTests.test_exact_path_and_no_fts_fallback) ... ERROR
+test_policy_check_batched_and_fresh_ignore_respected (test_v5_phase5_context.ContextOptimizationTests.test_policy_check_batched_and_fresh_ignore_respected) ... FAIL
+test_rank_before_limit_recovers_rare_symbol (test_v5_phase5_context.ContextOptimizationTests.test_rank_before_limit_recovers_rare_symbol) ... FAIL
+test_same_content_touch_does_not_reparse_or_rewrite_search (test_v5_phase5_context.ContextOptimizationTests.test_same_content_touch_does_not_reparse_or_rewrite_search) ... FAIL
+test_tight_budget_constraints_and_stale_source (test_v5_phase5_context.ContextOptimizationTests.test_tight_budget_constraints_and_stale_source) ... ok
+
+======================================================================
+ERROR: test_exact_path_and_no_fts_fallback (test_v5_phase5_context.ContextOptimizationTests.test_exact_path_and_no_fts_fallback)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_context.py", line 31, in test_exact_path_and_no_fts_fallback
+    self.corpus();self.assertEqual(self.store.search(self.pid,'zz_target.py',limit=1)[0]['source'],'zz_target.py')
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^
+IndexError: list index out of range
+
+======================================================================
+FAIL: test_concurrent_duplicate_submission_is_atomic (test_v5_phase5_context.ContextOptimizationTests.test_concurrent_duplicate_submission_is_atomic)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_context.py", line 77, in test_concurrent_duplicate_submission_is_atomic
+    self.assertEqual(errors,[]);self.assertEqual(len(set(ids)),1)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 6 != 1
+
+======================================================================
+FAIL: test_distributed_symbol_snippets_have_original_line_references (test_v5_phase5_context.ContextOptimizationTests.test_distributed_symbol_snippets_have_original_line_references)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_context.py", line 46, in test_distributed_symbol_snippets_have_original_line_references
+    self.assertIn('first_evidence',ctx['content']);self.assertIn('last_evidence',ctx['content'])
+                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'last_evidence' not found in '\n[Untrusted reference: code.py; line 1; kind observed]\ndef begin_task():\n    return "first_evidence"\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler\n# filler'
+
+======================================================================
+FAIL: test_exact_memory_dedup_preserves_evidence_and_scope (test_v5_phase5_context.ContextOptimizationTests.test_exact_memory_dedup_preserves_evidence_and_scope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_context.py", line 58, in test_exact_memory_dedup_preserves_evidence_and_scope
+    self.assertEqual(len(set(ids)),1)
+AssertionError: 10 != 1
+
+======================================================================
+FAIL: test_policy_check_batched_and_fresh_ignore_respected (test_v5_phase5_context.ContextOptimizationTests.test_policy_check_batched_and_fresh_ignore_respected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_context.py", line 40, in test_policy_check_batched_and_fresh_ignore_respected
+    self.assertLessEqual(len(calls),1)
+AssertionError: 100 not less than or equal to 1
+
+======================================================================
+FAIL: test_rank_before_limit_recovers_rare_symbol (test_v5_phase5_context.ContextOptimizationTests.test_rank_before_limit_recovers_rare_symbol)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_context.py", line 29, in test_rank_before_limit_recovers_rare_symbol
+    self.assertIn('unique_evidence',ctx['content'])
+AssertionError: 'unique_evidence' not found in '\n[Untrusted reference: noise000.md; line 1; kind observed]\nledger ordinary discussion'
+
+======================================================================
+FAIL: test_same_content_touch_does_not_reparse_or_rewrite_search (test_v5_phase5_context.ContextOptimizationTests.test_same_content_touch_does_not_reparse_or_rewrite_search)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_context.py", line 52, in test_same_content_touch_does_not_reparse_or_rewrite_search
+    with patch.object(module.ast,'parse',side_effect=AssertionError('unchanged source must not parse')):result=self.store.index(self.pid)
+                                                                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<workspace>/engine/lib/ccx_workspace/store.py", line 229, in index
+    tree=ast.parse(body)
+         ^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1134, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1138, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/unittest/mock.py", line 1193, in _execute_mock_call
+    raise effect
+AssertionError: unchanged source must not parse
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.756s
+
+FAILED (failures=6, errors=1)

@@ -1,0 +1,2681 @@
+{
+  "scope": "Existing explicit policies, deterministic providers, actual scoped patches/tests/review fixtures. Not a live A/B/C token or human-effort comparison.",
+  "live_provider_calls": 0,
+  "provider_reported_tokens": null,
+  "human_effort": null,
+  "cost": null,
+  "groups": [
+    {
+      "workload": "C",
+      "policy": "standard",
+      "runs": 3,
+      "median_seconds": 0.409,
+      "provider_fixture_calls": [
+        4,
+        4,
+        4
+      ],
+      "correction_rounds": [
+        0,
+        0,
+        0
+      ],
+      "context_bytes_prepared": [
+        4702,
+        4702,
+        4702
+      ],
+      "synthetic_approval_actions": [
+        4,
+        4,
+        4
+      ],
+      "all_acceptance_passed": true
+    },
+    {
+      "workload": "C",
+      "policy": "single_task",
+      "runs": 3,
+      "median_seconds": 0.345,
+      "provider_fixture_calls": [
+        3,
+        3,
+        3
+      ],
+      "correction_rounds": [
+        0,
+        0,
+        0
+      ],
+      "context_bytes_prepared": [
+        3525,
+        3525,
+        3525
+      ],
+      "synthetic_approval_actions": [
+        4,
+        4,
+        4
+      ],
+      "all_acceptance_passed": true
+    },
+    {
+      "workload": "A",
+      "policy": "standard",
+      "runs": 1,
+      "median_seconds": 0.588,
+      "provider_fixture_calls": [
+        7
+      ],
+      "correction_rounds": [
+        1
+      ],
+      "context_bytes_prepared": [
+        4535
+      ],
+      "synthetic_approval_actions": [
+        4
+      ],
+      "all_acceptance_passed": true
+    },
+    {
+      "workload": "A",
+      "policy": "single_task",
+      "runs": 1,
+      "median_seconds": 0.545,
+      "provider_fixture_calls": [
+        6
+      ],
+      "correction_rounds": [
+        1
+      ],
+      "context_bytes_prepared": [
+        4043
+      ],
+      "synthetic_approval_actions": [
+        4
+      ],
+      "all_acceptance_passed": true
+    }
+  ],
+  "runs": [
+    {
+      "workload": "C",
+      "name": "Local API handler failure contract (no HTTP listener)",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "standard",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "0d5a265f-1ea2-4cf2-8d68-56fcc28fa3e3",
+        "status": "COMPLETED",
+        "objective": "Preserve successful lookup responses and normalize transient upstream failures",
+        "criteria": [
+          "Successful lookup retains status 200 and name",
+          "Timeout and connection failures return status 503 and temporary upstream error",
+          "Legacy empty-string names remain supported"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 4,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "02f6ddcc-7a1d-437a-a8cc-07eb51240d17",
+            "provider": "pilot_executor",
+            "role": "planner",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "cb10444b-45a1-4021-85b1-48efd484c8a4",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 617,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2464,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "882b163c-1e0f-472e-8126-46d67bd3fe9c",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "a0219f1e-0956-4e10-9e38-bcb4f315ab6e",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 665,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2656,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "82ea686f-bfd5-4bf1-9dbc-42a8c3faea7b",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "a0219f1e-0956-4e10-9e38-bcb4f315ab6e",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 827,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 968,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2337,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1052
+          },
+          {
+            "action_id": "e9813093-29a4-4765-b50a-9fb67498e903",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "6473fc4f-aae4-458b-8e69-f52a416edad9",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 1000,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3997,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1296
+          }
+        ],
+        "role_totals": {
+          "planner": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1177,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "executor": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 2229,
+            "observable_history_bytes": 970,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1296,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 4702,
+        "observable_history_bytes_prepared": 974,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 4,
+          "output_tokens": 4,
+          "cached_tokens": 4,
+          "reasoning_tokens": 4
+        },
+        "local_tokens_accounted": 3356,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.255,
+        "correction_rounds": 0,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 0,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "0d5a265f-1ea2-4cf2-8d68-56fcc28fa3e3",
+      "session_ids": [
+        "cb10444b-45a1-4021-85b1-48efd484c8a4",
+        "a0219f1e-0956-4e10-9e38-bcb4f315ab6e",
+        "6473fc4f-aae4-458b-8e69-f52a416edad9"
+      ],
+      "provider_mock_calls": 4,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "planner",
+          "session_id": "cb10444b-45a1-4021-85b1-48efd484c8a4",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "a0219f1e-0956-4e10-9e38-bcb4f315ab6e",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "a0219f1e-0956-4e10-9e38-bcb4f315ab6e",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "6473fc4f-aae4-458b-8e69-f52a416edad9",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "api.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.409,
+      "final_source_hashes": {
+        "api.py": "d65b0369adc61fcd125958e81ca7a9c68b20dd3c0b5e1b74d15d6c93e47e5943"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 0
+    },
+    {
+      "workload": "C",
+      "name": "Local API handler failure contract (no HTTP listener)",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "standard",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "2fa3570f-d9d4-4e10-8163-06ad8033ad18",
+        "status": "COMPLETED",
+        "objective": "Preserve successful lookup responses and normalize transient upstream failures",
+        "criteria": [
+          "Successful lookup retains status 200 and name",
+          "Timeout and connection failures return status 503 and temporary upstream error",
+          "Legacy empty-string names remain supported"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 4,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "f456ebe3-5742-47ee-b90d-7140ef8b097b",
+            "provider": "pilot_executor",
+            "role": "planner",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "7b743915-017c-4e62-9cd5-7c95fdc8c0bd",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 617,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2464,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "71368f74-b7b9-40c4-85fc-53079a2a481e",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "42b6f571-9b07-4301-96cb-21d7d17e0f63",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 665,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2656,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "a4727207-dd9a-4ec1-b544-0176a61e9e36",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "42b6f571-9b07-4301-96cb-21d7d17e0f63",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 827,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 969,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2337,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1052
+          },
+          {
+            "action_id": "592ea225-e1b5-4abe-a5e5-a7f1cbe39be4",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "6ced9ad9-9d63-487e-8b11-4f879c027932",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 1000,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3997,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1296
+          }
+        ],
+        "role_totals": {
+          "planner": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1177,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "executor": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 2229,
+            "observable_history_bytes": 971,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1296,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 4702,
+        "observable_history_bytes_prepared": 975,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 4,
+          "output_tokens": 4,
+          "cached_tokens": 4,
+          "reasoning_tokens": 4
+        },
+        "local_tokens_accounted": 3356,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.257,
+        "correction_rounds": 0,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 0,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "2fa3570f-d9d4-4e10-8163-06ad8033ad18",
+      "session_ids": [
+        "7b743915-017c-4e62-9cd5-7c95fdc8c0bd",
+        "42b6f571-9b07-4301-96cb-21d7d17e0f63",
+        "6ced9ad9-9d63-487e-8b11-4f879c027932"
+      ],
+      "provider_mock_calls": 4,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "planner",
+          "session_id": "7b743915-017c-4e62-9cd5-7c95fdc8c0bd",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "42b6f571-9b07-4301-96cb-21d7d17e0f63",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "42b6f571-9b07-4301-96cb-21d7d17e0f63",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "6ced9ad9-9d63-487e-8b11-4f879c027932",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "api.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.392,
+      "final_source_hashes": {
+        "api.py": "d65b0369adc61fcd125958e81ca7a9c68b20dd3c0b5e1b74d15d6c93e47e5943"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 1
+    },
+    {
+      "workload": "C",
+      "name": "Local API handler failure contract (no HTTP listener)",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "standard",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "a5d9f703-c0d9-4f84-9f42-57b8d21ea24f",
+        "status": "COMPLETED",
+        "objective": "Preserve successful lookup responses and normalize transient upstream failures",
+        "criteria": [
+          "Successful lookup retains status 200 and name",
+          "Timeout and connection failures return status 503 and temporary upstream error",
+          "Legacy empty-string names remain supported"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 4,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "e95ea2a4-7ae7-41c9-bf20-3d5ef60c95ec",
+            "provider": "pilot_executor",
+            "role": "planner",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "05837295-64cb-43b1-8521-94b652738d17",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 617,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2464,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "b0914e10-c2e0-40b7-a5b6-e866f20ad142",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "22fb600d-febd-4427-8c4c-cd02d06f859d",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 665,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2656,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "8743966e-8280-4575-9354-00462a21e124",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "22fb600d-febd-4427-8c4c-cd02d06f859d",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 827,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 969,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2337,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1052
+          },
+          {
+            "action_id": "5b7aa2f7-13f0-4412-a8d5-28fda704c78a",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "ee5a6553-6631-4ce9-8af3-694ae10fae1e",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 1000,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3996,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1296
+          }
+        ],
+        "role_totals": {
+          "planner": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1177,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "executor": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 2229,
+            "observable_history_bytes": 971,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1296,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 4702,
+        "observable_history_bytes_prepared": 975,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 4,
+          "output_tokens": 4,
+          "cached_tokens": 4,
+          "reasoning_tokens": 4
+        },
+        "local_tokens_accounted": 3356,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.281,
+        "correction_rounds": 0,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 0,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "a5d9f703-c0d9-4f84-9f42-57b8d21ea24f",
+      "session_ids": [
+        "05837295-64cb-43b1-8521-94b652738d17",
+        "22fb600d-febd-4427-8c4c-cd02d06f859d",
+        "ee5a6553-6631-4ce9-8af3-694ae10fae1e"
+      ],
+      "provider_mock_calls": 4,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "planner",
+          "session_id": "05837295-64cb-43b1-8521-94b652738d17",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "22fb600d-febd-4427-8c4c-cd02d06f859d",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "22fb600d-febd-4427-8c4c-cd02d06f859d",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "ee5a6553-6631-4ce9-8af3-694ae10fae1e",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "api.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.409,
+      "final_source_hashes": {
+        "api.py": "d65b0369adc61fcd125958e81ca7a9c68b20dd3c0b5e1b74d15d6c93e47e5943"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 2
+    },
+    {
+      "workload": "C",
+      "name": "Local API handler failure contract (no HTTP listener)",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "single_task",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "7ca93be4-8bc1-4c13-a689-f90b13268610",
+        "status": "COMPLETED",
+        "objective": "Preserve successful lookup responses and normalize transient upstream failures",
+        "criteria": [
+          "Successful lookup retains status 200 and name",
+          "Timeout and connection failures return status 503 and temporary upstream error",
+          "Legacy empty-string names remain supported"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 3,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "df063fff-c237-4025-ba4d-add45b6fce6c",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "2b925133-271c-46b1-9358-23344d9a1fa5",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 648,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2589,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "6c09400f-1497-4385-91e3-08a42f499ab2",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "2b925133-271c-46b1-9358-23344d9a1fa5",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 810,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 969,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2270,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1052
+          },
+          {
+            "action_id": "0f03ae29-df3c-464e-8f78-d99644092434",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "5e353e4e-fd13-45f0-afb4-84b6d13669a3",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 984,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3931,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1296
+          }
+        ],
+        "role_totals": {
+          "executor": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 2229,
+            "observable_history_bytes": 971,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1296,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 3525,
+        "observable_history_bytes_prepared": 973,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 3,
+          "output_tokens": 3,
+          "cached_tokens": 3,
+          "reasoning_tokens": 3
+        },
+        "local_tokens_accounted": 2649,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.22,
+        "correction_rounds": 0,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 0,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "7ca93be4-8bc1-4c13-a689-f90b13268610",
+      "session_ids": [
+        "2b925133-271c-46b1-9358-23344d9a1fa5",
+        "5e353e4e-fd13-45f0-afb4-84b6d13669a3"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "2b925133-271c-46b1-9358-23344d9a1fa5",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "2b925133-271c-46b1-9358-23344d9a1fa5",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "5e353e4e-fd13-45f0-afb4-84b6d13669a3",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "api.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.345,
+      "final_source_hashes": {
+        "api.py": "d65b0369adc61fcd125958e81ca7a9c68b20dd3c0b5e1b74d15d6c93e47e5943"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 0
+    },
+    {
+      "workload": "C",
+      "name": "Local API handler failure contract (no HTTP listener)",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "single_task",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "5f42f7fc-84f6-424d-84b7-eb177e169aa3",
+        "status": "COMPLETED",
+        "objective": "Preserve successful lookup responses and normalize transient upstream failures",
+        "criteria": [
+          "Successful lookup retains status 200 and name",
+          "Timeout and connection failures return status 503 and temporary upstream error",
+          "Legacy empty-string names remain supported"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 3,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "aeee740f-80e8-4248-8480-4eee49396359",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "42506dda-66f8-403a-bc24-5571f20b5213",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 648,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2589,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "6fd9dffa-fbc9-48f4-9a8a-a722a8a9c8e4",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "42506dda-66f8-403a-bc24-5571f20b5213",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 810,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 969,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2270,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1052
+          },
+          {
+            "action_id": "1ab163de-c95c-4d38-a336-c53472fc2410",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "f142f56e-f220-44d1-9221-87f47cd2610d",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 983,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3930,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1296
+          }
+        ],
+        "role_totals": {
+          "executor": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 2229,
+            "observable_history_bytes": 971,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1296,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 3525,
+        "observable_history_bytes_prepared": 973,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 3,
+          "output_tokens": 3,
+          "cached_tokens": 3,
+          "reasoning_tokens": 3
+        },
+        "local_tokens_accounted": 2648,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.223,
+        "correction_rounds": 0,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 0,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "5f42f7fc-84f6-424d-84b7-eb177e169aa3",
+      "session_ids": [
+        "42506dda-66f8-403a-bc24-5571f20b5213",
+        "f142f56e-f220-44d1-9221-87f47cd2610d"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "42506dda-66f8-403a-bc24-5571f20b5213",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "42506dda-66f8-403a-bc24-5571f20b5213",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "f142f56e-f220-44d1-9221-87f47cd2610d",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "api.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.348,
+      "final_source_hashes": {
+        "api.py": "d65b0369adc61fcd125958e81ca7a9c68b20dd3c0b5e1b74d15d6c93e47e5943"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 1
+    },
+    {
+      "workload": "C",
+      "name": "Local API handler failure contract (no HTTP listener)",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "single_task",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "42cbb740-a58e-47da-a685-99d97b27d7b4",
+        "status": "COMPLETED",
+        "objective": "Preserve successful lookup responses and normalize transient upstream failures",
+        "criteria": [
+          "Successful lookup retains status 200 and name",
+          "Timeout and connection failures return status 503 and temporary upstream error",
+          "Legacy empty-string names remain supported"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 3,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "5bfe4d36-0ab4-4467-89c8-761089c653b6",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "3e82b1ad-4c91-4ede-961a-6226d84fe2f5",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 648,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2589,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "cb17211a53232db02721076cc1a60df901f20702ef553d28838bedacc64587af",
+            "context_bytes": 1177
+          },
+          {
+            "action_id": "f2b10a9b-0baf-4a4f-bae5-7b9b56a131cd",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "3e82b1ad-4c91-4ede-961a-6226d84fe2f5",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 810,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 969,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2270,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1052
+          },
+          {
+            "action_id": "f023e287-1fd0-4f9b-a6d6-f646208f4fae",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "02ee3ea1-f770-43bc-9825-15546123b881",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 983,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3930,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "c25f86dae0a6ac70718ed483d0a16963d67b0d9ed7386ad160f803d2c46d4f54",
+            "context_bytes": 1296
+          }
+        ],
+        "role_totals": {
+          "executor": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 2229,
+            "observable_history_bytes": 971,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 1296,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 3525,
+        "observable_history_bytes_prepared": 973,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 3,
+          "output_tokens": 3,
+          "cached_tokens": 3,
+          "reasoning_tokens": 3
+        },
+        "local_tokens_accounted": 2648,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.219,
+        "correction_rounds": 0,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 0,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "42cbb740-a58e-47da-a685-99d97b27d7b4",
+      "session_ids": [
+        "3e82b1ad-4c91-4ede-961a-6226d84fe2f5",
+        "02ee3ea1-f770-43bc-9825-15546123b881"
+      ],
+      "provider_mock_calls": 3,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "3e82b1ad-4c91-4ede-961a-6226d84fe2f5",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "3e82b1ad-4c91-4ede-961a-6226d84fe2f5",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "02ee3ea1-f770-43bc-9825-15546123b881",
+          "resumed": false
+        }
+      ],
+      "correction_rounds": 0,
+      "review_observations": [
+        {
+          "decision": "approve",
+          "file_checks": {
+            "api.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 1,
+      "verified_memory_records": 1,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.345,
+      "final_source_hashes": {
+        "api.py": "d65b0369adc61fcd125958e81ca7a9c68b20dd3c0b5e1b74d15d6c93e47e5943"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 2
+    },
+    {
+      "workload": "A",
+      "name": "Backend calculation defect and reviewer correction",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "standard",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "90b598ba-e103-45b0-8504-9c4a5051f410",
+        "status": "COMPLETED",
+        "objective": "Correct line totals including zero quantity without changing the function signature",
+        "criteria": [
+          "line_total multiplies price by quantity",
+          "zero quantity returns zero"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 7,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "b688965a-6335-4bd9-a14e-4895fe5768ab",
+            "provider": "pilot_executor",
+            "role": "planner",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "dd5674d8-e868-4ff6-b0b3-a698828a636c",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 362,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 1445,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "803b0d01abf0c4055cace162471b9ad54d8ec3f0697d1a959f5fdcbea59c8ae5",
+            "context_bytes": 492
+          },
+          {
+            "action_id": "74a4bf8e-ec78-4ac3-bcd0-cee346467e59",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 410,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 1636,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "803b0d01abf0c4055cace162471b9ad54d8ec3f0697d1a959f5fdcbea59c8ae5",
+            "context_bytes": 492
+          },
+          {
+            "action_id": "55efc9b0-e5f8-4411-b4e5-6d1b36752c7e",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 534,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 809,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 1325,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "6f2bfdadd63d28dee16a5d718fab1a366153eba68432438ff5c7c64aa1da478c",
+            "context_bytes": 373
+          },
+          {
+            "action_id": "e316a7e8-e7de-4b80-8beb-3f50c266c5cf",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "ce891569-fb01-4d54-8988-d4b0be3fd5f8",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 715,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2858,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "6f2bfdadd63d28dee16a5d718fab1a366153eba68432438ff5c7c64aa1da478c",
+            "context_bytes": 515
+          },
+          {
+            "action_id": "413cca14-caa3-452a-bb07-fb3456f698e6",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 1218,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 809,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 4062,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "6f2bfdadd63d28dee16a5d718fab1a366153eba68432438ff5c7c64aa1da478c",
+            "context_bytes": 993
+          },
+          {
+            "action_id": "dca4b94d-53e5-47c7-874e-1b01e11c67fa",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 1484,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2633,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3300,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "250c3e8738fd4181dbdf7672c72b62927027fc5188eedaa00d6c9c1b12faabf4",
+            "context_bytes": 628
+          },
+          {
+            "action_id": "f8d368f2-6a62-42b1-8066-50c7133736cf",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "ce891569-fb01-4d54-8988-d4b0be3fd5f8",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 925,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3698,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "9fa5c19891e08ef0f5610b0590b806df89a7f5e2ea914f558feeebde1da9f30f",
+            "initial_snapshot": "250c3e8738fd4181dbdf7672c72b62927027fc5188eedaa00d6c9c1b12faabf4",
+            "context_bytes": 1042
+          }
+        ],
+        "role_totals": {
+          "planner": {
+            "provider_calls": 1,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 1,
+              "output_tokens": 1,
+              "cached_tokens": 1,
+              "reasoning_tokens": 1
+            },
+            "context_bytes": 492,
+            "observable_history_bytes": 2,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "executor": {
+            "provider_calls": 4,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 4,
+              "output_tokens": 4,
+              "cached_tokens": 4,
+              "reasoning_tokens": 4
+            },
+            "context_bytes": 2486,
+            "observable_history_bytes": 4253,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 1557,
+            "observable_history_bytes": 4,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 4535,
+        "observable_history_bytes_prepared": 4259,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 7,
+          "output_tokens": 7,
+          "cached_tokens": 7,
+          "reasoning_tokens": 7
+        },
+        "local_tokens_accounted": 5996,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.461,
+        "correction_rounds": 1,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 1,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "90b598ba-e103-45b0-8504-9c4a5051f410",
+      "session_ids": [
+        "dd5674d8-e868-4ff6-b0b3-a698828a636c",
+        "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+        "ce891569-fb01-4d54-8988-d4b0be3fd5f8"
+      ],
+      "provider_mock_calls": 7,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "planner",
+          "session_id": "dd5674d8-e868-4ff6-b0b3-a698828a636c",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "ce891569-fb01-4d54-8988-d4b0be3fd5f8",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "1206b0dd-8b4a-4bff-b628-c9b0c1a31509",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "ce891569-fb01-4d54-8988-d4b0be3fd5f8",
+          "resumed": true
+        }
+      ],
+      "correction_rounds": 1,
+      "review_observations": [
+        {
+          "decision": "changes_requested",
+          "file_checks": {
+            "billing.py": false,
+            "test_acceptance.py": false
+          },
+          "engine_tests_passed": true
+        },
+        {
+          "decision": "approve",
+          "file_checks": {
+            "billing.py": true,
+            "test_acceptance.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0,
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 3,
+      "verified_memory_records": 2,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.588,
+      "final_source_hashes": {
+        "billing.py": "84eb1ef5b1c62599fcd131276c858abcb4674e51ee18fc9474e369ebd4197092",
+        "test_acceptance.py": "3eac8496e41ba317b654e41239921cd519f67b755079cf8dc84d0d52b3dde507"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 0
+    },
+    {
+      "workload": "A",
+      "name": "Backend calculation defect and reviewer correction",
+      "status": "COMPLETED",
+      "evidence_class": "MOCK_TESTED_WITH_REAL_LOCAL_EFFECTS",
+      "execution_policy": "single_task",
+      "context_mode": "retrieved",
+      "usage": {
+        "workflow_id": "1013776c-bd18-4b4f-9b84-450a7883cda6",
+        "status": "COMPLETED",
+        "objective": "Correct line totals including zero quantity without changing the function signature",
+        "criteria": [
+          "line_total multiplies price by quantity",
+          "zero quantity returns zero"
+        ],
+        "providers": {
+          "executor": "pilot_executor",
+          "planner": "pilot_executor",
+          "reviewer": "pilot_reviewer"
+        },
+        "context_mode": "retrieved",
+        "provider_calls": 6,
+        "all_roles_included": true,
+        "calls": [
+          {
+            "action_id": "aa30fd87-8606-49c7-8b3f-dccb5e610a97",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 395,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 1575,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "803b0d01abf0c4055cace162471b9ad54d8ec3f0697d1a959f5fdcbea59c8ae5",
+            "context_bytes": 492
+          },
+          {
+            "action_id": "d9457ce2-f046-4041-af26-74275fc5e465",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 518,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 808,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 1264,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "6f2bfdadd63d28dee16a5d718fab1a366153eba68432438ff5c7c64aa1da478c",
+            "context_bytes": 373
+          },
+          {
+            "action_id": "81c2d914-007f-4a62-9f2f-80c7f7a83604",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "a0113ae4-855e-4f3d-a311-900c5dec24c2",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 700,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 2798,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "6f2bfdadd63d28dee16a5d718fab1a366153eba68432438ff5c7c64aa1da478c",
+            "context_bytes": 515
+          },
+          {
+            "action_id": "8d11c17a-541a-4265-9d46-6eba0f7a0e82",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 1203,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 808,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 4002,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "6f2bfdadd63d28dee16a5d718fab1a366153eba68432438ff5c7c64aa1da478c",
+            "context_bytes": 993
+          },
+          {
+            "action_id": "0adcaee5-80f2-423d-8b41-10b28ddfa656",
+            "provider": "pilot_executor",
+            "role": "executor",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 1475,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2632,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3265,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "250c3e8738fd4181dbdf7672c72b62927027fc5188eedaa00d6c9c1b12faabf4",
+            "context_bytes": 628
+          },
+          {
+            "action_id": "b693253c-7033-4a35-8c4c-6df576cf163e",
+            "provider": "pilot_reviewer",
+            "role": "reviewer",
+            "state": "COMPLETED",
+            "model": "deterministic-local-fixture",
+            "offline_mock": true,
+            "session_id": "a0113ae4-855e-4f3d-a311-900c5dec24c2",
+            "usage": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            },
+            "usage_accounting": "estimated_utf8_bytes_div4",
+            "context_accounting": {
+              "estimated_input_tokens": 910,
+              "measurement": "local UTF-8 bytes/4 estimate; adapter/native overhead not exactly observable",
+              "native_history_occupancy": "unknown",
+              "observable_history_bytes": 2,
+              "output_reserved_tokens": 4096,
+              "prompt_bytes": 3637,
+              "request_budget_tokens": 32768,
+              "safety_reserve_tokens": 128
+            },
+            "execution_contract_hash": "41fed6e437f8d21e52a886ac93ad5be8e39e142b1f295ea08fca1d8c120d5603",
+            "initial_snapshot": "250c3e8738fd4181dbdf7672c72b62927027fc5188eedaa00d6c9c1b12faabf4",
+            "context_bytes": 1042
+          }
+        ],
+        "role_totals": {
+          "executor": {
+            "provider_calls": 4,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 4,
+              "output_tokens": 4,
+              "cached_tokens": 4,
+              "reasoning_tokens": 4
+            },
+            "context_bytes": 2486,
+            "observable_history_bytes": 4250,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          },
+          "reviewer": {
+            "provider_calls": 2,
+            "reported_partial_totals": {
+              "input_tokens": 0,
+              "output_tokens": 0,
+              "cached_tokens": 0,
+              "reasoning_tokens": 0
+            },
+            "missing_usage_calls": {
+              "input_tokens": 2,
+              "output_tokens": 2,
+              "cached_tokens": 2,
+              "reasoning_tokens": 2
+            },
+            "context_bytes": 1557,
+            "observable_history_bytes": 4,
+            "reported_totals": {
+              "input_tokens": null,
+              "output_tokens": null,
+              "cached_tokens": null,
+              "reasoning_tokens": null
+            }
+          }
+        },
+        "context_bytes_prepared": 4043,
+        "observable_history_bytes_prepared": 4254,
+        "scoped_file_reads": 0,
+        "repeated_scoped_file_reads": 0,
+        "native_file_reads": null,
+        "approval_events": 4,
+        "recovery_events": 0,
+        "human_effort_measured": false,
+        "reported_totals": {
+          "input_tokens": null,
+          "output_tokens": null,
+          "cached_tokens": null,
+          "reasoning_tokens": null
+        },
+        "reported_partial_totals": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "cached_tokens": 0,
+          "reasoning_tokens": 0
+        },
+        "missing_usage_calls": {
+          "input_tokens": 6,
+          "output_tokens": 6,
+          "cached_tokens": 6,
+          "reasoning_tokens": 6
+        },
+        "local_tokens_accounted": 5508,
+        "cost_accounting": "conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap",
+        "duration_seconds": 0.427,
+        "correction_rounds": 1,
+        "verification_success": true,
+        "live_execution": false,
+        "cost_savings": null
+      },
+      "workflow_verification_records": 1,
+      "verified_solution_records": 1,
+      "live_provider_calls": 0,
+      "live_provider_status": "BLOCKED_NO_AUTHORIZED_LIVE_RUN_IN_THIS_HARNESS",
+      "workflow_id": "1013776c-bd18-4b4f-9b84-450a7883cda6",
+      "session_ids": [
+        "71ae248c-7940-42df-8d60-e66cffea8978",
+        "a0113ae4-855e-4f3d-a311-900c5dec24c2"
+      ],
+      "provider_mock_calls": 6,
+      "calls": [
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "a0113ae4-855e-4f3d-a311-900c5dec24c2",
+          "resumed": false
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_executor",
+          "role": "executor",
+          "session_id": "71ae248c-7940-42df-8d60-e66cffea8978",
+          "resumed": true
+        },
+        {
+          "provider": "pilot_reviewer",
+          "role": "reviewer",
+          "session_id": "a0113ae4-855e-4f3d-a311-900c5dec24c2",
+          "resumed": true
+        }
+      ],
+      "correction_rounds": 1,
+      "review_observations": [
+        {
+          "decision": "changes_requested",
+          "file_checks": {
+            "billing.py": false,
+            "test_acceptance.py": false
+          },
+          "engine_tests_passed": true
+        },
+        {
+          "decision": "approve",
+          "file_checks": {
+            "billing.py": true,
+            "test_acceptance.py": true
+          },
+          "engine_tests_passed": true
+        }
+      ],
+      "acceptance_kind": "python_unittest_subprocess",
+      "browser_acceptance": null,
+      "baseline_correctness_exit_code": null,
+      "performance_before": null,
+      "performance_after": null,
+      "initial_acceptance_exit_code": 1,
+      "engine_acceptance_exit_codes": [
+        0,
+        0
+      ],
+      "final_acceptance_exit_code": 0,
+      "scoped_patch_count": 3,
+      "verified_memory_records": 2,
+      "fresh_controller_continuation": false,
+      "patch_replay_count_after_restart": null,
+      "database_integrity": "ok",
+      "fixture_approval_grants": 4,
+      "synthetic_operator_actions": 4,
+      "operator_measurement": "Harness-issued approval grants plus deliberate pause/resume; not measured human effort",
+      "duration_seconds": 0.545,
+      "final_source_hashes": {
+        "billing.py": "84eb1ef5b1c62599fcd131276c858abcb4674e51ee18fc9474e369ebd4197092",
+        "test_acceptance.py": "3eac8496e41ba317b654e41239921cd519f67b755079cf8dc84d0d52b3dde507"
+      },
+      "limitations": [
+        "Deterministic providers and source-comparison reviewer, not live model quality",
+        "No real tokens, cost savings, native session continuity or human superiority claimed",
+        "All source/runtime data were generated and removed by the fixture"
+      ],
+      "repetition": 0
+    }
+  ]
+}

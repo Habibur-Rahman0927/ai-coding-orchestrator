@@ -1,0 +1,8 @@
+test_installed_backend_excludes_mutation_and_releases_on_stop (test_v5_phase6_runtime.InstalledRuntimeTests.test_installed_backend_excludes_mutation_and_releases_on_stop) ... ok
+test_active_workflow_holds_shared_engine_lease_until_exit (test_v5_phase6_runtime.RuntimeMutationTests.test_active_workflow_holds_shared_engine_lease_until_exit) ... ok
+test_mutation_lock_refuses_new_workflow_before_dispatch (test_v5_phase6_runtime.RuntimeMutationTests.test_mutation_lock_refuses_new_workflow_before_dispatch) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 2.030s
+
+OK

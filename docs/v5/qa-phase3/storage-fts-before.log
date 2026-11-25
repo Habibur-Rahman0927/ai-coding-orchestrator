@@ -1,0 +1,42 @@
+test_backup_failure_removes_partial_destination_preserves_source (test_v5_phase3_storage.StorageFaultTests.test_backup_failure_removes_partial_destination_preserves_source) ... ok
+test_contended_writers_wait_then_preserve_all_records (test_v5_phase3_storage.StorageFaultTests.test_contended_writers_wait_then_preserve_all_records) ... ok
+test_corrupt_database_refused_without_replacing_evidence (test_v5_phase3_storage.StorageFaultTests.test_corrupt_database_refused_without_replacing_evidence) ... ok
+test_deleting_replacement_does_not_resurrect_superseded_decision (test_v5_phase3_storage.StorageFaultTests.test_deleting_replacement_does_not_resurrect_superseded_decision) ... ok
+test_deleting_supersession_chain_preserves_history_and_earlier_expiry (test_v5_phase3_storage.StorageFaultTests.test_deleting_supersession_chain_preserves_history_and_earlier_expiry) ... ok
+test_failed_schema_initialization_rolls_back_all_ddl (test_v5_phase3_storage.StorageFaultTests.test_failed_schema_initialization_rolls_back_all_ddl) ... ok
+test_killed_process_rolls_back_uncommitted_write (test_v5_phase3_storage.StorageFaultTests.test_killed_process_rolls_back_uncommitted_write) ... ok
+test_optional_fts_absence_falls_back_but_storage_errors_propagate (test_v5_phase3_storage.StorageFaultTests.test_optional_fts_absence_falls_back_but_storage_errors_propagate) ... 
+  test_optional_fts_absence_falls_back_but_storage_errors_propagate (test_v5_phase3_storage.StorageFaultTests.test_optional_fts_absence_falls_back_but_storage_errors_propagate) (message='database or disk is full') ... FAIL
+  test_optional_fts_absence_falls_back_but_storage_errors_propagate (test_v5_phase3_storage.StorageFaultTests.test_optional_fts_absence_falls_back_but_storage_errors_propagate) (message='database is locked') ... FAIL
+  test_optional_fts_absence_falls_back_but_storage_errors_propagate (test_v5_phase3_storage.StorageFaultTests.test_optional_fts_absence_falls_back_but_storage_errors_propagate) (message='database disk image is malformed') ... FAIL
+test_sqlite_disk_full_limit_rolls_back_partial_transaction (test_v5_phase3_storage.StorageFaultTests.test_sqlite_disk_full_limit_rolls_back_partial_transaction) ... ok
+test_unsupported_schema_refused_before_any_schema_write (test_v5_phase3_storage.StorageFaultTests.test_unsupported_schema_refused_before_any_schema_write) ... ok
+
+======================================================================
+FAIL: test_optional_fts_absence_falls_back_but_storage_errors_propagate (test_v5_phase3_storage.StorageFaultTests.test_optional_fts_absence_falls_back_but_storage_errors_propagate) (message='database or disk is full')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase3_storage.py", line 156, in test_optional_fts_absence_falls_back_but_storage_errors_propagate
+    with self.assertRaisesRegex(sqlite3.OperationalError, message):
+AssertionError: OperationalError not raised
+
+======================================================================
+FAIL: test_optional_fts_absence_falls_back_but_storage_errors_propagate (test_v5_phase3_storage.StorageFaultTests.test_optional_fts_absence_falls_back_but_storage_errors_propagate) (message='database is locked')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase3_storage.py", line 156, in test_optional_fts_absence_falls_back_but_storage_errors_propagate
+    with self.assertRaisesRegex(sqlite3.OperationalError, message):
+AssertionError: OperationalError not raised
+
+======================================================================
+FAIL: test_optional_fts_absence_falls_back_but_storage_errors_propagate (test_v5_phase3_storage.StorageFaultTests.test_optional_fts_absence_falls_back_but_storage_errors_propagate) (message='database disk image is malformed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase3_storage.py", line 156, in test_optional_fts_absence_falls_back_but_storage_errors_propagate
+    with self.assertRaisesRegex(sqlite3.OperationalError, message):
+AssertionError: OperationalError not raised
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.633s
+
+FAILED (failures=3)

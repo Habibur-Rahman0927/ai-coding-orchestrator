@@ -1,0 +1,20 @@
+test_apply_failure_restores (test_self_update.SelfUpdate.test_apply_failure_restores) ... ok
+test_apply_noop_downgrade_and_protected_data (test_self_update.SelfUpdate.test_apply_noop_downgrade_and_protected_data) ... ok
+test_archive_limits_invalid_format_and_requested_tag (test_self_update.SelfUpdate.test_archive_limits_invalid_format_and_requested_tag) ... ok
+test_build_deterministic_and_forbidden (test_self_update.SelfUpdate.test_build_deterministic_and_forbidden) ... ok
+test_build_rejects_private_material_and_in_tree_signers (test_self_update.SelfUpdate.test_build_rejects_private_material_and_in_tree_signers) ... ok
+test_config_and_plans (test_self_update.SelfUpdate.test_config_and_plans) ... ok
+test_lock_busy_and_bad_backup (test_self_update.SelfUpdate.test_lock_busy_and_bad_backup) ... ok
+test_missing_config_or_gh (test_self_update.SelfUpdate.test_missing_config_or_gh) ... ok
+test_remote_via_gh (test_self_update.SelfUpdate.test_remote_via_gh) ... ok
+test_rollback_reversible_and_failure (test_self_update.SelfUpdate.test_rollback_reversible_and_failure) ... ok
+test_tampered_archive_and_sums (test_self_update.SelfUpdate.test_tampered_archive_and_sums) ... ok
+test_unknown_key_and_missing_signature (test_self_update.SelfUpdate.test_unknown_key_and_missing_signature) ... ok
+test_unsafe_archive_members_and_manifest (test_self_update.SelfUpdate.test_unsafe_archive_members_and_manifest) ... ok
+test_unsigned_requires_both_controls (test_self_update.SelfUpdate.test_unsigned_requires_both_controls) ... ok
+test_verification_snapshots_external_inputs_once (test_self_update.SelfUpdate.test_verification_snapshots_external_inputs_once) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 21.373s
+
+OK

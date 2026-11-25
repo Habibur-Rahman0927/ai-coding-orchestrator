@@ -1,0 +1,53 @@
+{
+  "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "provider_calls": 0,
+  "runs": [
+    {
+      "files": 10,
+      "initial_index_ms": 10.928,
+      "repeat_index_ms": 5.534,
+      "one_file_index_ms": 7.593,
+      "initial_bytes_read": 320,
+      "repeat_bytes_read": 0,
+      "one_file_bytes_read": 35,
+      "one_file_updated": 1,
+      "context_median_ms": 5.778,
+      "context_bytes": 96,
+      "database_bytes": 81920
+    },
+    {
+      "files": 100,
+      "initial_index_ms": 42.701,
+      "repeat_index_ms": 18.275,
+      "one_file_index_ms": 19.657,
+      "initial_bytes_read": 3290,
+      "repeat_bytes_read": 0,
+      "one_file_bytes_read": 35,
+      "one_file_updated": 1,
+      "context_median_ms": 5.746,
+      "context_bytes": 96,
+      "database_bytes": 126976
+    },
+    {
+      "files": 1000,
+      "initial_index_ms": 454.246,
+      "repeat_index_ms": 151.655,
+      "one_file_index_ms": 142.66,
+      "initial_bytes_read": 33890,
+      "repeat_bytes_read": 0,
+      "one_file_bytes_read": 35,
+      "one_file_updated": 1,
+      "context_median_ms": 6.323,
+      "context_bytes": 96,
+      "database_bytes": 520192
+    }
+  ],
+  "limitations": [
+    "single measurement per size",
+    "generated tiny source files",
+    "context samples repeated five times",
+    "not live provider performance",
+    "file metadata discovery remains proportional to repository file count"
+  ]
+}

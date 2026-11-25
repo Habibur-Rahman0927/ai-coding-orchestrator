@@ -9,6 +9,7 @@ sys.dont_write_bytecode = True
 
 import argparse
 import contextlib
+import fnmatch
 import hashlib
 import json
 import os
@@ -25,6 +26,28 @@ from datetime import datetime, timezone
 # Isolated Python (-I) intentionally omits the script directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ccx_platform as portable
+
+
+# User-facing distribution documents only. Audit logs, fixture sessions, machine
+# reports and checkpoints remain in the development checkout, never installations.
+USER_DOCUMENTS = (
+    'CLI.md', 'CROSS-PLATFORM.md', 'MIGRATION-AND-RECOVERY.md', 'RELEASING.md',
+    'SECURITY.md', 'TEAM-INSTALL.md', 'TEAM-UPDATE.md', 'V5-DASHBOARD.md', 'V5-PROVIDERS.md',
+    'v5/ARCHITECTURE.md', 'v5/WORKSPACE.md', 'v5/PHASE2-START.md', 'v5/PHASE2-PROVIDERS.md',
+    'v5/RELEASE-CANDIDATE.md', 'v5/OPERATIONS.md', 'v5/DAILY-USE.md')
+
+
+def runtime_data_path(relative):
+    names=Path(relative).parts
+    patterns=('*.sqlite*','*.db','*.db-*','*.log','*.jsonl','auth.json','config.toml',
+              '.env*','*.pem','*.key','.credentials*','*credentials*.json','*credentials*.toml','id_rsa*','id_ed25519*')
+    return any(part.lower() in ('registry','backups','engine-backups','__pycache__')
+               or any(fnmatch.fnmatch(part.lower(),pattern) for pattern in patterns) for part in names)
+
+
+def user_documents(source):
+    return {'docs/'+name:target(source,'docs/'+name) for name in USER_DOCUMENTS
+            if (source/'docs'/name).exists() or (source/'docs'/name).is_symlink()}
 
 
 class InstallError(Exception):
@@ -142,7 +165,7 @@ def write_receipt(prefix, receipt):
 
 
 @contextlib.contextmanager
-def lock_engine(prefix):
+def lock_engine(prefix, shared=False):
     portable.validate_owner(prefix)
     portable.validate_permissions(prefix, mask=0o002)
     if os.name == 'nt':
@@ -154,12 +177,28 @@ def lock_engine(prefix):
         if os.name == 'nt':
             portable.secure_mode(lock, 0o600)
         try:
-            portable.flock(fd, portable.LOCK_EX | portable.LOCK_NB)
+            portable.flock(fd, (portable.LOCK_SH if shared else portable.LOCK_EX) | portable.LOCK_NB)
         except BlockingIOError:
             raise InstallError('Engine is busy', 75)
         yield
     finally:
         os.close(fd)
+
+
+@contextlib.contextmanager
+def workspace_runtime():
+    """Share the exact mutation lock for the lifetime of V5 code execution.
+
+    This is engine-scoped, so custom databases cannot bypass update exclusion.
+    Shared readers permit status/stop and independent database services together.
+    """
+    prefix=Path(__file__).resolve().parent.parent
+    with contextlib.ExitStack() as stack:
+        try:
+            stack.enter_context(lock_engine(prefix,shared=True))
+        except InstallError as error:
+            raise RuntimeError('Installed engine is busy with a code mutation; retry after it finishes') from error
+        yield
 
 
 def verify_hashes(base, manifest):
@@ -179,7 +218,10 @@ def engine_payload(src):
         result['uninstall.ps1'] = target(src, 'uninstall.ps1')
     for folder in ('lib', 'releases'):
         result.update({folder + '/' + k: v for k, v in files(src / 'engine' / folder).items()})
-    result.update({'docs/' + k: v for k, v in files(src / 'docs').items()})
+    result.update(user_documents(src))
+    for name in result:
+        if runtime_data_path(name):
+            raise InstallError('Runtime data is not an installation payload: '+name,6)
     return result
 
 

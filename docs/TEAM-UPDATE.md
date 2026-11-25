@@ -1,7 +1,7 @@
 # Team updates
 
 For the unpublished 4.3.0 cross-platform candidate, see the
-[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+[cross-platform guide](CROSS-PLATFORM.md) and verification report (source checkout: `docs/CROSS-PLATFORM-RESULTS.md`; omitted from packages).
 
 ## Engine updates
 

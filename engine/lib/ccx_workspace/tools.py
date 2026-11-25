@@ -18,7 +18,7 @@ import ccx_platform as platform
 OPERATIONS = frozenset(('list_directory', 'read_file', 'search', 'patch', 'run_command', 'git_diff'))
 DENIED_PARTS = frozenset(('.git', '.ssh', '.aws', '.codex', '.claude', '.ccx', 'node_modules', '__pycache__'))
 SECRET_NAME = re.compile(r'(?:secret|credential|token|private.?key)|^(?:\.env|id_rsa|id_ed25519)|\.(?:pem|key|p12|pfx)$', re.I)
-SECRET_CONTENT = re.compile(r'-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|\b(?:sk-[A-Za-z0-9_-]{16,}|AKIA[A-Z0-9]{16})|(?:api[_-]?key|password|secret)\s*[:=]\s*[\"\'][^\"\']{8,}', re.I)
+from .security import SECRET_CONTENT, read_regular_bytes
 MAX_FILE = 1024 * 1024
 MAX_OUTPUT = 65536
 
@@ -40,7 +40,7 @@ def safe_name(path):
 
 
 class ScopedTools:
-    def __init__(self, project, allowed_operations=(), approved_commands=None, exclusions=()):
+    def __init__(self, project, allowed_operations=(), approved_commands=None, exclusions=(), cancel_event=None):
         original = Path(project).absolute()
         if any(platform.is_link(p) for p in (original,) + tuple(original.parents)):
             raise PermissionError('Project link/reparse point refused')
@@ -48,6 +48,7 @@ class ScopedTools:
         if not self.project.is_dir():
             raise ValueError('Project must be a directory')
         platform.validate_permissions(self.project, mask=0o002)
+        self.cancel_event = cancel_event
         self.allowed = frozenset(allowed_operations)
         self.approved_commands = dict(approved_commands or {})
         self.exclusions = tuple(exclusions)
@@ -82,17 +83,7 @@ class ScopedTools:
         return path
 
     def _read(self, path):
-        flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_BINARY', 0)
-        fd = os.open(str(path), flags)
-        with os.fdopen(fd, 'rb') as stream:
-            info = os.fstat(stream.fileno())
-            if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_size > MAX_FILE:
-                raise PermissionError('Only bounded ordinary single-link files may be read')
-            if info.st_ino != path.stat().st_ino:
-                raise PermissionError('File replaced while opening')
-            data = stream.read(MAX_FILE + 1)
-        if len(data) > MAX_FILE:
-            raise ValueError('File exceeds tool size limit')
+        data = read_regular_bytes(path, MAX_FILE)
         text = data.decode('utf-8')
         if SECRET_CONTENT.search(text):
             raise PermissionError('Potential secret content refused')
@@ -117,6 +108,8 @@ class ScopedTools:
                         continue
 
     def execute(self, name, arguments):
+        if self.cancel_event is not None and self.cancel_event.is_set():
+            raise InterruptedError("Workflow interrupted before tool dispatch")
         self._authorize(name)
         if not isinstance(arguments, dict):
             raise ValueError('Tool arguments must be an object')
@@ -239,6 +232,8 @@ class ScopedTools:
         directory = self._path(cwd, allow_root=True)
         if not directory.is_dir():
             raise ValueError('Approved command working directory unavailable')
+        if self.cancel_event is not None and self.cancel_event.is_set():
+            raise InterruptedError('Workflow interrupted before command dispatch')
         process = subprocess.Popen(supervised_command(argv, timeout), cwd=str(directory),
                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         chunks, stop = queue.Queue(maxsize=16), threading.Event()
@@ -267,6 +262,10 @@ class ScopedTools:
         deadline = time.monotonic() + timeout + 30
         try:
             while True:
+                if self.cancel_event is not None and self.cancel_event.is_set():
+                    # The retained supervisor owns the child tree and performs
+                    # identity-safe cleanup on termination; never kill by name.
+                    raise InterruptedError('Workflow interrupted during approved command')
                 if time.monotonic() > deadline:
                     raise RuntimeError('Approved command supervisor exceeded cleanup deadline')
                 try:

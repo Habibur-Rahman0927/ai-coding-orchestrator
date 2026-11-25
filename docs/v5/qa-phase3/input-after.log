@@ -1,0 +1,12 @@
+test_exact_command_permissions_are_not_blanket_filtered (test_v5_phase3_inputs.WorkflowInputTests.test_exact_command_permissions_are_not_blanket_filtered) ... ok
+test_existing_advisory_input_boundaries_use_shared_detector (test_v5_phase3_inputs.WorkflowInputTests.test_existing_advisory_input_boundaries_use_shared_detector) ... ok
+test_nontext_task_description_rejected (test_v5_phase3_inputs.WorkflowInputTests.test_nontext_task_description_rejected) ... ok
+test_task_description_rejected_before_persistence (test_v5_phase3_inputs.WorkflowInputTests.test_task_description_rejected_before_persistence) ... ok
+test_task_title_rejected_before_persistence (test_v5_phase3_inputs.WorkflowInputTests.test_task_title_rejected_before_persistence) ... ok
+test_workflow_criterion_rejected_before_persistence (test_v5_phase3_inputs.WorkflowInputTests.test_workflow_criterion_rejected_before_persistence) ... ok
+test_workflow_objective_rejected_before_persistence (test_v5_phase3_inputs.WorkflowInputTests.test_workflow_objective_rejected_before_persistence) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.344s
+
+OK

@@ -1,0 +1,16 @@
+test_new_controls_require_authentication_origin_and_session_proof (test_v5_phase7_experience.ExperienceHTTPTests.test_new_controls_require_authentication_origin_and_session_proof) ... ok
+test_auto_uses_explicit_preset_without_provider_ranking (test_v5_phase7_experience.ExperienceTests.test_auto_uses_explicit_preset_without_provider_ranking) ... ok
+test_continue_requires_project_history_and_never_resumes_it (test_v5_phase7_experience.ExperienceTests.test_continue_requires_project_history_and_never_resumes_it) ... ok
+test_invalid_inputs_cannot_weaken_existing_security (test_v5_phase7_experience.ExperienceTests.test_invalid_inputs_cannot_weaken_existing_security) ... ok
+test_invalid_preferences_are_atomic_and_cannot_set_permissions (test_v5_phase7_experience.ExperienceTests.test_invalid_preferences_are_atomic_and_cannot_set_permissions) ... ok
+test_preferences_persist_in_database_without_provider_auth_changes (test_v5_phase7_experience.ExperienceTests.test_preferences_persist_in_database_without_provider_auth_changes) ... ok
+test_proposal_is_read_only_and_does_not_create_work (test_v5_phase7_experience.ExperienceTests.test_proposal_is_read_only_and_does_not_create_work) ... ok
+test_provider_reference_does_not_authorize_delegation (test_v5_phase7_experience.ExperienceTests.test_provider_reference_does_not_authorize_delegation) ... ok
+test_requested_pair_requires_explicit_collaboration_controls (test_v5_phase7_experience.ExperienceTests.test_requested_pair_requires_explicit_collaboration_controls) ... ok
+test_simultaneous_preference_updates_do_not_lose_favorites (test_v5_phase7_experience.ExperienceTests.test_simultaneous_preference_updates_do_not_lose_favorites) ... ok
+test_unavailable_provider_is_rejected_before_any_work (test_v5_phase7_experience.ExperienceTests.test_unavailable_provider_is_rejected_before_any_work) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.446s
+
+OK

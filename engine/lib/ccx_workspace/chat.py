@@ -4,6 +4,7 @@ import threading
 import time
 import uuid
 from .store import safe_text
+from .security import sensitive_content
 
 
 class Chat:
@@ -104,6 +105,8 @@ class Chat:
                 session_id=session,history=history,allowed_operations=['native_agent_access'] if record['provider'] in ('claude','codex') else [],
                 max_output_tokens=maximum,timeout=timeout,cancel_event=cancellation)
             for event in self.registry.get(record['provider']).execute(request):
+                if sensitive_content(event):
+                    raise ValueError('Recognizable sensitive provider event refused')
                 kind=event.get('type')
                 if kind=='text':output=event.get('text','') if event.get('final') else output+event.get('text','')
                 elif kind=='usage':usage.update(event.get('usage') or {})
@@ -115,6 +118,8 @@ class Chat:
                 elif kind=='completed':state='IDLE'
                 elif kind in ('timeout','cancelled'):state=kind.upper()
                 elif kind in ('error','tool_call','tool_calls'):state='FAILED'
+                if sensitive_content(output) or sensitive_content(history) or sensitive_content(usage):
+                    raise ValueError('Recognizable sensitive provider output refused')
                 if len(output)>65536:
                     cancellation.set();state='OUTPUT_LIMIT';output=output[:65536];break
                 if time.monotonic()-last_flush>.2:
@@ -122,6 +127,9 @@ class Chat:
                     last_flush=time.monotonic()
         except Exception:
             state='FAILED'
+            if sensitive_content(output):output=''
+            if sensitive_content(history):history=[]
+            if sensitive_content(usage):usage={}
             if not output:output='The provider call did not complete. Check provider diagnostics; this message is not automatically retried.'
         finally:
             with self.store.connect() as db:

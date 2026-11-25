@@ -1,0 +1,76 @@
+{
+  "date": "2026-11-25",
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "FAIL",
+      "elapsed_ms": 16715,
+      "groups_passed": 1,
+      "error": "Timed out: click Providers",
+      "assessment": "Harness navigation-name matching included aria-hidden icon text; corrected accessible-text matching.",
+      "page_errors": []
+    },
+    {
+      "attempt": 2,
+      "status": "FAIL",
+      "elapsed_ms": 65929,
+      "groups_passed": 2,
+      "error": "Timed out: workflow COMPLETED",
+      "assessment": "Workflow completion timeout; harness reload sequencing was strengthened. Later attempt isolated offline-registry replacement.",
+      "page_errors": []
+    },
+    {
+      "attempt": 3,
+      "status": "FAIL",
+      "elapsed_ms": 17253,
+      "groups_passed": 2,
+      "error": "Timed out: created workflow",
+      "assessment": "Harness navigation raced page rendering and toggled initially-open workflow details closed.",
+      "page_errors": []
+    },
+    {
+      "attempt": 4,
+      "status": "FAIL",
+      "elapsed_ms": 18267,
+      "groups_passed": 2,
+      "error": "Timed out: click Create workflow",
+      "assessment": "Harness targeted a hidden submit button after toggling details closed; corrected navigation wait and visible-control checks.",
+      "page_errors": []
+    },
+    {
+      "attempt": 5,
+      "status": "FAIL",
+      "elapsed_ms": 64608,
+      "groups_passed": 2,
+      "error": "Timed out: workflow COMPLETED",
+      "assessment": "Credential changes rebuilt the injected registry. Production correctly blocked billable dispatch; fixture registry factory pinned offline.",
+      "page_errors": []
+    },
+    {
+      "attempt": 6,
+      "status": "FAIL",
+      "elapsed_ms": 39607,
+      "groups_passed": 7,
+      "error": "Timed out: notice expired or was already used",
+      "assessment": "Harness added URL query parameters to force navigation. Server correctly rejected noncanonical path400; now navigates through about:blank.",
+      "page_errors": []
+    },
+    {
+      "attempt": 7,
+      "status": "PASS",
+      "elapsed_ms": 24887,
+      "groups_passed": 8,
+      "assessment": "Preliminary pass. Final run required after workflow correction and stronger expiry completion assertion."
+    },
+    {
+      "attempt": 8,
+      "status": "PASS",
+      "elapsed_ms": 21390,
+      "groups_passed": 8,
+      "assessment": "Final frozen harness after workflow correction; expiry requires proof removal and observed auth/session401."
+    }
+  ],
+  "live_provider_calls": 0,
+  "installed_dependencies": false,
+  "sandbox_disabled": false
+}

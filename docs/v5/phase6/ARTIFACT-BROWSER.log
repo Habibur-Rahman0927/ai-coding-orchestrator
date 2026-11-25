@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "browser": "Chrome/144.0.7559.109",
+  "sandbox_disabled": false,
+  "dependency_installs": false,
+  "product_installation": "disposable local prefix only",
+  "provider_action_records": 0,
+  "live_provider_operations_requested": false,
+  "elapsed_ms": 3554,
+  "checks": [
+    {
+      "name": "Installed launcher starts actual backend and browser completes setup/project indexing",
+      "status": "PASS",
+      "elapsed_ms": 1427
+    },
+    {
+      "name": "Actual installed backend restart preserves setup and project across fresh browser bootstrap",
+      "status": "PASS",
+      "elapsed_ms": 428
+    },
+    {
+      "name": "Isolated uninstall removes launcher and preserves registered project knowledge/database",
+      "status": "PASS",
+      "elapsed_ms": 714
+    }
+  ],
+  "page_errors": []
+}
+PASS Installed launcher starts actual backend and browser completes setup/project indexing
+PASS Actual installed backend restart preserves setup and project across fresh browser bootstrap
+PASS Isolated uninstall removes launcher and preserves registered project knowledge/database

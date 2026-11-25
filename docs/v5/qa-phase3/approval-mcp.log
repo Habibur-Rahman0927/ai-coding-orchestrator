@@ -1,0 +1,10 @@
+test_cli_budget_delegate_failover_and_revoke_controls (test_v5_mcp.MCPTests.test_cli_budget_delegate_failover_and_revoke_controls) ... ok
+test_delegate_is_bound_to_selected_workflow_and_project (test_v5_mcp.MCPTests.test_delegate_is_bound_to_selected_workflow_and_project) ... ok
+test_malformed_params_refused_without_losing_session (test_v5_mcp.MCPTests.test_malformed_params_refused_without_losing_session) ... ok
+test_mcp_and_cli_load_shared_provider_preferences (test_v5_mcp.MCPTests.test_mcp_and_cli_load_shared_provider_preferences) ... ok
+test_tools_require_initialization_and_cannot_grant_approval (test_v5_mcp.MCPTests.test_tools_require_initialization_and_cannot_grant_approval) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.340s
+
+OK

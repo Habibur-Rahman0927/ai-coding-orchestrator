@@ -1739,7 +1739,7 @@ def build_parser():
     workspace = sub.add_parser("workspace", help="V5 persistent intelligence and universal workflows")
     workspace.add_argument("--database")
     workspace.add_argument("workspace_args", nargs=argparse.REMAINDER)
-    for name in ("start", "stop", "restart", "dashboard"):
+    for name in ("open", "start", "stop", "restart", "dashboard"):
         service = sub.add_parser(name, help="V5 local workspace " + name)
         service.add_argument("--database")
         if name != "stop":
@@ -1842,6 +1842,7 @@ def build_parser():
 COMMANDS = {
     "workspace": cmd_workspace,
     "start": cmd_workspace_service, "stop": cmd_workspace_service,
+    "open": cmd_workspace_service,
     "restart": cmd_workspace_service, "dashboard": cmd_workspace_service,
     "migrate-v3": cmd_legacy_command, "archive-legacy": cmd_legacy_command,
     "distribution": cmd_distribution_command, "self-update": cmd_distribution_command,
@@ -1857,6 +1858,10 @@ COMMANDS = {
 
 
 def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "workspace":
+        from ccx_workspace.cli import main as workspace_main
+        return workspace_main(argv[1:])
     args = build_parser().parse_args(argv)
     try:
         return COMMANDS[args.action](args) or 0

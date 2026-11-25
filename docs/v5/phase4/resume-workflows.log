@@ -1,0 +1,26 @@
+test_all_six_cross_provider_delegation_directions (test_v5_workflows.WorkflowTests.test_all_six_cross_provider_delegation_directions) ... ok
+test_automatic_planning_and_task_relevant_context (test_v5_workflows.WorkflowTests.test_automatic_planning_and_task_relevant_context) ... ok
+test_checkpoint_replays_saved_result_without_repeating_executor (test_v5_workflows.WorkflowTests.test_checkpoint_replays_saved_result_without_repeating_executor) ... ok
+test_completed_test_checkpoint_is_reused_before_evidence_commit (test_v5_workflows.WorkflowTests.test_completed_test_checkpoint_is_reused_before_evidence_commit) ... ok
+test_concurrent_task_creation_cannot_exceed_count_budget (test_v5_workflows.WorkflowTests.test_concurrent_task_creation_cannot_exceed_count_budget) ... ok
+test_crash_after_test_dispatch_requires_recovery_without_reexecuting_agent (test_v5_workflows.WorkflowTests.test_crash_after_test_dispatch_requires_recovery_without_reexecuting_agent) ... ok
+test_custom_exclusions_are_not_fingerprinted (test_v5_workflows.WorkflowTests.test_custom_exclusions_are_not_fingerprinted) ... ok
+test_executor_claim_cannot_replace_real_test_evidence (test_v5_workflows.WorkflowTests.test_executor_claim_cannot_replace_real_test_evidence) ... ok
+test_failover_requires_transition_and_destination_sharing_approvals (test_v5_workflows.WorkflowTests.test_failover_requires_transition_and_destination_sharing_approvals) ... ok
+test_future_provider_does_not_require_core_edit (test_v5_workflows.WorkflowTests.test_future_provider_does_not_require_core_edit) ... ok
+test_independent_review_correction_loop_is_bounded_and_durable (test_v5_workflows.WorkflowTests.test_independent_review_correction_loop_is_bounded_and_durable) ... ok
+test_model_cannot_grant_approval_or_write_without_operator_scope (test_v5_workflows.WorkflowTests.test_model_cannot_grant_approval_or_write_without_operator_scope) ... ok
+test_multitask_plan_executes_all_steps_before_final_acceptance (test_v5_workflows.WorkflowTests.test_multitask_plan_executes_all_steps_before_final_acceptance) ... ok
+test_nonfinite_budget_and_unapproved_patch_are_rejected (test_v5_workflows.WorkflowTests.test_nonfinite_budget_and_unapproved_patch_are_rejected) ... ok
+test_project_lease_blocks_overlap_and_cancel_is_preserved (test_v5_workflows.WorkflowTests.test_project_lease_blocks_overlap_and_cancel_is_preserved) ... ok
+test_same_provider_requires_distinct_actual_review_session (test_v5_workflows.WorkflowTests.test_same_provider_requires_distinct_actual_review_session) ... ok
+test_sensitive_files_excluded_from_snapshot (test_v5_workflows.WorkflowTests.test_sensitive_files_excluded_from_snapshot) ... ok
+test_stale_review_snapshot_is_not_verification (test_v5_workflows.WorkflowTests.test_stale_review_snapshot_is_not_verification) ... ok
+test_task_depth_count_token_and_concurrency_guards (test_v5_workflows.WorkflowTests.test_task_depth_count_token_and_concurrency_guards) ... ok
+test_unknown_cost_is_reserved_not_silently_zero (test_v5_workflows.WorkflowTests.test_unknown_cost_is_reserved_not_silently_zero) ... ok
+test_unknown_provider_outcome_requires_explicit_recovery_not_auto_replay (test_v5_workflows.WorkflowTests.test_unknown_provider_outcome_requires_explicit_recovery_not_auto_replay) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 6.108s
+
+OK

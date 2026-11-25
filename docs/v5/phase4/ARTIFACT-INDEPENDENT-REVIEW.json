@@ -1,0 +1,50 @@
+{
+  "files": [
+    {
+      "file": "docs/v5/qa-phase3/storage-independent-review.log",
+      "prefix_replacements": 3,
+      "only_documented_prefix_changed": true,
+      "original_sha256": "ae68ad3d353582d360d9b5397d9acb937efd6a4297ad1d114314fc1e333e4556",
+      "current_sha256": "47bd9460de19263b2be0599e3793e6db23123706e923dec6bad16ea7dda98007"
+    },
+    {
+      "file": "docs/v5/qa-phase3/storage-fts-before.log",
+      "prefix_replacements": 3,
+      "only_documented_prefix_changed": true,
+      "original_sha256": "c86027ef013b11f0bf9c831448d74e184efda5da5d45a2b83ed76105713fa943",
+      "current_sha256": "ce84e6d8e711b53754fad2254b94dda867b9eae24c1e818653d73ec3ddcf5028"
+    },
+    {
+      "file": "docs/v5/qa-phase3/final-verified.log",
+      "prefix_replacements": 4,
+      "only_documented_prefix_changed": true,
+      "original_sha256": "704bf8be4e60cbb524be494b68f258670b2a38268a056ce803d4732031fd23ad",
+      "current_sha256": "547be38a6f14651904243945e7de7e8e9c91e32bf21d8591841d849c6321a125"
+    },
+    {
+      "file": "docs/v5/qa-phase3/storage-before.log",
+      "prefix_replacements": 3,
+      "only_documented_prefix_changed": true,
+      "original_sha256": "8d8367ad4420919b9adcb22aa45abb78af29d56e3a1f8ab20adb8b37fad887aa",
+      "current_sha256": "96a736c2e006c789845b5362fe377e387d0f6d7eabbb8880f26fdc6ab97f7a21"
+    },
+    {
+      "file": "docs/v5/qa-phase3/approval-before.log",
+      "prefix_replacements": 4,
+      "only_documented_prefix_changed": true,
+      "original_sha256": "336a876ba2349d88f648e6621e64d608565dc9e80ff154ebd370304355192aa4",
+      "current_sha256": "bbeac9c0baedcc7601801113c9380843dec2717b2e9377b9304a2f45250fbd81"
+    },
+    {
+      "file": "docs/v5/qa-phase3/final-expanded.log",
+      "prefix_replacements": 4,
+      "only_documented_prefix_changed": true,
+      "original_sha256": "44ca229709d6efe80edb1f922186ddded221acf621ab23f18ce9f0b3a0eab262",
+      "current_sha256": "1bc1d2af28d1e31cc0ec84d1b9b2bef27aa750e661f26a13659d6a4361987b9c"
+    }
+  ],
+  "all_exact": true,
+  "release_builder_matches_entry_checkpoint": true,
+  "hygiene_guard_review": "The log-specific change narrows a placeholder exception; existing sensitive filename, private-key and absolute-path checks remain active. Regression covers three usernames and relative workspace marker.",
+  "test_results_changed": false
+}

@@ -1,0 +1,43 @@
+{
+  "scope": "Local CLI checks only; fresh isolated configuration; no provider request or real credential modification",
+  "providers": [
+    {
+      "id": "codex",
+      "available": true,
+      "configured": true,
+      "version": "0.167.0",
+      "cli_responding": true,
+      "authentication": "authenticated_locally",
+      "connection_status": "configured",
+      "authentication_method": "native_cli",
+      "live_connection_tested": false,
+      "remediation": null
+    },
+    {
+      "id": "claude",
+      "available": false,
+      "configured": false,
+      "version": null,
+      "cli_responding": null,
+      "authentication": "unknown",
+      "connection_status": "not_installed",
+      "authentication_method": null,
+      "live_connection_tested": false,
+      "remediation": "Install the provider CLI, then reopen the workspace from a terminal that can find it."
+    },
+    {
+      "id": "minimax",
+      "available": false,
+      "configured": false,
+      "version": null,
+      "cli_responding": null,
+      "authentication": "unknown",
+      "connection_status": "not_configured",
+      "authentication_method": "environment",
+      "live_connection_tested": false,
+      "remediation": "Choose an explicit model and configure a credential through OS storage, session-only storage, or a named environment variable."
+    }
+  ],
+  "live_calls": 0,
+  "existing_user_workspace_configuration_inspected": false
+}

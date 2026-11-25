@@ -1,0 +1,23 @@
+test_active_workflow_holds_shared_engine_lease_until_exit (test_v5_phase6_runtime.RuntimeMutationTests.test_active_workflow_holds_shared_engine_lease_until_exit) ... FAIL
+test_mutation_lock_refuses_new_workflow_before_dispatch (test_v5_phase6_runtime.RuntimeMutationTests.test_mutation_lock_refuses_new_workflow_before_dispatch) ... FAIL
+
+======================================================================
+FAIL: test_active_workflow_holds_shared_engine_lease_until_exit (test_v5_phase6_runtime.RuntimeMutationTests.test_active_workflow_holds_shared_engine_lease_until_exit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase6_runtime.py", line 26, in test_active_workflow_holds_shared_engine_lease_until_exit
+    with self.assertRaises(install.InstallError):
+AssertionError: InstallError not raised
+
+======================================================================
+FAIL: test_mutation_lock_refuses_new_workflow_before_dispatch (test_v5_phase6_runtime.RuntimeMutationTests.test_mutation_lock_refuses_new_workflow_before_dispatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase6_runtime.py", line 35, in test_mutation_lock_refuses_new_workflow_before_dispatch
+    with self.assertRaisesRegex(RuntimeError,'engine'):
+AssertionError: RuntimeError not raised
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.437s
+
+FAILED (failures=2)

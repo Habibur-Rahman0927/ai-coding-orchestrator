@@ -1,0 +1,77 @@
+[
+  {
+    "path": "engine/lib/ccx_workspace/chat.py",
+    "sha256": "4ed27936a7a6a5e48389949e006c7ea978d070c0c4a48d5d31a6393a3b24c2d4",
+    "new": false
+  },
+  {
+    "path": "engine/lib/ccx_workspace/providers.py",
+    "sha256": "1be5be8e30b42c6b74857d42f1cf771bb50d1fd3cdf228e8ac695cf3a12079b1",
+    "new": false
+  },
+  {
+    "path": "engine/lib/ccx_workspace/security.py",
+    "sha256": "86bf058bed6a9f83f377bb25b9d21b14efbd39d10d1ad8b4c204345b5017923e",
+    "new": true
+  },
+  {
+    "path": "engine/lib/ccx_workspace/store.py",
+    "sha256": "e34269d4da1e687f5d6b4ee8e49d2d7fbade5b8f51fb473481caa0377d0725da",
+    "new": false
+  },
+  {
+    "path": "engine/lib/ccx_workspace/tools.py",
+    "sha256": "ca0a03995ca958af3f6cc0ea52902a32733e780a5375c2819e5fffd60f804577",
+    "new": false
+  },
+  {
+    "path": "engine/lib/ccx_workspace/workflows.py",
+    "sha256": "831078f893c0ec5ae7aedd8e4675f2c12cb098a9c79a68d4219c349f860e3a22",
+    "new": false
+  },
+  {
+    "path": "tests/test_runtime_portable.py",
+    "sha256": "47511412b9d7371eb9322124fa00567da599749fdf3c154b7750109fe114b9bf",
+    "new": false
+  },
+  {
+    "path": "tests/test_v5_phase3_cancel.py",
+    "sha256": "b0baf4e43c7d4998b87a6ea73b52939b9e36566487d820dbf75ea06183c54747",
+    "new": true
+  },
+  {
+    "path": "tests/test_v5_phase3_context.py",
+    "sha256": "b8b1405dd5366cfd42c7586a785becb22ea1d85cf46e43f14762c24a62bbc586",
+    "new": true
+  },
+  {
+    "path": "tests/test_v5_phase3_inputs.py",
+    "sha256": "6095567963fb057c2b1c79ce0322f53ed39befb445d188bc051c09266268f088",
+    "new": true
+  },
+  {
+    "path": "tests/test_v5_phase3_output.py",
+    "sha256": "b6aa65f05361c4ea471b644e53b5f06123078993036b9b8d85ffac846664ae29",
+    "new": true
+  },
+  {
+    "path": "tests/test_v5_phase3_security.py",
+    "sha256": "26eaf3804f1c2e31ffac2f8f70f32ccbf7c46879359b9f8186b1836a036b103d",
+    "new": true
+  },
+  {
+    "path": "tests/test_v5_phase3_storage.py",
+    "sha256": "782a5d4e24c83c9f546b8d97405d507c911c7c09be197cdd02674525120d3686",
+    "new": true
+  },
+  {
+    "path": "tests/test_v5_phase3_stress.py",
+    "sha256": "4e16b49f4a222c22cb0844f5f099a7c57dd53f895dbbe9b25c49276372420d85",
+    "new": true
+  },
+  {
+    "path": "tools/run_phase3_qa.py",
+    "sha256": "06077d8b7e9c821d274bc638c3f98384e80ccfcd0a0edf65a640ffc841d54975",
+    "new": true
+  }
+]

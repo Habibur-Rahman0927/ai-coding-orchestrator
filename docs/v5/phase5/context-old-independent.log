@@ -1,0 +1,14 @@
+test_branch_switch_untracked_rename_delete_and_source_freshness (test_v5_phase3_context.ContextIntegrityTests.test_branch_switch_untracked_rename_delete_and_source_freshness) ... ok
+test_concurrent_writes_survive_reopen_and_backup (test_v5_phase3_context.ContextIntegrityTests.test_concurrent_writes_survive_reopen_and_backup) ... ok
+test_critical_context_overflow_fails_closed_without_storing_partial_package (test_v5_phase3_context.ContextIntegrityTests.test_critical_context_overflow_fails_closed_without_storing_partial_package) ... ok
+test_deleted_memory_cannot_be_retrieved_from_context_cache (test_v5_phase3_context.ContextIntegrityTests.test_deleted_memory_cannot_be_retrieved_from_context_cache) ... ok
+test_mcp_cannot_select_another_projects_workflow_or_delegate_task (test_v5_phase3_context.ContextIntegrityTests.test_mcp_cannot_select_another_projects_workflow_or_delegate_task) ... ok
+test_root_instructions_preserve_constraints_after_excerpt_boundary (test_v5_phase3_context.ContextIntegrityTests.test_root_instructions_preserve_constraints_after_excerpt_boundary) ... ok
+test_stale_source_backed_user_instruction_is_excluded (test_v5_phase3_context.ContextIntegrityTests.test_stale_source_backed_user_instruction_is_excluded) ... ok
+test_three_project_search_export_context_isolation_and_malicious_instructions (test_v5_phase3_context.ContextIntegrityTests.test_three_project_search_export_context_isolation_and_malicious_instructions) ... ok
+test_user_instruction_memory_preserves_late_constraints (test_v5_phase3_context.ContextIntegrityTests.test_user_instruction_memory_preserves_late_constraints) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.166s
+
+OK

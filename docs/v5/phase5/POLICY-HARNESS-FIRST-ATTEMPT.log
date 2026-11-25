@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "<workspace>/tools/benchmark_policies.py", line 33, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "<workspace>/tools/benchmark_policies.py", line 18, in main
+    row=run_workload(key,execution_policy=policy);row['repetition']=repetition;rows.append(row)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<workspace>/tools/pilot_workloads.py", line 290, in run_workload
+    workflow = engine.create(project_id, scenario['objective'], scenario['criteria'],
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<workspace>/engine/lib/ccx_workspace/workflows.py", line 240, in create
+    raise ValueError('Execution policy must be standard or single_task (skip planning only)')
+ValueError: Execution policy must be standard or single_task (skip planning only)

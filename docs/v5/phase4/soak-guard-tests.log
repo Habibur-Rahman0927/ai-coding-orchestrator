@@ -1,0 +1,8 @@
+test_backup_bytes_and_free_space_are_explicit_bounds (test_phase4_soak.SoakHarnessTests.test_backup_bytes_and_free_space_are_explicit_bounds) ... ok
+test_optimization_flag_and_environment_refused_before_artifacts (test_phase4_soak.SoakHarnessTests.test_optimization_flag_and_environment_refused_before_artifacts) ... ok
+test_real_smoke_reports_backup_budget_skip_and_enabled_assertions (test_phase4_soak.SoakHarnessTests.test_real_smoke_reports_backup_budget_skip_and_enabled_assertions) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 1.569s
+
+OK

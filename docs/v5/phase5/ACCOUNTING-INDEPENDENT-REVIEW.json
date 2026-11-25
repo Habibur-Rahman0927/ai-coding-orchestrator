@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-25",
+  "review_context": "independent reviewer; no production edits",
+  "scope": [
+    "engine/lib/ccx_workspace/providers.py",
+    "engine/lib/ccx_workspace/workflows.py",
+    "engine/lib/ccx_workspace/benchmark.py",
+    "tests/test_v5_phase5_usage.py",
+    "tests/test_v5_phase5_comparison.py"
+  ],
+  "source_revision": "c933c04063b16d6c47b430f512fadd26b9d1e0a1",
+  "source_note": "Uncommitted Phase5 working tree; hashes captured at documentation freeze after role-model and actual-output-cap corrections and prepared-byte field rename.",
+  "source_sha256": {
+    "engine/lib/ccx_workspace/providers.py": "c33f94bb441626d9c891d8b9e31dd935ea24512ff54456e13f3838bf41823287",
+    "engine/lib/ccx_workspace/workflows.py": "dd0849291f8aa5396e9852fa79f72e3059d0cf1145c789e2e3bfdec5a6d24da5",
+    "engine/lib/ccx_workspace/benchmark.py": "99339ebe96e55a35591097060adcebc7420ec0de3fb408eb17c4d7ac36aea310",
+    "tests/test_v5_phase5_usage.py": "461a325ab546784cf3a69556f5c3b7cdfb1c2f57b596dffa8cfc16ca990ffb2d",
+    "tests/test_v5_phase5_comparison.py": "05308678d2c3710fc004925e07f172fa39dbf54eaf63e68f8dcc5fc660f6fe16"
+  },
+  "live_provider_calls": 0,
+  "provider_cost_measurements": null,
+  "review_result": "APPROVED_WITH_DOCUMENTED_MEASUREMENT_LIMITS",
+  "resolved_findings": [
+    "Role/provider/model assignments must match rather than provider/model sets alone",
+    "Execution contract must bind the actual dispatched output cap after workflow budget clipping"
+  ],
+  "wording_correction": "Journaled payload bytes are prepared bytes, not proven network wire bytes.",
+  "checks": [
+    {
+      "suite": "test_v5_phase5_comparison.py",
+      "tests": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "evidence": "accounting-comparison-independent.log"
+    },
+    {
+      "suite": "test_v5_phase5_usage.py",
+      "tests": 6,
+      "passed": 6,
+      "exit_code": 0,
+      "evidence": "accounting-usage-independent.log"
+    },
+    {
+      "suite": "test_v5_providers.py",
+      "tests": 18,
+      "passed": 18,
+      "exit_code": 0,
+      "evidence": "accounting-providers-independent.log"
+    },
+    {
+      "suite": "test_v5_phase2_reliability.py",
+      "tests": 21,
+      "passed": 21,
+      "exit_code": 0,
+      "evidence": "accounting-reliability-independent.log"
+    }
+  ]
+}

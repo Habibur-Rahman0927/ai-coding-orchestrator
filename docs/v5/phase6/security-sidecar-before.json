@@ -1,0 +1,7 @@
+{
+  "source_install_includes_runtime_sidecars": {
+    "workspace.sqlite3-wal": true,
+    "workspace.sqlite3-shm": true,
+    "runtime.db-journal": true
+  }
+}

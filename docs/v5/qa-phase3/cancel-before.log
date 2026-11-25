@@ -1,0 +1,27 @@
+test_cancel_terminates_owned_command_and_prevents_next_dispatch (test_v5_phase3_cancel.CancellationTests.test_cancel_terminates_owned_command_and_prevents_next_dispatch) ... FAIL
+test_pause_terminates_owned_command_and_prevents_next_dispatch (test_v5_phase3_cancel.CancellationTests.test_pause_terminates_owned_command_and_prevents_next_dispatch) ... FAIL
+
+======================================================================
+FAIL: test_cancel_terminates_owned_command_and_prevents_next_dispatch (test_v5_phase3_cancel.CancellationTests.test_cancel_terminates_owned_command_and_prevents_next_dispatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_cancel.py", line 45, in test_cancel_terminates_owned_command_and_prevents_next_dispatch
+    self._interruption('cancel')
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_cancel.py", line 38, in _interruption
+    self.assertFalse(late.exists(), 'owned child continued after interruption')
+AssertionError: True is not false : owned child continued after interruption
+
+======================================================================
+FAIL: test_pause_terminates_owned_command_and_prevents_next_dispatch (test_v5_phase3_cancel.CancellationTests.test_pause_terminates_owned_command_and_prevents_next_dispatch)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_cancel.py", line 48, in test_pause_terminates_owned_command_and_prevents_next_dispatch
+    self._interruption('pause')
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_cancel.py", line 38, in _interruption
+    self.assertFalse(late.exists(), 'owned child continued after interruption')
+AssertionError: True is not false : owned child continued after interruption
+
+----------------------------------------------------------------------
+Ran 2 tests in 8.518s
+
+FAILED (failures=2)

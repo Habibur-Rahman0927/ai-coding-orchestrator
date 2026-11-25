@@ -24,7 +24,7 @@ def parser():
     bench=subs.add_parser('benchmark');bench.add_argument('project');bench.add_argument('queries',nargs='+');bench.add_argument('--budget',type=int,default=2000)
     legacy=subs.add_parser('import-v4');legacy.add_argument('project');legacy.add_argument('directory',type=Path);legacy.add_argument('--yes',action='store_true')
     subs.add_parser('providers')
-    for command in ('dashboard','start','_serve','restart'):
+    for command in ('open','dashboard','start','_serve','restart'):
         dashboard=subs.add_parser(command);dashboard.add_argument('--port',type=int,default=8765)
         dashboard.add_argument('--no-browser',action='store_true')
         dashboard.add_argument('--background',action='store_true',help='Explicitly start a detached process; does not register an OS service')
@@ -49,6 +49,16 @@ def parser():
 
 
 def main(argv=None):
+    from ccx_install import workspace_runtime
+    try:
+        with workspace_runtime():
+            return _main(argv)
+    except RuntimeError as error:
+        print('Workspace operation refused: '+str(error),file=sys.stderr)
+        return 1
+
+
+def _main(argv=None):
     args=parser().parse_args(argv)
     try:
         store=Store(args.database)
@@ -68,7 +78,7 @@ def main(argv=None):
         elif args.command=='compare-usage':
             from .benchmark import compare_workflows
             result=compare_workflows(store,args.baseline,args.optimized)
-        elif args.command in ('dashboard','start','_serve','restart','stop','status'):
+        elif args.command in ('open','dashboard','start','_serve','restart','stop','status'):
             from . import service
             if args.command=='stop':result=service.stop(store)
             elif args.command=='status':result=service.status(store)
@@ -77,7 +87,7 @@ def main(argv=None):
                 if args.command=='restart':
                     service.stop(store)
                     if service.status(store).get('running'):raise RuntimeError('Previous service has not stopped')
-                result=service.start(store,args.port,args.background,not args.no_browser)
+                result=service.start(store,args.port,args.background or args.command=='open',not args.no_browser)
         elif args.command=='doctor':
             from .onboarding import doctor
             from .settings import registry_for

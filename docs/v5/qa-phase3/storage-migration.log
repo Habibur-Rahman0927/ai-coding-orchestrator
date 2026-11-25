@@ -1,0 +1,15 @@
+test_another_project_directory_rejected_before_import (test_v5_migration.MigrationTests.test_another_project_directory_rejected_before_import) ... ok
+test_casefolded_sensitive_paths_excluded (test_v5_migration.MigrationTests.test_casefolded_sensitive_paths_excluded) ... ok
+test_conflicting_project_record_prevents_partial_import (test_v5_migration.MigrationTests.test_conflicting_project_record_prevents_partial_import) ... ok
+test_forged_workflow_reference_is_stale (test_v5_migration.MigrationTests.test_forged_workflow_reference_is_stale) ... ok
+test_hardlinked_index_source_refused (test_v5_migration.MigrationTests.test_hardlinked_index_source_refused) ... ok
+test_links_in_legacy_records_and_replaced_database_refused (test_v5_migration.MigrationTests.test_links_in_legacy_records_and_replaced_database_refused) ... ok
+test_manifest_binding_must_match (test_v5_migration.MigrationTests.test_manifest_binding_must_match) ... ok
+test_new_ignore_rules_hide_cached_and_tracked_content (test_v5_migration.MigrationTests.test_new_ignore_rules_hide_cached_and_tracked_content) ... ok
+test_readonly_idempotent_import_preserves_ids_and_project_scope (test_v5_migration.MigrationTests.test_readonly_idempotent_import_preserves_ids_and_project_scope) ... ok
+test_real_workflow_verification_stays_current_until_source_changes (test_v5_migration.MigrationTests.test_real_workflow_verification_stays_current_until_source_changes) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.547s
+
+OK

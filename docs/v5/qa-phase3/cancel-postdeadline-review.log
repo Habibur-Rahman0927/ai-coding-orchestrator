@@ -1,0 +1,1 @@
+PASS: cancellation worker exited and child side effect absent after original 3-second deadline

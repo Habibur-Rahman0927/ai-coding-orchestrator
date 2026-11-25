@@ -1,0 +1,19 @@
+test_completed_correction_supersedes_observation_with_bound_evidence (test_v5_phase5_learning.VerifiedLearningTests.test_completed_correction_supersedes_observation_with_bound_evidence) ... FAIL
+test_unfinished_correction_never_learns_verified_solution (test_v5_phase5_learning.VerifiedLearningTests.test_unfinished_correction_never_learns_verified_solution) ... ok
+
+======================================================================
+FAIL: test_completed_correction_supersedes_observation_with_bound_evidence (test_v5_phase5_learning.VerifiedLearningTests.test_completed_correction_supersedes_observation_with_bound_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase5_learning.py", line 17, in test_completed_correction_supersedes_observation_with_bound_evidence
+    self.assertEqual(record['kind'],'verified');self.assertIsNotNone(record['supersedes'])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'observed' != 'verified'
+- observed
++ verified
+
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.579s
+
+FAILED (failures=1)

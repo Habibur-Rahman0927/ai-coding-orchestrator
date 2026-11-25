@@ -1,0 +1,13 @@
+test_browser_url_must_match_owned_loopback_origin (test_v5_service.ServiceMetadataTests.test_browser_url_must_match_owned_loopback_origin) ... ok
+test_fifo_metadata_and_hardlinked_lock_refused (test_v5_service.ServiceMetadataTests.test_fifo_metadata_and_hardlinked_lock_refused) ... ok
+test_readable_control_metadata_is_refused (test_v5_service.ServiceMetadataTests.test_readable_control_metadata_is_refused) ... ok
+test_actual_backend_crash_keeps_unknown_action_without_duplicate_execution (test_v5_service.ServiceTests.test_actual_backend_crash_keeps_unknown_action_without_duplicate_execution) ... ok
+test_busy_port_uses_safe_alternative_and_stale_metadata_recovers (test_v5_service.ServiceTests.test_busy_port_uses_safe_alternative_and_stale_metadata_recovers) ... ok
+test_explicit_background_and_restart_preserve_database (test_v5_service.ServiceTests.test_explicit_background_and_restart_preserve_database) ... ok
+test_reused_port_cannot_obtain_control_bearer (test_v5_service.ServiceTests.test_reused_port_cannot_obtain_control_bearer) ... ok
+test_start_duplicate_health_browser_bootstrap_and_graceful_stop (test_v5_service.ServiceTests.test_start_duplicate_health_browser_bootstrap_and_graceful_stop) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.387s
+
+OK

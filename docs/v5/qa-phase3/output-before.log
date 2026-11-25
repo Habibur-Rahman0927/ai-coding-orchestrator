@@ -1,0 +1,67 @@
+test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) ... 
+  test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) (kind='text') ... FAIL
+  test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) (kind='history') ... FAIL
+test_registry_refuses_sensitive_nested_provider_events (test_v5_phase3_output.OutputSecurityTests.test_registry_refuses_sensitive_nested_provider_events) ... FAIL
+test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) ... 
+  test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) (field='output') ... FAIL
+  test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) (field='history') ... FAIL
+
+======================================================================
+FAIL: test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) (kind='text')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_output.py", line 69, in test_chat_rejects_split_secret_and_nested_history
+    self.assertEqual(chat.status(item['id'])['status'], 'FAILED')
+AssertionError: 'IDLE' != 'FAILED'
+- IDLE
++ FAILED
+
+
+======================================================================
+FAIL: test_chat_rejects_split_secret_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_chat_rejects_split_secret_and_nested_history) (kind='history')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_output.py", line 69, in test_chat_rejects_split_secret_and_nested_history
+    self.assertEqual(chat.status(item['id'])['status'], 'FAILED')
+AssertionError: 'IDLE' != 'FAILED'
+- IDLE
++ FAILED
+
+
+======================================================================
+FAIL: test_registry_refuses_sensitive_nested_provider_events (test_v5_phase3_output.OutputSecurityTests.test_registry_refuses_sensitive_nested_provider_events)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_output.py", line 49, in test_registry_refuses_sensitive_nested_provider_events
+    self.assertEqual(result['status'], 'failed')
+AssertionError: 'completed' != 'failed'
+- completed
++ failed
+
+
+======================================================================
+FAIL: test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) (field='output')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_output.py", line 35, in test_workflow_refuses_sensitive_output_and_nested_history
+    self.assertEqual(result['status'], 'RECOVERY_REQUIRED')
+AssertionError: 'BLOCKED' != 'RECOVERY_REQUIRED'
+- BLOCKED
++ RECOVERY_REQUIRED
+
+
+======================================================================
+FAIL: test_workflow_refuses_sensitive_output_and_nested_history (test_v5_phase3_output.OutputSecurityTests.test_workflow_refuses_sensitive_output_and_nested_history) (field='history')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/ccx-v5-phase3/tests/test_v5_phase3_output.py", line 35, in test_workflow_refuses_sensitive_output_and_nested_history
+    self.assertEqual(result['status'], 'RECOVERY_REQUIRED')
+AssertionError: 'COMPLETED' != 'RECOVERY_REQUIRED'
+- COMPLETED
++ RECOVERY_REQUIRED
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.511s
+
+FAILED (failures=5)

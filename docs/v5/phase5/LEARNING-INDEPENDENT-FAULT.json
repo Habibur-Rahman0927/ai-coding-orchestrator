@@ -1,0 +1,11 @@
+{
+  "fault_injected_after_resolution_before_completion": true,
+  "first_status": "BLOCKED",
+  "precompletion_receipts_stale": true,
+  "resumed_status": "COMPLETED",
+  "provider_calls_before_resume": 4,
+  "provider_calls_after_resume": 4,
+  "active_resolution_records": 1,
+  "retained_error_records_including_observation": 2,
+  "live_provider_calls": 0
+}

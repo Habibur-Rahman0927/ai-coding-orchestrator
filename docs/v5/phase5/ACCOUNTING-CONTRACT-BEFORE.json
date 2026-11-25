@@ -1,0 +1,20 @@
+{
+  "evidence_type": "synthetic before-fix defect reproduction; not live efficiency evidence",
+  "observed_before_fix": {
+    "fixture": "offline MockRegistry workflows",
+    "runs": [
+      {
+        "mode": "full_index",
+        "status": "COMPLETED",
+        "actual_output_limit": 1351,
+        "contract_hash": "2033c64957bbde29abc7077cbed8cac4af74d27b312318456edcb190d8685a66"
+      },
+      {
+        "mode": "retrieved",
+        "status": "COMPLETED",
+        "actual_output_limit": 1500,
+        "contract_hash": "2033c64957bbde29abc7077cbed8cac4af74d27b312318456edcb190d8685a66"
+      }
+    ]
+  }
+}

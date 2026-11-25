@@ -1,0 +1,57 @@
+test_backup_failure_removes_partial_destination_preserves_source (test_v5_phase3_storage.StorageFaultTests.test_backup_failure_removes_partial_destination_preserves_source) ... ok
+test_contended_writers_wait_then_preserve_all_records (test_v5_phase3_storage.StorageFaultTests.test_contended_writers_wait_then_preserve_all_records) ... ok
+test_corrupt_database_refused_without_replacing_evidence (test_v5_phase3_storage.StorageFaultTests.test_corrupt_database_refused_without_replacing_evidence) ... ok
+test_deleting_replacement_does_not_resurrect_superseded_decision (test_v5_phase3_storage.StorageFaultTests.test_deleting_replacement_does_not_resurrect_superseded_decision) ... FAIL
+test_failed_schema_initialization_rolls_back_all_ddl (test_v5_phase3_storage.StorageFaultTests.test_failed_schema_initialization_rolls_back_all_ddl) ... FAIL
+test_killed_process_rolls_back_uncommitted_write (test_v5_phase3_storage.StorageFaultTests.test_killed_process_rolls_back_uncommitted_write) ... ok
+test_sqlite_disk_full_limit_rolls_back_partial_transaction (test_v5_phase3_storage.StorageFaultTests.test_sqlite_disk_full_limit_rolls_back_partial_transaction) ... ok
+test_unsupported_schema_refused_before_any_schema_write (test_v5_phase3_storage.StorageFaultTests.test_unsupported_schema_refused_before_any_schema_write) ... FAIL
+
+======================================================================
+FAIL: test_deleting_replacement_does_not_resurrect_superseded_decision (test_v5_phase3_storage.StorageFaultTests.test_deleting_replacement_does_not_resurrect_superseded_decision)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase3_storage.py", line 159, in test_deleting_replacement_does_not_resurrect_superseded_decision
+    self.assertEqual(self.store.memories(self.pid), [], 'Superseded decision silently became current again')
+AssertionError: Lists differ: [{'id': 'e6777239-2edb-4a90-903a-44d8b28f6[296 chars]: 1}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'id': 'e6777239-2edb-4a90-903a-44d8b28f6e22', 'project_id': '3a2b9d36022c1dcc', 'scope': 'project', 'kind': 'hypothesis', 'title': 'Durable fact', 'body': 'original evidence', 'source': None, 'source_hash': None, 'created_at': 1795583852.5645688, 'verified_at': None, 'confidence': 0.5, 'expires_at': None, 'supersedes': None, 'version': 1}
+
++ []
+- [{'body': 'original evidence',
+-   'confidence': 0.5,
+-   'created_at': 1795583852.5645688,
+-   'expires_at': None,
+-   'id': 'e6777239-2edb-4a90-903a-44d8b28f6e22',
+-   'kind': 'hypothesis',
+-   'project_id': '3a2b9d36022c1dcc',
+-   'scope': 'project',
+-   'source': None,
+-   'source_hash': None,
+-   'supersedes': None,
+-   'title': 'Durable fact',
+-   'verified_at': None,
+-   'version': 1}] : Superseded decision silently became current again
+
+======================================================================
+FAIL: test_failed_schema_initialization_rolls_back_all_ddl (test_v5_phase3_storage.StorageFaultTests.test_failed_schema_initialization_rolls_back_all_ddl)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase3_storage.py", line 135, in test_failed_schema_initialization_rolls_back_all_ddl
+    self.assertEqual(path.read_bytes(), original, 'Failed schema setup left committed partial DDL')
+AssertionError: b"SQLite format 3\x00\x10\x00\x01\x01\x00@[112960 chars]\x00" != b'SQLite format 3\x00\x10\x00\x01\x01\x00@[32357 chars]ence' : Failed schema setup left committed partial DDL
+
+======================================================================
+FAIL: test_unsupported_schema_refused_before_any_schema_write (test_v5_phase3_storage.StorageFaultTests.test_unsupported_schema_refused_before_any_schema_write)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<workspace>/tests/test_v5_phase3_storage.py", line 116, in test_unsupported_schema_refused_before_any_schema_write
+    self.assertEqual(path.read_bytes(), original, 'Unsupported schema was modified before refusal')
+AssertionError: b"SQLite format 3\x00\x10\x00\x01\x01\x00@[256369 chars]\x00" != b'SQLite format 3\x00\x10\x00\x01\x01\x00@[64486 chars]ence' : Unsupported schema was modified before refusal
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.408s
+
+FAILED (failures=3)

@@ -1,0 +1,10 @@
+{
+  "evidence_type": "synthetic before-fix defect reproduction; not live efficiency evidence",
+  "observed_before_fix": {
+    "fixture": "synthetic report records only; no live provider calls",
+    "models_swapped_between_roles": true,
+    "comparable": true,
+    "optimization_verified": true,
+    "limitations": []
+  }
+}

@@ -25,7 +25,7 @@ on any mismatch. After verification and extraction, install from PowerShell:
 ```
 
 For the unpublished 4.3.0 cross-platform candidate, see the
-[cross-platform guide](CROSS-PLATFORM.md) and [verification report](CROSS-PLATFORM-RESULTS.md).
+[cross-platform guide](CROSS-PLATFORM.md) and verification report (source checkout: `docs/CROSS-PLATFORM-RESULTS.md`; omitted from packages).
 
 Use Linux with Python >= 3.8 and Git. For this signed-release flow, also install
 GitHub CLI, OpenSSH with `ssh-keygen -Y verify`, `sha256sum`, and `tar`.

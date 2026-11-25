@@ -1,0 +1,102 @@
+{
+  "comparison": "Verified Phase 7 entry; all earlier work preserved",
+  "phase7_evidence": "Listed separately in EVIDENCE-MANIFEST.json",
+  "files": [
+    {
+      "path": "README.md",
+      "change": "modified",
+      "entry_sha256": "6d644a734a01a0b5d3bd8c309b75bab84dc11a7e206a89a48804ddfac9e3bf71",
+      "sha256": "483ba70c6070e22225a3a5f6ee045f002e716103be646dc1807f6b9316255340"
+    },
+    {
+      "path": "docs/v5/DAILY-USE.md",
+      "change": "added",
+      "entry_sha256": null,
+      "sha256": "0bdd42820069fb1de7f719a26b1d0f662693faeaf241ecb37ad43b5c229b87e9"
+    },
+    {
+      "path": "docs/v5/OPERATIONS.md",
+      "change": "modified",
+      "entry_sha256": "cd9a34b6008082890ac3c35fc0e455b3f7306726345ef3ca318c9547b98ad1a4",
+      "sha256": "3299ba01d7b5a840cc6b74eeb8a473d10a828a8428dba1d5f42e488be3c1246a"
+    },
+    {
+      "path": "engine/lib/ccx_install.py",
+      "change": "modified",
+      "entry_sha256": "f08a823205b2c172d37a0e8beb874ce707015f135234fd3864a85adcf7afbc37",
+      "sha256": "c675ac15973d7a792b91097289bb42b95b7928491389d858851628f078602b5e"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/cli.py",
+      "change": "modified",
+      "entry_sha256": "642aa78ba9ec75099fa0c751c257f3f97fe07fb11c9db6e2661cad285aee3e1e",
+      "sha256": "41e7466cc763d9e5f90fe28291495f094567ba4c4184966db2cd1dfb85228f69"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/experience.py",
+      "change": "added",
+      "entry_sha256": null,
+      "sha256": "220af9f959a9bf5504b02c292c1bb8884568fc4567f4dd1d15fb65b932a58a6a"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/server.py",
+      "change": "modified",
+      "entry_sha256": "4e253c83bb993205a18245ff7e60311403377a0bcc1620b6d3ff6e36d2c1246b",
+      "sha256": "a1b1480834ef26b121b4ef4674dc47d1f9ad2f31442a1185749d51aabfc75371"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/web/app.js",
+      "change": "modified",
+      "entry_sha256": "31dc0d08cf3c96bfacaabe6a78b31473e2470fa30585306be3b600613e640594",
+      "sha256": "8982e0764bc333446d3d4f92c32c23aa5c8a4c0168f18e2660b2bb5f060da6ab"
+    },
+    {
+      "path": "engine/lib/ccx_workspace/web/style.css",
+      "change": "modified",
+      "entry_sha256": "3a8a830167ed78f203f24d218ccc725bd979886fc873aebf4aea06dd0b408434",
+      "sha256": "30cea4ae5ca32208a19c0826c0be4240855ba67ca8a4f45fb4b9ca5886d91b4e"
+    },
+    {
+      "path": "engine/orchestrator.py",
+      "change": "modified",
+      "entry_sha256": "bb519c8aef9f88c0eec38379919eddbaff745bc94bc0fccc63b5da0156436945",
+      "sha256": "1344ed98042c73002f6a464c40956399f84f026947ad0dd437fa9f25d0d8917b"
+    },
+    {
+      "path": "install.sh",
+      "change": "modified",
+      "entry_sha256": "8e06026b044755ac8fbb254f420d0b82aeade760be8cbeed5ab72610abdb832c",
+      "sha256": "bb8747d9bac062798ebeba01dc6ff885f94067059e045e224a5cfa8be89377d3"
+    },
+    {
+      "path": "tests/browser/cdp_installed_fixture.py",
+      "change": "modified",
+      "entry_sha256": "d15f65632869c7af3f7c8a720f017fdef2c5ad2159c00e3f9eb23dbe887285fb",
+      "sha256": "ff8093ffec8be39ba860dc4dc0270241b8d54d2ab760548819fc87f98d62dfbd"
+    },
+    {
+      "path": "tests/browser/cdp_workspace_fixture.py",
+      "change": "modified",
+      "entry_sha256": "a07222073415f0867ecb8d810db4ef6bc280067936dff0cd7bc7d05ec9189c7b",
+      "sha256": "9bea82a51ba667e73c8674e2207e3bec722abd21509ccafd529a47580765a3ba"
+    },
+    {
+      "path": "tests/browser/test_installed_workspace_cdp.cjs",
+      "change": "modified",
+      "entry_sha256": "4a55dd571cd4c5f654dc1724a8d1623a3e1962802c25ebb695522dce550f6df7",
+      "sha256": "10ce8b710bad970e2f5c81bfeeff3678258d797276c7d5be8cb5abd34a406181"
+    },
+    {
+      "path": "tests/browser/test_workspace_cdp.cjs",
+      "change": "modified",
+      "entry_sha256": "4974ce5b53e4a27b673447557da775b7b4dbb46db73fae1dbdab0230f65bd334",
+      "sha256": "5fd021582765f895cf2a6588d2bc5cba904aae338477d729f1ffd6ea4e1b263c"
+    },
+    {
+      "path": "tests/test_v5_phase7_experience.py",
+      "change": "added",
+      "entry_sha256": null,
+      "sha256": "2876a2079846be5b28649827efb52d301ddfee298b6c46735d9971bf4b4a7715"
+    }
+  ]
+}

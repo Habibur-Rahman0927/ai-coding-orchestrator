@@ -1,0 +1,7 @@
+test_completed_correction_supersedes_observation_with_bound_evidence (test_v5_phase5_learning.VerifiedLearningTests.test_completed_correction_supersedes_observation_with_bound_evidence) ... ok
+test_unfinished_correction_never_learns_verified_solution (test_v5_phase5_learning.VerifiedLearningTests.test_unfinished_correction_never_learns_verified_solution) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.594s
+
+OK

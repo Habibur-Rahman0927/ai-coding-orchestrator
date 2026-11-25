@@ -1,0 +1,13 @@
+{
+  "scope": "One Ubuntu x86_64 isolated installed backend, empty database, five-second idle sample; not sustained workload or IDE overhead",
+  "startup_seconds": 0.3001472569994803,
+  "sample_seconds": 5.000327436999214,
+  "idle_cpu_seconds": 0.0,
+  "idle_cpu_one_core_percent": 0.0,
+  "rss_start_bytes": 39096320,
+  "rss_end_bytes": 39096320,
+  "database_bytes": 196608,
+  "database_sidecars_bytes": 0,
+  "stop_seconds": 0.005215352000959683,
+  "backend_stopped": true
+}

@@ -1,0 +1,18 @@
+{
+  "live_provider_calls": 0,
+  "mock_providers": true,
+  "measurements": [
+    {
+      "scenario": "healthy command with 1.5 seconds without output",
+      "duration_seconds": 1.58,
+      "exit_code": 0
+    },
+    {
+      "scenario": "12 sequential workflows; four correction rounds",
+      "duration_seconds": 2.889,
+      "provider_mock_calls": 32,
+      "durable_actions": 48,
+      "database_growth_bytes": 520192
+    }
+  ]
+}

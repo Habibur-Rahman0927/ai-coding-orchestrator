@@ -1,0 +1,68 @@
+{
+  "evidence_class": "SYNTHETIC_LOCAL_BASELINE",
+  "live_provider_calls": 0,
+  "python": "3.12.3",
+  "store_sha256": "e34269d4da1e687f5d6b4ee8e49d2d7fbade5b8f51fb473481caa0377d0725da",
+  "findings": {
+    "candidate_truncation": {
+      "files_indexed": 131,
+      "fts_available": true,
+      "query": "shared exact_symbol",
+      "target_expected_score": 2,
+      "observed_top_score": 1,
+      "target_retrieved": false,
+      "returned": 100,
+      "first_source": "a000.py"
+    },
+    "filename_query": {
+      "query": "z_target.py",
+      "target_retrieved": false
+    },
+    "repeat_index": {
+      "initial": {
+        "project_id": "6177829ef677c244",
+        "updated": 131,
+        "unchanged": 0,
+        "deleted": 0,
+        "excluded": 0,
+        "bytes_read": 6323,
+        "duration_ms": 56.507
+      },
+      "repeat": {
+        "project_id": "6177829ef677c244",
+        "updated": 0,
+        "unchanged": 131,
+        "deleted": 0,
+        "excluded": 0,
+        "bytes_read": 0,
+        "duration_ms": 23.991
+      }
+    },
+    "context_trial_0": {
+      "git_check_ignore": 102,
+      "read_source": 100,
+      "source_bytes": 4790,
+      "elapsed_ms": 165.626,
+      "context_id": "d0bde639-ff8d-402a-9fb6-601ec7dd5209",
+      "context_bytes": 3903,
+      "context_references": 38
+    },
+    "context_trial_1": {
+      "git_check_ignore": 102,
+      "read_source": 100,
+      "source_bytes": 4790,
+      "elapsed_ms": 173.058,
+      "context_id": "d0bde639-ff8d-402a-9fb6-601ec7dd5209",
+      "context_bytes": 3903,
+      "context_references": 38
+    },
+    "duplicate_memory": {
+      "identical_submissions": 20,
+      "unique_record_ids": 20,
+      "stored_records": 20
+    },
+    "fallback_target_query": {
+      "target_retrieved": false
+    }
+  }
+}
