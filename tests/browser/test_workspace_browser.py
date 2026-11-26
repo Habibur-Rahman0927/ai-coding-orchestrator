@@ -56,6 +56,7 @@ class BrowserRegistry:
                 registry.requests.append(request)
                 session=request.session_id or str(uuid.uuid4())
                 yield {'type':'session','session_id':session}
+                yield {'type':'activity','label':'Reading project files','phase':'running','detail':'README.md'}
                 for index,chunk in enumerate(('A deterministic ', 'standalone reply.')):
                     if request.cancel_event and request.cancel_event.is_set():
                         yield {'type':'cancelled'}
@@ -74,6 +75,7 @@ class BrowserRegistry:
         self.calls.append((provider, request['role']))
         if request.get('event_callback'):
             request['event_callback']({'type':'text','text':'Browser fixture is working'})
+            request['event_callback']({'type':'activity','label':'Inspecting project','phase':'completed','detail':'app.txt'})
         cancel = request.get('cancel_event')
         deadline = time.monotonic() + self.delay
         while time.monotonic() < deadline:

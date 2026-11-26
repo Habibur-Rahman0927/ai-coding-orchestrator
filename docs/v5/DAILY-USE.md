@@ -211,3 +211,17 @@ requires actual tests and a separate review before reporting verified completion
 For explanations or “what is done / what remains”, use Ask. The confirmation card's
 “Just ask · no file changes” retains the prompt and switches modes without sending
 it or granting execution permissions.
+
+## Live activity
+
+Each chat answer now includes an Activity timeline: indexing, context preparation,
+provider wait, visible command/tool activity when exposed by the provider, response
+arrival and completion/failure. The bounded timeline is stored with the answer and
+survives reload. Build progress also displays observed provider activity.
+
+This is telemetry, not private reasoning or proof of successful execution. Native
+providers expose different events; MiniMax may only show request/response stages.
+Tool inputs and outputs and reasoning blocks are omitted. Recognizable sensitive
+command details are withheld. Activity visibility does not grant additional tools
+or permissions. Updates use the existing polling interval, rather than an exact
+mirror of a provider's extension.

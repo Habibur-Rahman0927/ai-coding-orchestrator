@@ -169,13 +169,23 @@ class Chat:
     def _execute(self, record, content, maximum, timeout, cancellation):
         identifier=record['id'];message_id=str(uuid.uuid4());output='';usage={};state='FAILED'
         session=record['session_id'];history=json.loads(record['history']);last_flush=0
+        metadata={'activity':[], 'requested_model':record.get('model'), 'requested_effort':record.get('effort')}
+        def activity(label, phase='completed', detail=''):
+            if sensitive_content(detail): detail='[Sensitive details withheld]'
+            value={'label':str(label)[:80], 'phase':phase, 'detail':str(detail)[:400], 'at':time.time()}
+            if metadata['activity'] and all(metadata['activity'][-1].get(k)==value[k] for k in ('label','phase','detail')):return
+            metadata['activity']=(metadata['activity']+[value])[-80:]
+            with self.store.connect() as db:
+                db.execute('UPDATE chat_messages SET metadata=? WHERE id=?',(json.dumps(metadata),message_id))
         with self.store.connect() as db:
             db.execute('INSERT INTO chat_messages(id,chat_id,role,content,created_at) VALUES(?,?,?,?,?)',
                        (message_id,identifier,'assistant','',time.time()))
         try:
             from .providers import ProviderRequest
             if session:self._reserve_session(identifier,record['provider'],session)
+            activity('Indexing project', 'running')
             self.store.index(record['project_id'])
+            activity('Selecting project context', 'running')
             context=self.store.context(record['project_id'],content,budget=2000)
             evidence=self.project_evidence(record['project_id'])
             prompt=json.dumps({'mode':'standalone_read_only','instruction':content,
@@ -193,18 +203,23 @@ class Chat:
                     'Do not edit files, run commands, delegate, or claim tests or task completion were verified.')})
             sources=[{'source': r['source'], 'line': r['line']} for r in context['references']]
             sources.extend({'source': r['source'], 'line': r['line']} for r in evidence['manifest_excerpts'])
-            metadata={'requested_model': record.get('model'), 'requested_effort': record.get('effort'),
-                      'sources': sources, 'indexed_text_files': evidence['indexed_text_files']}
+            metadata.update({'sources': sources, 'indexed_text_files': evidence['indexed_text_files']})
             with self.store.connect() as db:
                 db.execute('UPDATE chat_messages SET metadata=? WHERE id=?',(json.dumps(metadata),message_id))
             request=ProviderRequest(project=self.store.project(record['project_id'])['path'],prompt=prompt,role='researcher',
                 session_id=session,history=history,model=record.get('model'),effort=record.get('effort'),allowed_operations=['native_agent_access'] if record['provider'] in ('claude','codex') else [],
                 max_output_tokens=maximum,timeout=timeout,cancel_event=cancellation)
+            activity('Context prepared', detail=str(len(sources))+' source excerpts')
+            activity('Waiting for '+record['provider'], 'running')
+            response_seen=False
             for event in self.registry.get(record['provider']).execute(request):
                 if sensitive_content(event):
                     raise ValueError('Recognizable sensitive provider event refused')
                 kind=event.get('type')
-                if kind=='text':output=event.get('text','') if event.get('final') else output+event.get('text','')
+                if kind=='activity':activity(event.get('label','Provider activity'),event.get('phase','running'),event.get('detail',''))
+                if kind=='text':
+                    if not response_seen:activity('Receiving response','running');response_seen=True
+                    output=event.get('text','') if event.get('final') else output+event.get('text','')
                 elif kind=='usage':usage.update(event.get('usage') or {})
                 elif kind=='session':
                     candidate=event.get('session_id')
@@ -228,6 +243,7 @@ class Chat:
             if sensitive_content(usage):usage={}
             if not output:output='The provider call did not complete. Check provider diagnostics; this message is not automatically retried.'
         finally:
+            activity('Response completed' if state=='IDLE' else 'Response '+state.lower(), 'completed' if state=='IDLE' else 'stopped')
             with self.store.connect() as db:
                 db.execute('UPDATE chat_messages SET content=?,usage=? WHERE id=?',(output,json.dumps(usage),message_id))
                 db.execute('UPDATE chats SET status=?,session_id=?,history=?,updated_at=? WHERE id=?',

@@ -851,9 +851,11 @@ class WorkflowEngine:
                 return
             from .store import safe_text
             kind=event.get('type')
-            if kind not in ('text','usage','tool_call','completed','cancelled','timeout','error','session'):
+            if kind not in ('text','usage','tool_call','completed','cancelled','timeout','error','session','activity'):
                 return
             value={'type':kind,'provider':provider,'role':role}
+            if kind=='activity':
+                value.update(label=str(event.get('label','Provider activity'))[:80],phase=str(event.get('phase',''))[:40],detail=str(event.get('detail',''))[:400])
             if kind=='text':
                 fragment = str(event.get('text',''))[:2000]
                 try:

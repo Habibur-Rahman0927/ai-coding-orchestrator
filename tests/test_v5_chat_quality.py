@@ -44,6 +44,8 @@ class ChatQuality(unittest.TestCase):
         metadata = result['messages'][-1]['metadata']
         self.assertIn('pyproject.toml', [r['source'] for r in metadata['sources']])
         self.assertEqual(metadata['requested_model'], 'test-model')
+        self.assertEqual(metadata['activity'][0]['label'],'Indexing project')
+        self.assertEqual(metadata['activity'][-1]['label'],'Response completed')
         self.assertNotIn('native_agent_write', request.allowed_operations)
         self.assertEqual(Chat(self.store,self.registry).status(result['id'])['effort'], 'high')
 
@@ -91,6 +93,20 @@ class ChatQuality(unittest.TestCase):
         self.assertEqual(chat.options('minimax')['efforts'],[])
         self.assertIn('sonnet',chat.options('claude')['models'])
         registry.get.return_value.execute.assert_not_called()
+
+    def test_visible_activity_omits_reasoning_and_sensitive_payloads(self):
+        from ccx_workspace.providers import normalize_cli
+        self.assertEqual(normalize_cli('codex',{'type':'item.completed','item':{'type':'reasoning','text':'private'}}),[])
+        event=normalize_cli('codex',{'type':'item.started','item':{'type':'command_execution','command':'cat README.md','aggregated_output':'do not expose'}})[0]
+        self.assertEqual(event['type'],'activity')
+        self.assertEqual(event['detail'],'cat README.md')
+        self.assertNotIn('aggregated_output',event)
+        secret=normalize_cli('codex',{'type':'item.started','item':{'type':'command_execution','command':'password=supersecretvalue'}})[0]
+        self.assertNotIn('supersecretvalue',str(secret))
+        claude=normalize_cli('claude',{'type':'assistant','message':{'content':[{'type':'thinking','thinking':'private'},{'type':'tool_use','name':'Read','input':{'secret':'private'}}]}})
+        self.assertEqual(len(claude),1)
+        self.assertEqual(claude[0]['detail'],'Read')
+        self.assertNotIn('private',str(claude))
 
     def test_old_conversations_migrate_without_losing_messages(self):
         store=fixtures.Store(self.root/'old/workspace.sqlite3')

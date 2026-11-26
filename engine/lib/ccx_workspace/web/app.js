@@ -444,6 +444,12 @@ function chatMarkdown(value){
 function chatMessage(message,agent){
   const node=el('article',{class:'chat-message '+message.role},el('h3',{},message.role==='user'?'You':agent),message.role==='user'?el('p',{},message.content||''):chatMarkdown(message.content));
   const metadata=message.metadata||{};
+  if(message.role==='assistant'&&arr(metadata.activity).length){
+    const events=arr(metadata.activity),last=events[events.length-1];
+    node.append(el('details',{class:'live-activity',open:!message.content||last.phase==='running'},el('summary',{},'Activity · '+last.label),
+      el('p',{class:'hint'},'Observed workspace/provider events. Some providers expose fewer details.'),
+      el('ol',{},...events.slice(-12).map(item=>el('li',{},el('span',{},item.label+' · '+item.phase),item.detail?el('code',{},item.detail):null)))));
+  }
   if(message.role==='assistant'&&metadata.sources){
     node.append(el('p',{class:'hint'},'Requested: '+(metadata.requested_model||'provider default')+' · effort '+(metadata.requested_effort||'default')));
     const sources=Array.from(new Set(arr(metadata.sources).map(r=>r.source+':'+r.line)));
@@ -699,6 +705,8 @@ async function inlineTask(container,id,current){
       if(next!==signature){
         signature=next;details.replaceChildren(el('h3',{},w.objective),el('p',{class:'hint'},'Working → Testing → Reviewing → Done'));
         details.append(el('details',{},el('summary',{},'Team & subtasks · '+arr(w.tasks).length),...arr(w.tasks).map(task=>el('div',{class:'item'},el('strong',{},task.title),el('p',{class:'hint'},task.executor+' / '+(w.model_overrides?.executor||'default model')+' → '+task.reviewer+' / '+(w.model_overrides?.reviewer||'default model')+' · '+task.status)))));
+        const activityEvents=arr(w.events).filter(e=>e.event==='PROVIDER_EVENT'&&e.data?.type==='activity').slice(-12);
+        if(activityEvents.length)details.append(el('details',{class:'live-activity',open:active},el('summary',{},'Live agent activity'),el('ol',{},...activityEvents.map(e=>el('li',{},e.data.provider+' · '+e.data.label+' · '+e.data.phase,e.data.detail?el('code',{},e.data.detail):null)))));
         const last=arr(w.events).slice(-3);for(const e of last)details.append(el('p',{class:'hint'},String(e.event||e.kind||'Progress').replaceAll('_',' ').toLowerCase()));
         requests.replaceChildren();
         for(const request of arr(w.approval_requests).filter(r=>r.status==='PENDING'))requests.append(panel('Additional permission',el('p',{},request.reason),pre(request.scope),button('Approve this scope',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'approve'});await poll();},'primary'),button('Deny',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'deny'});await poll();},'quiet')));

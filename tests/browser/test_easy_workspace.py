@@ -54,6 +54,18 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_label('Action',exact=True).select_option('build')
         expect(self.page.locator('[data-chat-settings]')).to_be_hidden()
 
+    def test_live_activity_is_visible_and_survives_reload(self):
+        self.ready()
+        self.page.get_by_label('Your task',exact=True).fill('Explain the project')
+        self.page.get_by_role('button',name='Send',exact=True).click()
+        expect(self.page.locator('.live-activity')).to_be_visible()
+        expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply',timeout=15000)
+        self.page.locator('.live-activity summary').click()
+        expect(self.page.locator('.live-activity')).to_contain_text('Reading project files')
+        expect(self.page.locator('.live-activity')).to_contain_text('Response completed')
+        self.page.reload()
+        expect(self.page.locator('.live-activity summary')).to_contain_text('Response completed')
+
     def test_simple_build_detects_checks_and_can_switch_to_ask(self):
         (self.project/'Cargo.toml').write_text('[package]\nname="sample"\nversion="0.1.0"\n')
         self.ready()
@@ -148,6 +160,7 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_role('button',name='Approve & start',exact=True).click()
         expect(self.page.get_by_text('Done · tests and review verified',exact=True)).to_be_visible(timeout=30000)
         expect(self.page.get_by_text('Files changed since start',exact=True)).to_be_visible()
+        expect(self.page.get_by_text('Live agent activity',exact=True)).to_be_visible()
         self.page.get_by_text('View diff',exact=True).click()
         expect(self.page.locator('[data-task-progress] pre').filter(has_text='+good')).to_be_visible()
         self.assertEqual((self.project/'app.txt').read_text(),'good')

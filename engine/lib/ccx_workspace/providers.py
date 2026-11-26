@@ -126,10 +126,25 @@ def classify_error(value):
     return 'provider_error'
 
 
+def visible_activity(label, phase, detail=''):
+    # Deliberately omit tool outputs, inputs, reasoning and provider raw payloads.
+    if not isinstance(detail, str) or sensitive_content(detail):
+        detail = '[Sensitive details withheld]'
+    return event('activity', label=label, phase=phase, detail=detail[:400])
+
+
 def normalize_cli(provider_id, data):
     """Normalize only documented visible text/session/result fields, not reasoning."""
     kind = data.get('type')
     if provider_id == 'codex':
+        if kind in ('item.started', 'item.updated', 'item.completed'):
+            item = data.get('item') or {}
+            labels = {'command_execution': 'Command execution', 'file_change': 'File changes',
+                      'mcp_tool_call': 'Tool activity', 'web_search': 'Web search'}
+            if item.get('type') in labels:
+                phase = 'failed' if item.get('status') == 'failed' else 'completed' if kind == 'item.completed' else 'running'
+                detail = item.get('command', '') if item.get('type') == 'command_execution' else item.get('tool', '')
+                return [visible_activity(labels[item['type']], phase, detail)]
         if kind == 'thread.started':
             return [event('session', session_id=str(uuid.UUID(data['thread_id'])))]
         if kind == 'item.completed' and data.get('item', {}).get('type') == 'agent_message':
@@ -144,6 +159,8 @@ def normalize_cli(provider_id, data):
             result.append(event('session', session_id=str(uuid.UUID(data['session_id']))))
         if kind == 'assistant':
             for block in data.get('message', {}).get('content', []):
+                if block.get('type') == 'tool_use':
+                    result.append(visible_activity('Tool request', 'running', block.get('name', '')))
                 if block.get('type') == 'text':
                     result.append(event('text', text=block.get('text', '')))
         if kind == 'result':
@@ -526,7 +543,7 @@ class ProviderRegistry:
                         raise ValueError('Recognizable sensitive provider output refused')
                     result['output'] = combined
                 result['events'].append(item)
-                if request.event_callback and kind in ('text', 'session', 'usage', 'tool_call', 'completed', 'cancelled', 'timeout', 'error'):
+                if request.event_callback and kind in ('text', 'session', 'usage', 'tool_call', 'completed', 'cancelled', 'timeout', 'error', 'activity'):
                     try:
                         request.event_callback(dict(item))
                     except Exception:
