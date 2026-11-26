@@ -261,3 +261,22 @@ are averages over provider-call elapsed time, including waiting/tools, not
 instantaneous throughput. Hidden reasoning, tool output and unreported input are
 not estimated. Waiting for usage means unknown, not zero. Finished call averages
 freeze at the recorded finish time.
+
+## Reading and controlling live work
+
+The task pane prioritizes a single readable timeline of visible agent messages,
+commands, command output and file-change events. Output blocks expand naturally
+rather than using small nested vertical scroll boxes. Older activity is available
+with Show earlier activity. Structured plans are rendered as readable task titles
+and descriptions, with the original structured response expandable.
+
+Status, Pause and Cancel stay above the scrolling output. Live file changes can
+be expanded to inspect the filtered diff, refreshed approximately every three
+seconds while running; concurrent external edits may also appear.
+
+In the approval card, Advanced task options includes both Reviewer and Reviewer
+model (provider default, suggested models, or a custom model ID). Changing provider
+resets the reviewer model. Editing a model regenerates the proposal before approval.
+Cancel closes an unsubmitted preview and keeps the prompt; it does not invoke any
+agent. Once a task is running, Cancel task stops that task through the existing
+cancellation endpoint.

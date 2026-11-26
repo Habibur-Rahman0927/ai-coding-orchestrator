@@ -145,6 +145,7 @@ def normalize_cli(provider_id, data):
             if item.get('type') in labels:
                 phase = 'failed' if item.get('status') == 'failed' else 'completed' if kind == 'item.completed' else 'running'
                 detail = item.get('command', '') if item.get('type') == 'command_execution' else item.get('tool', '')
+                if item['type']=='file_change': detail=', '.join(str(change.get('path','')) for change in item.get('changes',[]) if isinstance(change,dict))
                 return [visible_activity(labels[item['type']], phase, detail, item.get('aggregated_output','') if item['type']=='command_execution' else '')]
         if kind == 'thread.started':
             return [event('session', session_id=str(uuid.UUID(data['thread_id'])))]

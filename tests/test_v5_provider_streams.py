@@ -53,3 +53,6 @@ class Streams(unittest.TestCase):
         self.assertTrue(event['snapshot'])
         command=normalize_cli('codex',{'type':'item.completed','item':{'type':'command_execution','command':'npm test','aggregated_output':'3 tests passed'}})[0]
         self.assertEqual(command['output'],'3 tests passed')
+        change=normalize_cli('codex',{'type':'item.completed','item':{'type':'file_change','changes':[{'path':'src/main.rs','kind':'update'}]}})[0]
+        self.assertEqual(change['label'],'File changes')
+        self.assertIn('src/main.rs',change['detail'])
