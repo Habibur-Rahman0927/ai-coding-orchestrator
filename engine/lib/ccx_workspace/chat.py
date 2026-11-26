@@ -211,6 +211,7 @@ class Chat:
                 session_id=session,history=history,model=record.get('model'),effort=record.get('effort'),allowed_operations=['native_agent_access'] if record['provider'] in ('claude','codex') else [],
                 max_output_tokens=maximum,timeout=timeout,cancel_event=cancellation)
             activity('Context prepared', detail=str(len(sources))+' source excerpts')
+            metadata['provider_started_at']=time.time()
             activity('Waiting for '+record['provider'], 'running')
             response_seen=False
             for event in self.registry.get(record['provider']).execute(request):
@@ -219,7 +220,7 @@ class Chat:
                 kind=event.get('type')
                 if kind=='activity':activity(event.get('label','Provider activity'),event.get('phase','running'),event.get('detail',''),event.get('output',''))
                 if kind=='text':
-                    if not response_seen:activity('Receiving response','running');response_seen=True
+                    if not response_seen:metadata['output_received']=True;activity('Receiving response','running');response_seen=True
                     output=event.get('text','') if event.get('final') else output+event.get('text','')
                 elif kind=='usage':usage.update(event.get('usage') or {})
                 elif kind=='session':
@@ -235,7 +236,7 @@ class Chat:
                 if len(output)>65536:
                     cancellation.set();state='OUTPUT_LIMIT';output=output[:65536];break
                 if time.monotonic()-last_flush>.2:
-                    with self.store.connect() as db:db.execute('UPDATE chat_messages SET content=? WHERE id=?',(output,message_id))
+                    with self.store.connect() as db:db.execute('UPDATE chat_messages SET content=?,usage=? WHERE id=?',(output,json.dumps(usage),message_id))
                     last_flush=time.monotonic()
         except Exception:
             state='FAILED'
@@ -244,6 +245,7 @@ class Chat:
             if sensitive_content(usage):usage={}
             if not output:output='The provider call did not complete. Check provider diagnostics; this message is not automatically retried.'
         finally:
+            if metadata.get('provider_started_at'):metadata['provider_finished_at']=time.time()
             activity('Response completed' if state=='IDLE' else 'Response '+state.lower(), 'completed' if state=='IDLE' else 'stopped')
             with self.store.connect() as db:
                 db.execute('UPDATE chat_messages SET content=?,usage=? WHERE id=?',(output,json.dumps(usage),message_id))

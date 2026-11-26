@@ -177,6 +177,45 @@ class EasyWorkspace(unittest.TestCase):
         expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
         app.engine.cancel(flow['id'])
 
+    def test_token_meter_distinguishes_estimates_reports_and_unknown_usage(self):
+        self.ready()
+        expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
+        samples=self.page.evaluate("""() => [
+          tokenUsageText({input_tokens:100,output_tokens:50},'ignored',10,12,99),
+          tokenUsageText({},'abcdefgh',10,null,12),
+          tokenUsageText({},'',10,null,12),
+          tokenUsageText({output_tokens:0},'',10,12,99)
+        ]""")
+        self.assertIn('25.0 tokens/s · 0.025 tokens/ms · average',samples[0])
+        self.assertIn('50 output tokens reported',samples[0])
+        self.assertIn('~2 visible output tokens (estimate)',samples[1])
+        self.assertIn('average estimate',samples[1])
+        self.assertIn('Waiting for provider token usage',samples[2])
+        self.assertNotIn('tokens/ms',samples[2])
+        self.assertIn('0 output tokens reported',samples[3])
+        task_meter=self.page.evaluate("""() => workflowTokenUsage({status:'COMPLETED',events:[
+          {event:'ACTION_STARTED',action_id:'one',created_at:10,data:{provider:'codex',role:'executor'}},
+          {event:'COMMAND_OUTPUT',action_id:'tool',created_at:11,data:{text:'not model tokens'}},
+          {event:'PROVIDER_EVENT',action_id:'one',created_at:11,data:{type:'usage',usage:{output_tokens:50}}},
+          {event:'ACTION_COMPLETED',action_id:'one',created_at:12,data:{}}
+        ]})""")
+        self.assertIn('Last call · codex · executor',task_meter)
+        self.assertIn('25.0 tokens/s',task_meter)
+        self.assertNotIn('estimate',task_meter)
+
+        self.page.get_by_label('Action',exact=True).select_option('build')
+        self.page.get_by_label('Your task',exact=True).fill('Update documentation')
+        self.page.get_by_role('button',name='Review task',exact=True).click()
+        self.page.get_by_text('Advanced task options',exact=True).click()
+        expect(self.page.get_by_label('Token limit',exact=True)).to_have_count(0)
+        self.page.get_by_role('button',name='Just ask · no file changes',exact=True).click()
+        self.page.get_by_role('button',name='Send',exact=True).click()
+        expect(self.page.locator('.chat-message .token-meter')).to_contain_text('estimate',timeout=15000)
+        expect(self.page.locator('.chat-message .token-meter')).to_contain_text('10 output tokens reported',timeout=15000)
+        final=self.page.locator('.chat-message .token-meter').inner_text()
+        self.page.reload()
+        expect(self.page.locator('.chat-message .token-meter')).to_have_text(final)
+
     def test_markdown_tables_are_safe_and_readable(self):
         self.ready()
         expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()

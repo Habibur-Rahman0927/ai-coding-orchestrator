@@ -252,3 +252,12 @@ The task view stays within the window: its toolbar and tabs remain visible while
 the task pane follows new output. Scrolling up pauses following; Jump to latest
 returns to the newest output and resumes following. Chat drafts and conversations
 remain separate from task progress when switching tabs.
+
+Token-budget input fields are omitted from the UI; existing configured/default
+values are retained. Chat and task progress show per-call token telemetry:
+reported input/output counts when available, otherwise a clearly labelled estimate
+of visible output (UTF-8 bytes / 4). The displayed tokens/second and tokens/millisecond
+are averages over provider-call elapsed time, including waiting/tools, not
+instantaneous throughput. Hidden reasoning, tool output and unreported input are
+not estimated. Waiting for usage means unknown, not zero. Finished call averages
+freeze at the recorded finish time.

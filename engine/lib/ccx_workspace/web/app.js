@@ -78,7 +78,7 @@ async function workflows(){
     field('What should be done?','objective',{required:true,multiline:true}),
     field('How will we verify it? One criterion per line','criteria',{required:true,multiline:true}),
     el('div',{class:'grid three'},field('Orchestrator','planner',{options:providerOptions(),value:d.planner}),field('Executor','executor',{options:providerOptions(),value:d.executor}),field('Reviewer','reviewer',{options:providerOptions(),value:d.reviewer})),
-    el('div',{class:'form-row'},field('Spending reservation limit','max_cost',{type:'number',value:d.max_cost,min:0,step:.01,hint:'Zero blocks live calls. A positive limit still requires provider spending approval.'}),field('Token budget','max_tokens',{type:'number',value:d.max_tokens,min:128})),
+    el('div',{class:'form-row'},field('Spending reservation limit','max_cost',{type:'number',value:d.max_cost,min:0,step:.01,hint:'Zero blocks live calls. A positive limit still requires provider spending approval.'})),
     el('div',{class:'form-row'},field('Context budget','context_budget',{type:'number',value:d.context_budget,min:128,max:32000}),field('Maximum duration (seconds)','max_seconds',{type:'number',value:d.max_seconds,min:1,max:86400})),
     el('details',{},el('summary',{},'Optional execution policy and model overrides'),
       field('Execution policy','execution_policy',{options:[{value:'standard',label:'Plan, implement, test, and independently review'},{value:'single_task',label:'Single task: skip planning, retain tests and review'}],hint:'A single task avoids the planning call. Your selected provider roles are preserved.'}),
@@ -86,7 +86,7 @@ async function workflows(){
       field('Executor model override','executor_model',{placeholder:'Inherit application or provider default'}),
       field('Reviewer model override','reviewer_model',{placeholder:'Inherit application or provider default'}))
   ],'Create workflow',async data=>{
-    const value=await api('/api/workflows',{project_id:data.project_id,objective:data.objective,criteria:data.criteria.split('\n').filter(x=>x.trim()),budgets:{max_cost:Number(data.max_cost),max_tokens:Number(data.max_tokens),max_context_tokens:Number(data.context_budget),max_seconds:Number(data.max_seconds)},providers:{planner:data.planner,executor:data.executor,reviewer:data.reviewer},execution_policy:data.execution_policy,model_overrides:Object.fromEntries(['planner','executor','reviewer'].filter(role=>data[role+'_model']?.trim()).map(role=>[role,data[role+'_model'].trim()]))});
+    const value=await api('/api/workflows',{project_id:data.project_id,objective:data.objective,criteria:data.criteria.split('\n').filter(x=>x.trim()),budgets:{max_cost:Number(data.max_cost),max_tokens:d.max_tokens,max_context_tokens:Number(data.context_budget),max_seconds:Number(data.max_seconds)},providers:{planner:data.planner,executor:data.executor,reviewer:data.reviewer},execution_policy:data.execution_policy,model_overrides:Object.fromEntries(['planner','executor','reviewer'].filter(role=>data[role+'_model']?.trim()).map(role=>[role,data[role+'_model'].trim()]))});
     selectedWorkflow=value.id;await refresh();notice('Workflow created. Review its approvals before starting.');
   }));
   main.append(panel('',create));const flows=arr(state.workflows).filter(w=>w.project_id===selectedProject);
@@ -291,10 +291,10 @@ async function advancedSetup(){
     content.append(panel('Your default workflow',form([
       el('div',{class:'grid three'},field('Default orchestrator','planner',{options:providerOptions(),value:d.planner}),field('Default executor','executor',{options:providerOptions(),value:d.executor}),field('Default reviewer','reviewer',{options:providerOptions(),value:d.reviewer})),
       field('Optional fallback','fallback_provider',{options:[{value:'',label:'No automatic fallback'},...providerOptions()],value:d.fallback_provider||''}),
-      el('div',{class:'form-row'},field('Context budget (estimated tokens)','context_budget',{type:'number',min:128,max:32000,value:d.context_budget}),field('Token budget','max_tokens',{type:'number',min:128,value:d.max_tokens})),
+      el('div',{class:'form-row'},field('Context budget (estimated tokens)','context_budget',{type:'number',min:128,max:32000,value:d.context_budget})),
       el('div',{class:'form-row'},field('Spending reservation limit','max_cost',{type:'number',min:0,step:.01,value:d.max_cost,hint:'Zero blocks paid workflows. This is not a provider-enforced billing cap.'}),field('Maximum duration (seconds)','max_seconds',{type:'number',min:1,max:86400,value:d.max_seconds})),
       field('Approval policy','approval_policy',{options:[{value:'ask',label:'Ask for each new permission scope'},{value:'reuse_scoped',label:'Reuse bounded workflow approvals'}],value:d.approval_policy||'ask',hint:'Both policies require initial authorization. No destructive, deployment, or billing permission is implied.'})
-    ],'Save defaults and continue',async data=>{await api('/api/setup',{step:5,defaults:{...data,fallback_provider:data.fallback_provider||null,context_budget:Number(data.context_budget),max_tokens:Number(data.max_tokens),max_cost:Number(data.max_cost),max_seconds:Number(data.max_seconds)}});await refresh(false);await renderPage();})));
+    ],'Save defaults and continue',async data=>{await api('/api/setup',{step:5,defaults:{...data,fallback_provider:data.fallback_provider||null,context_budget:Number(data.context_budget),max_tokens:d.max_tokens,max_cost:Number(data.max_cost),max_seconds:Number(data.max_seconds)}});await refresh(false);await renderPage();})));
   } else if(step===5){
     const preview=el('div',{});
     content.append(panel('Preview an approved repository',projectRegistrationForm(preview)),preview,
@@ -455,10 +455,34 @@ function chatMarkdown(value){
   }
   flush();if(code!==null)root.append(el('pre',{},el('code',{},code.join('\n'))));return root;
 }
+function tokenUsageText(usage,visible,start,end,now=Date.now()/1000){
+  const known=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0;
+  const elapsed=start?Math.max(0,(end||now)-start):0;
+  const reported=known(usage?.output_tokens);
+  const output=reported?usage.output_tokens:visible?Math.ceil(new TextEncoder().encode(visible).length/4):null;
+  const parts=[];
+  if(known(usage?.input_tokens))parts.push(usage.input_tokens.toLocaleString()+' input tokens reported');
+  if(output!==null)parts.push(reported?output.toLocaleString()+' output tokens reported':'~'+output.toLocaleString()+' visible output tokens (estimate)');
+  else parts.push('Waiting for provider token usage');
+  if(output!==null&&elapsed>0)parts.push((output/elapsed).toFixed(1)+' tokens/s · '+(output/elapsed/1000).toFixed(3)+' tokens/ms · average'+(reported?'':' estimate'));
+  if(elapsed>0)parts.push(elapsed.toFixed(1)+'s elapsed');
+  return parts.join(' · ');
+}
+function workflowTokenUsage(w){
+  const events=arr(w.events),start=events.filter(e=>e.event==='ACTION_STARTED').at(-1);
+  if(!start)return 'Token usage appears when an agent starts. Command execution does not itself consume model tokens.';
+  const observed=events.filter(e=>e.action_id===start.action_id);
+  const usage=observed.filter(e=>e.event==='PROVIDER_EVENT'&&e.data?.type==='usage').reduce((value,e)=>({...value,...e.data.usage}),{});
+  const text=observed.filter(e=>e.event==='PROVIDER_EVENT'&&e.data?.type==='text').reduce((value,e)=>e.data.snapshot?e.data.text:value+(e.data.text||''),'');
+  const ended=observed.find(e=>['ACTION_COMPLETED','ACTION_OUTCOME_UNCERTAIN'].includes(e.event));
+  const end=ended?.created_at||(!w.runner_active&&w.status!=='RUNNING'?w.updated_at:null);
+  return (end?'Last call · ':'Live call · ')+(start.data?.provider||'Agent')+' · '+(start.data?.role||'call')+' · '+tokenUsageText(usage,text,start.created_at,end);
+}
 function chatMessage(message,agent){
   const node=el('article',{class:'chat-message '+message.role},el('h3',{},message.role==='user'?'You':agent),message.role==='user'?el('p',{},message.content||''):chatMarkdown(message.content));
   if(message.id)node.dataset.messageId=message.id;
   const metadata=message.metadata||{};
+  if(message.role==='assistant'&&metadata.provider_started_at)node.append(el('p',{class:'hint token-meter',title:'Average output tokens over wall-clock provider-call time, including waiting and tools. Visible-text estimates exclude hidden reasoning, tool output and input tokens.'},tokenUsageText(message.usage,metadata.output_received?message.content:'',metadata.provider_started_at,metadata.provider_finished_at)));
   if(message.role==='assistant'&&arr(metadata.activity).length){
     const events=arr(metadata.activity),last=events[events.length-1];
     node.append(el('details',{class:'live-activity',open:!message.content||last.phase==='running'},el('summary',{},'Activity · '+last.label),
@@ -631,6 +655,10 @@ async function chat(){
       }
       if(!followLatest)latest.hidden=false;
       if(followLatest){const scroll=transcript.closest('.chat-stream')||transcript;scroll.scrollTop=scroll.scrollHeight;}
+      for(const message of arr(value.messages)){
+        const node=Array.from(transcript.children).find(n=>n.dataset.messageId===message.id),meter=node?.querySelector('.token-meter'),m=message.metadata||{};
+        if(meter)meter.textContent=tokenUsageText(message.usage,m.output_received?message.content:'',m.provider_started_at,m.provider_finished_at);
+      }
       transcriptLoaded=true;
       responseRunning=value.running;submit.disabled=responseRunning||unresolvedSubmission;cancel.hidden=!responseRunning;
       responseStatus.textContent=responseRunning?'Responding…':(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Your conversation is saved. Inspect it before sending again.':'Conversation saved.');
@@ -688,8 +716,7 @@ function renderTaskApproval(container,initial,input,current){
   const perCall=field('Per-call reservation','max_call_cost',{type:'number',min:0,step:.01,value:initial.max_call_cost});
   const advanced=el('details',{},el('summary',{},'Advanced task options'),
     field('Reviewer','partner',{options:providerOptions(),value:input.partner||input.provider}),
-    field('Planning','planning',{options:[{value:'no',label:'Direct implementation'},{value:'yes',label:'Plan multiple steps first'}],value:input.planning?'yes':'no'}),
-    field('Token limit','max_tokens',{type:'number',min:128,max:1000000,value:initial.workflow.budgets.max_tokens}));
+    field('Planning','planning',{options:[{value:'no',label:'Direct implementation'},{value:'yes',label:'Plan multiple steps first'}],value:input.planning?'yes':'no'}));
   const start=button('Approve & start',async()=>{
     if(!current()||!container.isConnected||!proposal||proposal.blockers.length)return;
     pendingSubmission(input.project_id,{key});
@@ -700,7 +727,7 @@ function renderTaskApproval(container,initial,input,current){
   },'primary');
   const read=()=>({...input,budget_policy:allowance.querySelector('select').value==='unlimited'?'unlimited':'limited',max_seconds:Number(timeLimit.querySelector('input').value),criteria:criteria.querySelector('textarea').value,
     max_cost:Number(total.querySelector('input').value),max_call_cost:Number(perCall.querySelector('input').value),
-    max_tokens:Number(advanced.querySelector('[name=max_tokens]').value),partner:advanced.querySelector('[name=partner]').value,model_overrides:Object.fromEntries(Object.entries(input.model_overrides||{}).filter(([role])=>role!=='reviewer'||advanced.querySelector('[name=partner]').value===(input.partner||input.provider))),planning:advanced.querySelector('[name=planning]').value==='yes',command_mode:'agent'});
+    partner:advanced.querySelector('[name=partner]').value,model_overrides:Object.fromEntries(Object.entries(input.model_overrides||{}).filter(([role])=>role!=='reviewer'||advanced.querySelector('[name=partner]').value===(input.partner||input.provider))),planning:advanced.querySelector('[name=planning]').value==='yes',command_mode:'agent'});
   function show(){
     const models=Object.entries(proposal.workflow.model_overrides||{}).map(([role,model])=>role+' = '+model).join(' · ');
     summary.replaceChildren(el('p',{class:'build-objective'},proposal.workflow.objective),
@@ -736,12 +763,14 @@ async function inlineTask(container,id,current){
   const card=panel('Task progress'),status=el('p',{role:'status',class:'task-status'}),details=el('div',{}),requests=el('div',{}),result=el('div',{});
   let timer,signature='',loadedResults=false,firstRender=true;
   const controls=el('div',{class:'actions'},button('Pause task',async()=>{await api('/api/workflows/'+id+'/pause',{});await poll();},'quiet'),button('Cancel task',async()=>{await api('/api/workflows/'+id+'/cancel',{});await poll();},'danger'));
-  card.append(status,details,controls,requests,result);container.replaceChildren(card);
+  const meter=el('p',{class:'hint token-meter',title:'Current or latest provider call. Rates are averages over elapsed call time, not instantaneous billing or hardware throughput. Visible output estimates exclude hidden reasoning and tool output.'});
+  card.append(status,meter,details,controls,requests,result);container.replaceChildren(card);
   const alive=()=>current()&&card.isConnected&&!container.closest('[hidden]');
   async function poll(){
     clearTimeout(timer);if(!alive())return;
     try{
       const w=await api('/api/workflows/'+id);if(!alive())return;
+      meter.textContent=workflowTokenUsage(w);
       const follow=firstRender||container.scrollHeight-container.scrollTop-container.clientHeight<80;
       const scrollTop=container.scrollTop;
       const active=w.runner_active||w.status==='RUNNING';
@@ -777,9 +806,8 @@ async function inlineTask(container,id,current){
             el('details',{},el('summary',{},'Custom limit values'),
               field('Total cost reservation','max_cost',{type:'number',min:0,step:.01,value:w.budgets.max_cost||1}),
               field('Per-call cost reservation','max_call_cost',{type:'number',min:0,step:.01,value:.1}),
-              field('Token limit','max_tokens',{type:'number',min:128,value:w.budgets.max_tokens}),
               field('Time limit (seconds)','max_seconds',{type:'number',min:1,value:w.budgets.max_seconds}))
-          ],'Save limits',async data=>{await api('/api/workflows/'+id+'/limits',{confirmed:true,policy:data.policy,budgets:data.policy==='limited'?{max_cost:Number(data.max_cost),max_tokens:Number(data.max_tokens),max_seconds:Number(data.max_seconds)}:{},max_call_cost:Number(data.max_call_cost)});await poll();}));
+          ],'Save limits',async data=>{await api('/api/workflows/'+id+'/limits',{confirmed:true,policy:data.policy,budgets:data.policy==='limited'?{max_cost:Number(data.max_cost),max_seconds:Number(data.max_seconds)}:{},max_call_cost:Number(data.max_call_cost)});await poll();}));
           requests.append(limitsEditor);
           if(w.status==='BUDGET_EXHAUSTED'&&w.budget_policy!=='unlimited'&&!arr(w.pending_actions).length)requests.append(
             el('p',{class:'hint'},'This task stopped at a workspace usage limit. Remove it to continue; provider charges and limits still apply.'),
