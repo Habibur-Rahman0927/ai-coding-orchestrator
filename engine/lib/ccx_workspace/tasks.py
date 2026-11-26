@@ -79,7 +79,7 @@ class Tasks:
 
     def preview(self, body):
         permitted = {'project_id', 'provider', 'partner', 'instruction', 'criteria', 'commands',
-                     'max_cost', 'max_call_cost', 'max_tokens', 'planning', 'model_overrides', 'budget_policy', 'max_seconds'}
+                     'max_cost', 'max_call_cost', 'max_tokens', 'planning', 'model_overrides', 'budget_policy', 'max_seconds', 'command_mode'}
         if set(body) - permitted:
             raise TaskError('Unknown task field')
         project = self.store.project(body.get('project_id'))
@@ -105,6 +105,8 @@ class Tasks:
             raise TaskError('Use valid model identifiers for the selected agents')
         plan['workflow']['model_overrides'] = dict(overrides)
         saved = setting(self.store, 'task_preferences', {}).get(project['id'], {})
+        command_mode = body.get('command_mode', 'manual' if 'commands' in body else 'agent')
+        if command_mode not in ('manual', 'agent'): raise TaskError('Invalid command mode')
         commands = body.get('commands', self.suggestions(project))
         if not isinstance(commands, list) or len(commands) > 10:
             raise TaskError('Choose at most ten test commands')
@@ -131,7 +133,7 @@ class Tasks:
         if type(tokens) != int or not 128 <= tokens <= 1000000:
             raise TaskError('Token limit must be between 128 and 1000000')
         blockers = []
-        if not normalized:
+        if not normalized and command_mode == 'manual':
             blockers.append('Choose an exact test command before starting. No tests are run during preview.')
         if policy == 'limited' and (max_cost <= 0 or per_call <= 0 or per_call > max_cost):
             blockers.append('Set positive total and per-call usage reservations. Per-call must not exceed total.')
@@ -150,7 +152,10 @@ class Tasks:
             if name == provider and caps.get('native_tools'):
                 approvals.append({'kind': 'native_agent_write', 'scope': {'provider': name}})
         approvals.append({'kind': 'operations', 'scope': {'operations': ['patch']}})
-        approvals.extend({'kind': 'command', 'scope': c} for c in normalized)
+        if command_mode == 'agent':
+            approvals.append({'kind':'agent_commands','scope':{'mode':'project'}})
+        else:
+            approvals.extend({'kind': 'command', 'scope': c} for c in normalized)
         for approval in approvals:
             self.engine._approval_scope(approval['kind'], approval['scope'])
         baseline = snapshot(project['path'], json.loads(project['exclusions']))

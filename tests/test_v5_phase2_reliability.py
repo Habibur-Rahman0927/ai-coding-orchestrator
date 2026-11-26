@@ -133,7 +133,8 @@ class ReliabilityTests(unittest.TestCase):
         result=self.engine.run(identifier,registry)
         self.assertEqual(result['status'],'COMPLETED',result['reason'])
         events=[e for e in self.engine.checkpoints(identifier) if e['event']=='PROVIDER_EVENT']
-        self.assertEqual(len(events),128)
+        self.assertEqual(len(events),2)
+        self.assertTrue(all(e['data']['text']=='progress'*99 for e in events))
         self.assertNotIn('abcdefghijklmnop',json.dumps(events))
         self.assertNotIn('internal',json.dumps(events))
 

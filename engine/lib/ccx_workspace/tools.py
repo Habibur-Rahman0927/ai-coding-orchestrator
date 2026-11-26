@@ -49,6 +49,7 @@ class ScopedTools:
             raise ValueError('Project must be a directory')
         platform.validate_permissions(self.project, mask=0o002)
         self.cancel_event = cancel_event
+        self.event_callback = None
         self.allowed = frozenset(allowed_operations)
         self.approved_commands = dict(approved_commands or {})
         self.exclusions = tuple(exclusions)
@@ -259,6 +260,14 @@ class ScopedTools:
         reader = threading.Thread(target=read, daemon=True)
         reader.start()
         output, total = bytearray(), 0
+        last_event, emitted_bytes = 0, -1
+        def flush_output():
+            nonlocal last_event, emitted_bytes
+            if self.event_callback and len(output) != emitted_bytes and time.monotonic()-last_event >= .2:
+                text = bytes(output).decode('utf-8', errors='replace')
+                if not SECRET_CONTENT.search(text):
+                    self.event_callback({'type':'text','phase':'running','label':'Command output','detail':json.dumps(argv)[:1000],'text':text[-12000:]})
+                last_event, emitted_bytes = time.monotonic(), len(output)
         deadline = time.monotonic() + timeout + 30
         try:
             while True:
@@ -271,11 +280,13 @@ class ScopedTools:
                 try:
                     chunk = chunks.get(timeout=.1)
                 except queue.Empty:
+                    flush_output()
                     continue
                 if chunk is None:
                     break
                 total += len(chunk)
                 output.extend(chunk[:max(0, MAX_OUTPUT-len(output))])
+                flush_output()
             code = process.wait(timeout=10)
         finally:
             stop.set()
@@ -298,6 +309,8 @@ def tool_definitions(allowed_operations):
               'search': {'query': {'type': 'string'}},
               'patch': {name: {'type': 'string'} for name in ('path', 'sha256', 'old', 'new')},
               'run_command': {'name': {'type': 'string'}}, 'git_diff': {}}
+    if 'agent_commands' in allowed_operations:
+        fields['run_command'] = {'name':{'type':'string'}, 'argv':{'type':'array','items':{'type':'string'}}, 'cwd':{'type':'string'}, 'timeout':{'type':'integer'}}
     return [{'type': 'function', 'function': {'name': name,
              'description': 'Explicitly authorized project operation: ' + name,
              'parameters': {'type': 'object', 'properties': fields[name],

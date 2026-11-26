@@ -42,7 +42,7 @@ document the endpoint and request format used here. Documentation was consulted 
 |---|---|---|---|
 | Codex CLI | Exact UUID resume; never `--last` | Explicit `native_agent_access`; read-only sandbox by default, separate `native_agent_write` approval for workspace-write | Native file access does not pass through the controlled secret filter; no verified per-turn token/cost cap |
 | Claude CLI | Exact UUID resume | Advisory: native tools removed, strict empty MCP configuration, safe/restricted mode, permission prompts denied | Requires an upstream CLI supporting these flags; older versions fail rather than dropping safeguards |
-| MiniMax API | Engine-owned local UUID and full saved transcript; no fabricated server-side session | Structured tool requests returned to engine; adapter executes no tools | Non-streaming HTTP response normalized into events; token/output/time bounds; no automatic retries |
+| MiniMax API | Engine-owned local UUID and full saved transcript; no fabricated server-side session | Structured tool requests returned to engine; adapter executes no tools | SSE text/tool streams normalized into visible events (reasoning stays internal); token/output/time bounds; no automatic retries |
 
 Both CLI adapters require explicit `native_agent_access`. This acknowledges that
 upstream authentication, managed settings, and native process behavior are outside

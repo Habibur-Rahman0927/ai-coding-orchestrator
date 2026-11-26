@@ -109,6 +109,41 @@ class EasyWorkspace(unittest.TestCase):
         expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
         expect(self.page.get_by_label('Action',exact=True)).to_have_value('build')
 
+    def test_history_opens_at_bottom_and_stream_respects_manual_scroll(self):
+        import time
+        import uuid
+        self.ready()
+        chat=self.server.application.chat.create(self.pid,'codex','Long conversation')
+        with self.store.connect() as db:
+            for index in range(40):
+                db.execute('INSERT INTO chat_messages(id,chat_id,role,content,created_at) VALUES(?,?,?,?,?)',
+                    (str(uuid.uuid4()),chat['id'],'assistant','Earlier message '+str(index)+'\n'+('line\n'*5),time.time()+index/1000))
+        self.page.reload()
+        expect(self.page.locator('.chat-message')).to_have_count(40)
+        self.page.wait_for_function("() => {const s=document.querySelector('.chat-stream');return s.scrollHeight-s.scrollTop-s.clientHeight<5;}")
+        self.page.get_by_label('Your task',exact=True).fill('Continue here')
+        self.page.get_by_role('button',name='Send',exact=True).click()
+        expect(self.page.locator('.chat-message.assistant').last).to_contain_text('A deterministic',timeout=15000)
+        self.page.wait_for_function("() => {const s=document.querySelector('.chat-stream');return s.scrollHeight-s.scrollTop-s.clientHeight<80;}")
+        self.page.locator('.chat-stream').evaluate('(s)=>s.scrollTop=0')
+        expect(self.page.get_by_role('button',name='Jump to latest',exact=True)).to_be_visible()
+        expect(self.page.locator('.chat-message.assistant').last).to_contain_text('standalone reply',timeout=15000)
+        self.assertLess(self.page.locator('.chat-stream').evaluate('(s)=>s.scrollTop'),10)
+        self.page.get_by_role('button',name='Jump to latest',exact=True).click()
+        self.page.wait_for_function("() => {const s=document.querySelector('.chat-stream');return s.scrollHeight-s.scrollTop-s.clientHeight<5;}")
+
+    def test_build_shows_live_text_before_completion_without_command_form(self):
+        self.ready()
+        self.registry.delay=2
+        self.page.get_by_label('Action',exact=True).select_option('build')
+        self.page.get_by_label('Your task',exact=True).fill('Fix app.txt')
+        self.page.get_by_role('button',name='Review task',exact=True).click()
+        expect(self.page.get_by_text('Manual command editor',exact=True)).to_have_count(0)
+        self.page.get_by_role('button',name='Approve & start',exact=True).click()
+        expect(self.page.locator('.task-live-output')).to_contain_text('Browser fixture is working',timeout=15000)
+        self.assertEqual(self.server.application.engine.list()[0]['status'],'RUNNING')
+        expect(self.page.get_by_text('Done · tests and review verified',exact=True)).to_be_visible(timeout=30000)
+
     def test_markdown_tables_are_safe_and_readable(self):
         self.ready()
         expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
@@ -140,7 +175,7 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_label('Action',exact=True).select_option('build')
         self.page.get_by_label('Your task',exact=True).fill('Check what remains to do')
         self.page.get_by_role('button',name='Review task',exact=True).click()
-        expect(self.page.locator('.build-checks')).to_contain_text('cargo')
+        expect(self.page.locator('.build-checks')).to_contain_text('AI chooses commands')
         expect(self.page.get_by_label('Test executable',exact=True)).to_be_hidden()
         expect(self.page.get_by_label('Total usage reservation',exact=True)).to_be_hidden()
         expect(self.page.get_by_label('What should work when finished?',exact=True)).to_be_hidden()
@@ -266,10 +301,8 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_label('Your task',exact=True).fill('Fix app.txt')
         self.page.get_by_role('button',name='Review task',exact=True).click()
         approve=self.page.get_by_role('button',name='Approve & start',exact=True)
-        expect(approve).to_be_disabled()
-        self.page.get_by_label('Test command',exact=True).select_option('custom')
-        self.page.get_by_label('Test executable',exact=True).fill(sys.executable)
-        self.page.get_by_label('Arguments · one per line',exact=True).fill('-B\ncheck.py')
+        expect(approve).to_be_enabled()
+        expect(self.page.get_by_text('Manual command editor',exact=True)).to_have_count(0)
         self.page.get_by_text('Optional usage limits',exact=True).click()
         self.page.get_by_label('Usage allowance',exact=True).select_option('small')
         expect(approve).to_be_enabled(timeout=10000)

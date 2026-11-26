@@ -170,10 +170,11 @@ class Chat:
         identifier=record['id'];message_id=str(uuid.uuid4());output='';usage={};state='FAILED'
         session=record['session_id'];history=json.loads(record['history']);last_flush=0
         metadata={'activity':[], 'requested_model':record.get('model'), 'requested_effort':record.get('effort')}
-        def activity(label, phase='completed', detail=''):
+        def activity(label, phase='completed', detail='', command_output=''):
             if sensitive_content(detail): detail='[Sensitive details withheld]'
-            value={'label':str(label)[:80], 'phase':phase, 'detail':str(detail)[:400], 'at':time.time()}
-            if metadata['activity'] and all(metadata['activity'][-1].get(k)==value[k] for k in ('label','phase','detail')):return
+            if sensitive_content(command_output): command_output='[Sensitive output withheld]'
+            value={'label':str(label)[:80], 'phase':phase, 'detail':str(detail)[:400], 'output':str(command_output)[-12000:], 'at':time.time()}
+            if metadata['activity'] and all(metadata['activity'][-1].get(k)==value[k] for k in ('label','phase','detail','output')):return
             metadata['activity']=(metadata['activity']+[value])[-80:]
             with self.store.connect() as db:
                 db.execute('UPDATE chat_messages SET metadata=? WHERE id=?',(json.dumps(metadata),message_id))
@@ -216,7 +217,7 @@ class Chat:
                 if sensitive_content(event):
                     raise ValueError('Recognizable sensitive provider event refused')
                 kind=event.get('type')
-                if kind=='activity':activity(event.get('label','Provider activity'),event.get('phase','running'),event.get('detail',''))
+                if kind=='activity':activity(event.get('label','Provider activity'),event.get('phase','running'),event.get('detail',''),event.get('output',''))
                 if kind=='text':
                     if not response_seen:activity('Receiving response','running');response_seen=True
                     output=event.get('text','') if event.get('final') else output+event.get('text','')

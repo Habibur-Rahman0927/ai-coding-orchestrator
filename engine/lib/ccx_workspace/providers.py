@@ -126,11 +126,12 @@ def classify_error(value):
     return 'provider_error'
 
 
-def visible_activity(label, phase, detail=''):
-    # Deliberately omit tool outputs, inputs, reasoning and provider raw payloads.
+def visible_activity(label, phase, detail='', output=''):
+    # Only explicitly visible command output; never reasoning or raw provider payloads.
     if not isinstance(detail, str) or sensitive_content(detail):
         detail = '[Sensitive details withheld]'
-    return event('activity', label=label, phase=phase, detail=detail[:400])
+    if not isinstance(output, str) or sensitive_content(output): output='[Sensitive output withheld]'
+    return event('activity', label=label, phase=phase, detail=detail[:400], output=output[-12000:])
 
 
 def normalize_cli(provider_id, data):
@@ -144,11 +145,11 @@ def normalize_cli(provider_id, data):
             if item.get('type') in labels:
                 phase = 'failed' if item.get('status') == 'failed' else 'completed' if kind == 'item.completed' else 'running'
                 detail = item.get('command', '') if item.get('type') == 'command_execution' else item.get('tool', '')
-                return [visible_activity(labels[item['type']], phase, detail)]
+                return [visible_activity(labels[item['type']], phase, detail, item.get('aggregated_output','') if item['type']=='command_execution' else '')]
         if kind == 'thread.started':
             return [event('session', session_id=str(uuid.UUID(data['thread_id'])))]
-        if kind == 'item.completed' and data.get('item', {}).get('type') == 'agent_message':
-            return [event('text', text=data['item'].get('text', ''))]
+        if kind in ('item.updated', 'item.completed') and data.get('item', {}).get('type') == 'agent_message':
+            return [event('text', text=data['item'].get('text', ''), message_id=data['item'].get('id','message'), snapshot=True)]
         if kind == 'turn.completed':
             return [event('usage', usage=normalized_usage(data.get('usage'),provider_id)), event('completed')]
         if kind in ('turn.failed', 'error'):
@@ -157,6 +158,10 @@ def normalize_cli(provider_id, data):
         result = []
         if data.get('session_id'):
             result.append(event('session', session_id=str(uuid.UUID(data['session_id']))))
+        if kind == 'stream_event':
+            delta = (data.get('event') or {}).get('delta') or {}
+            if delta.get('type') == 'text_delta' and isinstance(delta.get('text'), str):
+                result.append(event('text', text=delta['text'], partial=True))
         if kind == 'assistant':
             for block in data.get('message', {}).get('content', []):
                 if block.get('type') == 'tool_use':
@@ -206,7 +211,7 @@ class CLIProvider:
                 argv += [request.session_id]
             argv += ['--', request.prompt]
             return argv
-        argv = ['claude', '-p', '--output-format', 'stream-json', '--verbose',
+        argv = ['claude', '-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
                 '--safe-mode', '--restricted', '--tools', '', '--disallowedTools', '*',
                 '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
                 '--permission-mode', 'plan', '--permission-prompts', 'none']
@@ -255,6 +260,8 @@ class CLIProvider:
         deadline = time.monotonic() + request.timeout + 5
         total, completed, failed = 0, False, False
         current_session = request.session_id
+        text_messages = {}
+        partial_message = False
         try:
             while True:
                 if request.cancelled():
@@ -282,7 +289,15 @@ class CLIProvider:
                 if raw.get('status') == 'EXECUTION_TIMEOUT':
                     yield event('timeout', error='Provider execution exceeded deadline')
                     return
-                for item in normalize_cli(self.id, raw):
+                normalized = normalize_cli(self.id, raw)
+                for item in normalized:
+                    if item['type'] == 'text':
+                        if self.id == 'codex' and item.get('snapshot'):
+                            text_messages[item['message_id']] = item['text']
+                            item = event('text', text='\n\n'.join(text_messages.values()), final=True)
+                        elif self.id == 'claude':
+                            if item.get('partial'): partial_message = True
+                            elif raw.get('type') == 'assistant' and partial_message: continue
                     if item['type'] == 'session':
                         if current_session and current_session != item['session_id']:
                             yield event('error', error='Provider returned an unexpected session identifier')
@@ -293,6 +308,7 @@ class CLIProvider:
                     # Completion is emitted only after the supervisor confirms exit.
                     if item['type'] != 'completed':
                         yield item
+                if self.id == 'claude' and raw.get('type') == 'assistant': partial_message = False
             code = process.wait(timeout=15)
             if code == 0 and completed and not failed and current_session:
                 yield event('completed')
@@ -326,7 +342,7 @@ class MiniMaxProvider:
         present = self.credential_status(self.id).get('configured', False) if self.credential_status else bool(os.environ.get(self.config.get('api_key_env', '')))
         return {'id': self.id, 'available': configured and present, 'configured': configured, 'installed': True, 'authentication': 'unknown', 'authentication_method': mode, 'connection_status': 'authentication_unknown' if configured and present else 'not_configured', 'last_verified_at': None,
                 'model': self.config.get('model'), 'capabilities': {'exact_session_resume': False,
-                    'local_transcript_sessions': True, 'streaming_events': False, 'token_limit': True,
+                    'local_transcript_sessions': True, 'streaming_events': True, 'token_limit': True,
                     'scoped_tools': True, 'native_tools': False, 'filesystem_secret_filtering': True},
                 'limitation': 'API calls require explicit sharing/cost approval; cancellation cannot revoke a request already received by MiniMax.'}
 
@@ -357,7 +373,7 @@ class MiniMaxProvider:
         # and tool results. A new prompt is appended only when it is not a tool continuation.
         if not messages or messages[-1].get('role') != 'tool':
             messages.append({'role': 'user', 'content': request.prompt})
-        payload = {'model': model, 'messages': messages, 'stream': False,
+        payload = {'model': model, 'messages': messages, 'stream': True,
                    'max_completion_tokens': request.max_output_tokens}
         definitions = tool_definitions(request.allowed_operations)
         if definitions:
@@ -371,30 +387,69 @@ class MiniMaxProvider:
         stop = threading.Event()
         transport_socket = [None]
 
+        def publish(value):
+            while not stop.is_set() and not request.cancelled():
+                try:
+                    outcome.put(value, timeout=.1)
+                    return
+                except queue.Full:
+                    continue
+
         def perform():
             try:
                 if request.cancelled() or stop.is_set():
-                    outcome.put(('error', 'MiniMax request cancelled before transmission'))
+                    publish(('error', 'MiniMax request cancelled before transmission'))
                     return
                 connection.connect()
                 transport_socket[0] = getattr(connection, 'sock', None)
                 if request.cancelled() or stop.is_set():
-                    outcome.put(('error', 'MiniMax request cancelled before transmission'))
+                    publish(('error', 'MiniMax request cancelled before transmission'))
                     return
                 connection.request('POST', '/v1/chat/completions', body=body,
                                    headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'})
                 response = connection.getresponse()
                 if response.status != 200:
                     # Redirects are never followed; credentials stay on the allowlisted origin.
-                    outcome.put(('error', 'MiniMax HTTP status ' + str(response.status)))
+                    publish(('error', 'MiniMax HTTP status ' + str(response.status)))
+                    return
+                if 'text/event-stream' in getattr(response, 'getheader', lambda name, default='': default)('Content-Type', ''):
+                    message = {'role':'assistant', 'content':''}
+                    calls, usage, finish, total = {}, {}, None, 0
+                    while not stop.is_set() and not request.cancelled():
+                        line = response.readline(MAX_RESPONSE + 1)
+                        if not line: break
+                        total += len(line)
+                        if total > MAX_RESPONSE: raise ValueError('Stream exceeds response limit')
+                        if not line.startswith(b'data:'): continue
+                        data = line[5:].strip()
+                        if data == b'[DONE]': break
+                        part = json.loads(data)
+                        if part.get('usage'): usage = part['usage']
+                        for choice in part.get('choices', []):
+                            delta = choice.get('delta') or {}
+                            if isinstance(delta.get('content'), str):
+                                message['content'] += delta['content']
+                                publish(('event', event('text', text=delta['content'])))
+                            if isinstance(delta.get('reasoning_content'), str):
+                                message['reasoning_content'] = message.get('reasoning_content','') + delta['reasoning_content']
+                            for fragment in delta.get('tool_calls') or []:
+                                index = fragment.get('index')
+                                if type(index) != int or not 0 <= index < 16: raise ValueError('Invalid tool index')
+                                call = calls.setdefault(index, {'id':'','type':'function','function':{'name':'','arguments':''}})
+                                if fragment.get('id'): call['id'] = fragment['id']
+                                for field in ('name','arguments'):
+                                    call['function'][field] += fragment.get('function',{}).get(field,'')
+                            if choice.get('finish_reason'): finish = choice['finish_reason']
+                    if calls: message['tool_calls'] = [calls[i] for i in sorted(calls)]
+                    publish(('result', {'choices':[{'message':message,'finish_reason':finish}], 'usage':usage, '_streamed':True}))
                     return
                 raw = response.read(MAX_RESPONSE + 1)
                 if len(raw) > MAX_RESPONSE:
-                    outcome.put(('error', 'MiniMax response exceeds size limit'))
+                    publish(('error', 'MiniMax response exceeds size limit'))
                     return
-                outcome.put(('result', json.loads(raw)))
+                publish(('result', json.loads(raw)))
             except Exception:
-                outcome.put(('error', 'MiniMax transport or response failure'))
+                publish(('error', 'MiniMax transport or response failure'))
             finally:
                 connection.close()
         worker = threading.Thread(target=perform, daemon=True)
@@ -411,6 +466,9 @@ class MiniMaxProvider:
                     return
                 try:
                     kind, response = outcome.get(timeout=.1)
+                    if kind == 'event':
+                        yield response
+                        continue
                     break
                 except queue.Empty:
                     pass
@@ -430,7 +488,7 @@ class MiniMaxProvider:
             yield event('message', message=message)
             yield event('history', history=messages + [message])
             if isinstance(message.get('content'), str):
-                yield event('text', text=message['content'])
+                yield event('text', text=message['content'], final=True)
             yield event('usage', usage=normalized_usage(response.get('usage')))
             calls = message.get('tool_calls') or []
             if not isinstance(calls, list) or not all(isinstance(call, dict) and isinstance(call.get('function'), dict) for call in calls):

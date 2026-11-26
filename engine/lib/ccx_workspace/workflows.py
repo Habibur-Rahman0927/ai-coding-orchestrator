@@ -535,7 +535,7 @@ class WorkflowEngine:
         return self.task_status(workflow_id, task_id)
 
     def _approval_scope(self, kind, scope):
-        allowed = {'sharing', 'cost', 'native_agent_access', 'native_agent_write', 'command', 'recovery', 'failover', 'operations'}
+        allowed = {'sharing', 'cost', 'native_agent_access', 'native_agent_write', 'command', 'recovery', 'failover', 'operations', 'agent_commands'}
         if kind not in allowed or not isinstance(scope, dict):
             raise ValueError('Invalid approval kind or scope')
         if sensitive_content(scope):
@@ -552,6 +552,8 @@ class WorkflowEngine:
                 raise ValueError('Cost approval requires positive max_cost and conservative max_call_cost reservations')
             if scope['max_call_cost'] > scope['max_cost']:
                 raise ValueError('Per-call reservation exceeds cost approval')
+        if kind == 'agent_commands' and scope != {'mode':'project'}:
+            raise ValueError('Agent commands must be authorized for this project task')
         if kind == 'operations':
             operations = scope.get('operations')
             if not isinstance(operations, list) or not operations or set(operations) - {'patch'}:
@@ -828,8 +830,10 @@ class WorkflowEngine:
         if role == 'executor':
             if any('patch' in a['scope']['operations'] for a in self._approved(workflow['id'], 'operations')):
                 operations.append('patch')
-            if self._commands(workflow['id']):
+            if self._commands(workflow['id']) or self._approved(workflow['id'], 'agent_commands'):
                 operations.append('run_command')
+            if self._approved(workflow['id'], 'agent_commands'):
+                operations.append('agent_commands')
         for capability in ('native_agent_access', 'native_agent_write'):
             if (capability != 'native_agent_write' or role == 'executor') and self._approved(workflow['id'], capability, provider=provider):
                 operations.append(capability)
@@ -891,30 +895,37 @@ class WorkflowEngine:
         event_count = [0]
         visible_text = ['']
         def visible_event(event):
-            if event_count[0] >= 64 or not isinstance(event,dict) or sensitive_content(event):
+            if not isinstance(event,dict) or sensitive_content(event):
                 return
             from .store import safe_text
             kind=event.get('type')
             if kind not in ('text','usage','tool_call','completed','cancelled','timeout','error','session','activity'):
                 return
+            if kind != 'text' and event_count[0] >= 256: return
             value={'type':kind,'provider':provider,'role':role}
             if kind=='activity':
-                value.update(label=str(event.get('label','Provider activity'))[:80],phase=str(event.get('phase',''))[:40],detail=str(event.get('detail',''))[:400])
+                value.update(label=str(event.get('label','Provider activity'))[:80],phase=str(event.get('phase',''))[:40],detail=str(event.get('detail',''))[:400],output=str(event.get('output',''))[-12000:])
             if kind=='text':
-                fragment = str(event.get('text',''))[:2000]
+                fragment = str(event.get('text',''))
                 try:
                     # Check exactly the concatenation that telemetry exposes,
                     # independently of adapter result validation.
-                    safe_text(visible_text[0] + fragment)
-                    value['text'] = fragment
-                    visible_text[0] += fragment
+                    combined = fragment if event.get('final') else visible_text[0] + fragment
+                    safe_text(combined)
+                    visible_text[0] = combined[-24000:]
+                    value['text'] = visible_text[0]
+                    value['snapshot'] = True
                 except ValueError:
                     value['text']='[Recognizable sensitive output withheld]'
             if kind=='tool_call': value['operation']=(event.get('tool_call') or {}).get('name')
             if kind=='usage': value['usage']={k:v for k,v in (event.get('usage') or {}).items() if isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v)}
             with self.store.connect() as db:
-                self._checkpoint(db,workflow['id'],'PROVIDER_EVENT',value,task_id,action_id)
-            event_count[0]+=1
+                prior = db.execute("SELECT id FROM w5_checkpoints WHERE workflow_id=? AND action_id=? AND event='PROVIDER_EVENT' AND json_extract(data,'$.type')='text' LIMIT 1", (workflow['id'],action_id)).fetchone() if kind == 'text' else None
+                if prior:
+                    db.execute('UPDATE w5_checkpoints SET data=? WHERE id=?', (_json(value),prior['id']))
+                else:
+                    self._checkpoint(db,workflow['id'],'PROVIDER_EVENT',value,task_id,action_id)
+            if kind != 'text': event_count[0]+=1
         request['event_callback'] = visible_event
         try:
             result = registry.invoke(provider, request)
@@ -1005,7 +1016,15 @@ class WorkflowEngine:
 
     def _tests(self, workflow, task, cancel_event=None):
         commands = self._commands(workflow['id'])
-        if not commands:
+        verification = None
+        if self._approved(workflow['id'], 'agent_commands'):
+            current_task = next(t for t in self.status(workflow['id'])['tasks'] if t['id'] == task['id'])
+            verification = current_task['evidence'].get('execution', {}).get('verification')
+            if not isinstance(verification, dict):
+                self._set_status(workflow['id'], 'BLOCKED', 'Agent verification plan is missing')
+                return None
+            commands = {c['name']:self._approval_scope('command', c) for c in verification['commands']}
+        if not commands and verification is None:
             self._set_status(workflow['id'], 'APPROVAL_REQUIRED', 'At least one exact test command needs user approval')
             return None
         project = self.store.project(workflow['project_id'])['path']
@@ -1031,6 +1050,8 @@ class WorkflowEngine:
         after = self._snapshot(workflow)
         record = {'source': 'engine', 'snapshot_hash': before['hash'], 'after_hash': after['hash'],
                   'commands': results, 'passed': all(r['exit_code'] == 0 and not r['project_changed'] for r in results) and before['hash'] == after['hash'], 'at': time.time()}
+        record['verification_mode'] = 'commands' if commands else 'review_only'
+        record['reason'] = verification['reason'] if verification else 'User-selected checks'
         with self.store.connect() as db:
             self._checkpoint(db, workflow['id'], 'TESTS_EXECUTED', record, task['id'])
         return record
@@ -1076,7 +1097,7 @@ class WorkflowEngine:
             if role == 'executor':
                 if any('patch' in a['scope']['operations'] for a in self._approved(workflow['id'], 'operations')):
                     operations.append('patch')
-                if self._commands(workflow['id']):
+                if self._commands(workflow['id']) or self._approved(workflow['id'], 'agent_commands'):
                     operations.append('run_command')
             commands = self._commands(workflow['id'])
             tools = self._tools(self.store.project(workflow['project_id'])['path'], operations, commands,
@@ -1090,6 +1111,10 @@ class WorkflowEngine:
             for call in calls:
                 if cancel_event.is_set() or self.status(workflow['id'])['status'] != 'RUNNING':
                     return None
+                if call['name'] == 'run_command' and role == 'executor' and self._approved(workflow['id'], 'agent_commands') and 'argv' in call.get('arguments', {}):
+                    spec = self._approval_scope('command', call['arguments'])
+                    tools.approved_commands[spec['name']] = spec
+                    call = dict(call, arguments={'name':spec['name']}, command=spec)
                 if call['name'] not in operations:
                     value = {'error': 'Operation not authorized'}
                 else:
@@ -1212,7 +1237,20 @@ class WorkflowEngine:
                         'RUNNING', _json(call), before, time.time()))
             self._checkpoint(db, workflow['id'], 'SCOPED_TOOL_STARTED', {'name': call['name']}, task['id'] if task else None, identifier)
         try:
+            def observe(event):
+                if sensitive_content(event): return
+                with self.store.connect() as db:
+                    value = dict(event, provider=provider, role=role or 'tool', label=event.get('label', call['name']))
+                    prior = db.execute("SELECT id FROM w5_checkpoints WHERE workflow_id=? AND action_id=? AND event='COMMAND_OUTPUT' LIMIT 1", (workflow['id'],identifier)).fetchone()
+                    if prior:
+                        db.execute('UPDATE w5_checkpoints SET data=? WHERE id=?', (_json(value),prior['id']))
+                    else:
+                        self._checkpoint(db,workflow['id'],'COMMAND_OUTPUT',value,task['id'] if task else None,identifier)
+            tools.event_callback = observe
+            spec = getattr(tools, 'approved_commands', {}).get((call.get('arguments') or {}).get('name'), {})
+            observe({'type':'activity','phase':'running','label':call['name'], 'detail':_json(spec.get('argv', call.get('arguments',{})))[:1000]})
             result = tools.execute(call['name'], call.get('arguments') or {})
+            observe({'type':'text','phase':'completed','label':call['name'],'text':str(result.get('output', ''))[-12000:], 'exit_code':result.get('exit_code'), 'detail':_json(spec.get('argv', call.get('arguments',{})))[:1000]})
         except Exception as error:
             with self.store.connect() as db:
                 db.execute("UPDATE w5_actions SET state='UNCERTAIN',response=? WHERE id=?",
@@ -1362,6 +1400,12 @@ class WorkflowEngine:
                               'task': {'title': task['title'], 'description': task['description']},
                               'previous_review': evidence.get('review'), 'test_failures': evidence.get('tests'),
                               'instruction': 'Implement within authorized scope. Never grant approvals or claim independent verification.'}
+                    if self._approved(workflow_id, 'agent_commands'):
+                        prompt['verification_instruction'] = (
+                            'Choose and run project commands needed for this task without asking the user to fill command forms. '
+                            'Return a final JSON object with summary and verification: {commands:[{name,argv:[executable,arg],cwd:".",timeout:120}], reason:"why these checks"}. '
+                            'The engine executes these verification commands and records exit codes. For documentation-only changes, commands may be [] with a specific reason; independent file/diff review is still required. '
+                            'For code changes choose meaningful tests; never use a no-op to claim verification. Commands run on this machine from the project directory, not in an isolated shell sandbox.')
                     result = self._response(workflow, task, 'executor', task['executor'], registry, prompt, cancel_event)
                     if not result:
                         break
@@ -1373,6 +1417,19 @@ class WorkflowEngine:
                         self._set_status(workflow_id, 'BLOCKED', 'Provider failure; explicit failover or correction needed')
                         break
                     evidence['execution'] = {'action_id': result['_action_id'], 'snapshot_hash': result['_snapshot_hash'], 'provider': task['executor']}
+                    if self._approved(workflow_id, 'agent_commands'):
+                        try:
+                            verification = _decode_object(result.get('output', '')).get('verification')
+                            if not isinstance(verification, dict) or not isinstance(verification.get('commands'), list) or len(verification['commands']) > 10 or not isinstance(verification.get('reason'), str) or not verification['reason'].strip():
+                                raise ValueError('Missing verification plan')
+                            verification = {'commands':[self._approval_scope('command', c) for c in verification['commands']], 'reason':verification['reason'][:2000]}
+                            if len({c['name'] for c in verification['commands']}) != len(verification['commands']):
+                                raise ValueError('Duplicate check names')
+                            evidence['execution']['verification'] = verification
+                        except (ValueError, TypeError, KeyError):
+                            if not self._correction(workflow, task, evidence, 'Return valid verification JSON with chosen commands or a specific reason no automated test applies'):
+                                break
+                            continue
                     self._task_evidence(task['id'], 'TESTING', evidence)
                     self.store.index(workflow['project_id'])
                     if any(t['id'] != task['id'] and t['status'] in ('PENDING', 'EXECUTING') for t in self.status(workflow_id)['tasks']):
@@ -1398,7 +1455,7 @@ class WorkflowEngine:
                 prompt = {'role': 'reviewer', 'objective': workflow['objective'], 'criteria': workflow['criteria'],
                           'task': {'title': task['title'], 'description': task['description']},
                           'snapshot_hash': tests['snapshot_hash'], 'test_evidence': tests,
-                          'instruction': 'Independently inspect actual files/diff. Return JSON with decision approve or changes_requested, exact snapshot_hash, rationale, and criteria [{criterion,met,evidence}]. Do not modify files.'}
+                          'instruction': 'Independently inspect actual files/diff. Evaluate whether the selected checks sufficiently cover the change; reject missing or trivial tests for code changes. Review-only documentation work must be checked directly against the files. Return JSON with decision approve or changes_requested, exact snapshot_hash, rationale, and criteria [{criterion,met,evidence}]. Do not modify files.'}
                 result = self._response(self.status(workflow_id), task, 'reviewer', task['reviewer'], registry, prompt, cancel_event)
                 if not result:
                     break

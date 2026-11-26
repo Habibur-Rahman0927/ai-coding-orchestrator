@@ -51,7 +51,7 @@ class MockRegistry:
                         'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'old': 'bad', 'new': 'good'}}
                 result.update(status='tool_calls', tool_calls=[call], output='')
             else:
-                result['output'] = 'Executor claims completion; engine must independently test.'
+                result['output'] = json.dumps({'summary':'Implementation ready','verification':{'commands':[{'name':'tests','argv':[sys.executable,'-B','check.py'],'cwd':'.','timeout':15}],'reason':'Check actual project behavior'}}) if prompt.get('verification_instruction') else 'Executor claims completion; engine must independently test.'
         elif role == 'reviewer':
             self.reviews += 1
             decision = 'changes_requested' if self.reject_once and self.reviews == 1 else 'approve'

@@ -95,7 +95,7 @@ class BrowserRegistry:
                     'arguments': {'path': 'app.txt', 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                                   'old': 'bad', 'new': 'good'}}])
             else:
-                result['output'] = 'Implementation ready for actual tests and independent review.'
+                result['output'] = json.dumps({'summary':'Implementation ready','verification':{'commands':[{'name':'tests','argv':[sys.executable,'-B','check.py'],'cwd':'.','timeout':15}],'reason':'Check actual project behavior'}}) if prompt.get('verification_instruction') else 'Implementation ready for actual tests and independent review.'
         elif request['role'] == 'reviewer':
             result['output'] = json.dumps({'decision': 'approve', 'snapshot_hash': prompt['snapshot_hash'],
                 'rationale': 'Inspected application and trusted test evidence',

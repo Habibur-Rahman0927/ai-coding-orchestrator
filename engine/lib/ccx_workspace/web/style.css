@@ -31,3 +31,5 @@ body.extension-chat #notice{bottom:auto;top:8px;pointer-events:none}
 .tasks-layout{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:1rem}.task-list{display:flex;flex-direction:column;gap:.5rem;align-self:start;max-height:70vh;overflow:auto}.task-list button{white-space:normal;text-align:left;width:100%;font-size:.85rem}.task-detail:empty{display:none}.task-detail .panel{padding:1rem}@media(max-width:900px){.tasks-layout{grid-template-columns:minmax(0,1fr)}.task-list{max-height:230px}}
 
 .tasks-toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:700px){.tasks-toolbar{grid-template-columns:1fr}}
+
+.task-live-output{border:1px solid var(--line);border-radius:8px;padding:12px}.task-live-output article{margin:12px 0}.task-live-output code{display:block;white-space:pre-wrap;overflow-wrap:anywhere}.task-live-output pre{max-height:280px;overflow:auto}.jump-latest{align-self:center}

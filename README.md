@@ -115,7 +115,8 @@ are not certified by the mocked and synthetic test evidence.
    you are ready. Check the excluded paths before indexing.
 4. Use **Ask** to send a read-only question in one action. Choose **Build** for
    implementation: **Review task → Approve & start**. Review the project, usage
-   settings, exact test commands and file permissions in that single card.
+   settings and file permissions in that single card. AI chooses project commands
+   and verification checks; no manual command form is needed.
    One provider is enough; implementation and review use separate sessions.
 5. Manage progress, results, pause/resume and cancellation in **Tasks**. Chat stays
    focused on your conversation. New tasks have no cumulative workspace usage cap;

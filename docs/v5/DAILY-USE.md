@@ -49,9 +49,9 @@ Choose a project and agent, then write in the single composer:
   authorize implementation. Native CLI access may exceed the filtered context.
 - **Build** uses **Review task → Approve & start**. Preview is local and free of
   model calls. One approval card shows the project, editable acceptance criteria,
-  exact test commands, sharing/file scopes and total/per-call usage reservations.
-  Initial reservations are zero; set them explicitly before live work can start.
-  They control the engine, not a guaranteed native CLI billing cap.
+  sharing/file scopes and optional usage limits. Approval also authorizes the AI
+  to choose and run commands for this project task. Commands execute on your machine
+  from the project directory; that directory is not a process sandbox.
 
 Build defaults to direct implementation, tests and a separate review session with
 one selected provider. It does not require a second provider account. Separate
@@ -193,10 +193,11 @@ scoped to chat and are not silently reused as Build permissions or settings.
 
 ## Compact Build confirmation
 
-Build shows the outcome, selected team and exact proposed checks in a compact
-confirmation card. Expected-outcome editing, command arguments and advanced
-workflow settings stay collapsed. Saved checks and allowances are reused as
-suggestions, never as permission to execute a new task.
+Build shows the outcome and selected team in a compact confirmation card.
+There is no manual command form. The AI chooses commands needed for implementation
+and proposes verification checks. The engine runs those checks and records their
+exit codes, then a separate reviewer checks the files and adequacy of verification.
+Expected-outcome editing and advanced workflow settings stay collapsed.
 
 New tasks default to no cumulative workspace token, cost, time or provider-call
 limit. Optional usage limits lets you choose a preset or custom limits. Provider
@@ -205,11 +206,12 @@ safeguards remain. Existing tasks retain their limits. For a stopped task, edit
 Usage limits in Tasks, or choose Remove usage limits & resume when budget-exhausted.
 Saving limits alone never starts a task. Numeric reservations are not provider billing caps.
 
-The workspace suggests npm test from package.json, cargo test from Cargo.toml
-(including backend/Cargo.toml), and go test ./... from go.mod. Discovery does not
-execute project code. Review the command and working directory before approval.
-If none is detected, choose a check preset or open Custom command. Build still
-requires actual tests and a separate review before reporting verified completion.
+If the project has no test setup, the AI can choose another relevant check.
+Documentation-only work can use file/diff review with an explicit reason and
+no automated tests. The result labels this as review-only; it never says tests
+passed when no tests ran. Missing or malformed verification plans trigger a
+correction instead of silently completing the task. Older tasks and Advanced
+workflows keep their existing exact-command approvals.
 
 For explanations or “what is done / what remains”, use Ask. The confirmation card's
 “Just ask · no file changes” retains the prompt and switches modes without sending
@@ -222,12 +224,16 @@ provider wait, visible command/tool activity when exposed by the provider, respo
 arrival and completion/failure. The bounded timeline is stored with the answer and
 survives reload. Build progress also displays observed provider activity.
 
-This is telemetry, not private reasoning or proof of successful execution. Native
-providers expose different events; MiniMax may only show request/response stages.
-Tool inputs and outputs and reasoning blocks are omitted. Recognizable sensitive
-command details are withheld. Activity visibility does not grant additional tools
-or permissions. Updates use the existing polling interval, rather than an exact
-mirror of a provider's extension.
+This is telemetry, not private reasoning or proof of successful execution.
+Tasks show live provider text, command activity, output and recorded exit codes.
+MiniMax consumes SSE text/tool streams; Claude partial text events and Codex
+visible message updates are supported. Availability depends on what the provider
+emits. Reasoning blocks are not displayed, and recognizable secrets are withheld.
+The frontend polls active work every 350 ms; this is not an exact mirror of a
+provider's extension.
+
+Chat opens at the latest message and follows incoming responses while you are
+near the bottom. Scrolling up pauses following; Jump to latest resumes it.
 
 ## Chat and task views
 

@@ -457,12 +457,13 @@ function chatMarkdown(value){
 }
 function chatMessage(message,agent){
   const node=el('article',{class:'chat-message '+message.role},el('h3',{},message.role==='user'?'You':agent),message.role==='user'?el('p',{},message.content||''):chatMarkdown(message.content));
+  if(message.id)node.dataset.messageId=message.id;
   const metadata=message.metadata||{};
   if(message.role==='assistant'&&arr(metadata.activity).length){
     const events=arr(metadata.activity),last=events[events.length-1];
     node.append(el('details',{class:'live-activity',open:!message.content||last.phase==='running'},el('summary',{},'Activity · '+last.label),
       el('p',{class:'hint'},'Observed workspace/provider events. Some providers expose fewer details.'),
-      el('ol',{},...events.slice(-12).map(item=>el('li',{},el('span',{},item.label+' · '+item.phase),item.detail?el('code',{},item.detail):null)))));
+      el('ol',{},...events.slice(-12).map(item=>el('li',{},el('span',{},item.label+' · '+item.phase),item.detail?el('code',{},item.detail):null,item.output?pre(item.output):null)))));
   }
   if(message.role==='assistant'&&metadata.sources){
     node.append(el('p',{class:'hint'},'Requested: '+(metadata.requested_model||'provider default')+' · effort '+(metadata.requested_effort||'default')));
@@ -568,7 +569,7 @@ async function chat(){
   const consent=el('p',{class:'hint chat-consent'}),reviewArea=el('div',{'data-task-review':''});
   const toolbar=el('div',{class:'chat-composer-toolbar'},modeField,chatSettings,teamSettings);
 
-  let responseRunning=false,transcriptLoaded=false;
+  let responseRunning=false,transcriptLoaded=false,transcriptSignature='';
   const composer=form([messageField,toolbar,el('details',{class:'chat-access'},el('summary',{},'Access & usage · sends context using your provider allowance'),consent)],draft.mode==='ask'?'Send':'Review task',async data=>{
     draft.content=data.content;draft.mode=data.action;
     if(data.action==='ask'){
@@ -610,19 +611,30 @@ async function chat(){
     try{
       const value=await api('/api/chats/'+selectedChat);if(!current())return;
       const followLatest=!transcriptLoaded||(transcript.closest('.chat-stream')||transcript).scrollHeight-(transcript.closest('.chat-stream')||transcript).scrollTop-(transcript.closest('.chat-stream')||transcript).clientHeight<80;
-      transcript.replaceChildren(...arr(value.messages).map(m=>chatMessage(m,agent)));
+      const nextSignature=JSON.stringify(value.messages);
+      if(nextSignature!==transcriptSignature){
+        const expanded=new Map(Array.from(transcript.children).map(node=>[node.dataset.messageId,Array.from(node.querySelectorAll('details')).map(d=>d.open)]));
+        transcript.replaceChildren(...arr(value.messages).map(m=>chatMessage(m,agent)));
+        for(const node of transcript.children){const saved=expanded.get(node.dataset.messageId);if(saved)Array.from(node.querySelectorAll('details')).forEach((d,i)=>{if(i<saved.length)d.open=saved[i];});}
+        transcriptSignature=nextSignature;
+      }
+      if(!followLatest)latest.hidden=false;
       if(followLatest){const scroll=transcript.closest('.chat-stream')||transcript;scroll.scrollTop=scroll.scrollHeight;}
       transcriptLoaded=true;
       responseRunning=value.running;submit.disabled=responseRunning||unresolvedSubmission;cancel.hidden=!responseRunning;
       responseStatus.textContent=responseRunning?'Responding…':(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Your conversation is saved. Inspect it before sending again.':'Conversation saved.');
-      if(responseRunning)workflowPollTimer=setTimeout(pollConversation,1200);
+      if(responseRunning)workflowPollTimer=setTimeout(pollConversation,350);
     }catch(error){if(current()){responseStatus.textContent='Connection lost. The outcome may be unknown; no message was resent.';workflowPollTimer=setTimeout(pollConversation,3000);}}
   }
-  await pollConversation();
   const flows=arr(state.workflows).filter(w=>w.project_id===project);
   controls.append(button('Tasks ('+flows.length+')',()=>{selectedTaskId='';go('tasks');},'quiet'));
   const stream=el('section',{class:'chat-stream','aria-label':'Conversation'},transcript,responseStatus,reviewArea);
   main.insertBefore(stream,dock);dock.append(cancel);
+  const latest=button('Jump to latest',()=>{stream.scrollTop=stream.scrollHeight;latest.hidden=true;},'quiet jump-latest');
+  latest.hidden=true;dock.prepend(latest);
+  stream.addEventListener('scroll',()=>{latest.hidden=stream.scrollHeight-stream.scrollTop-stream.clientHeight<80;});
+  await pollConversation();
+  if(current()){stream.scrollTop=stream.scrollHeight;messageField.querySelector('textarea').focus({preventScroll:true});}
 
 }
 async function tasks(){
@@ -657,7 +669,7 @@ async function tasks(){
 
 function renderTaskApproval(container,initial,input,current){
   let proposal=initial,version=0,key=submissionKey(),timer;
-  const card=panel('Review task'),error=el('p',{class:'error',role:'status'}),summary=el('div',{}),commandRows=el('div',{});
+  const card=panel('Review task'),error=el('p',{class:'error',role:'status'}),summary=el('div',{});
   const criteria=field('What should work when finished?','criteria',{multiline:true,value:initial.workflow.criteria.join('\n'),required:true});
   const total=field('Total usage reservation','max_cost',{type:'number',min:0,step:.01,value:initial.workflow.budgets.max_cost});
   const perCall=field('Per-call reservation','max_call_cost',{type:'number',min:0,step:.01,value:initial.max_call_cost});
@@ -665,14 +677,6 @@ function renderTaskApproval(container,initial,input,current){
     field('Reviewer','partner',{options:providerOptions(),value:input.partner||input.provider}),
     field('Planning','planning',{options:[{value:'no',label:'Direct implementation'},{value:'yes',label:'Plan multiple steps first'}],value:input.planning?'yes':'no'}),
     field('Token limit','max_tokens',{type:'number',min:128,max:1000000,value:initial.workflow.budgets.max_tokens}));
-  function addCommand(command={name:'tests',argv:[],cwd:'.',timeout:120}){
-    const row=el('div',{class:'command-editor'},field('Test name','name',{value:command.name}),
-      field('Test executable','executable',{value:command.argv[0]||'',placeholder:'python3, npm, make…'}),
-      field('Arguments · one per line','arguments',{multiline:true,value:command.argv.slice(1).join('\n')}),
-      el('details',{},el('summary',{},'Command details'),field('Working directory','cwd',{value:command.cwd||'.'}),field('Timeout seconds','timeout',{type:'number',min:1,max:600,value:command.timeout||120})));
-    row.append(button('Remove command',()=>{row.remove();schedule();},'quiet'));commandRows.append(row);
-  }
-  (initial.commands.length?initial.commands:[{name:'tests',argv:[],cwd:'.',timeout:120}]).forEach(addCommand);
   const start=button('Approve & start',async()=>{
     if(!current()||!container.isConnected||!proposal||proposal.blockers.length)return;
     pendingSubmission(input.project_id,{key});
@@ -683,17 +687,16 @@ function renderTaskApproval(container,initial,input,current){
   },'primary');
   const read=()=>({...input,budget_policy:allowance.querySelector('select').value==='unlimited'?'unlimited':'limited',max_seconds:Number(timeLimit.querySelector('input').value),criteria:criteria.querySelector('textarea').value,
     max_cost:Number(total.querySelector('input').value),max_call_cost:Number(perCall.querySelector('input').value),
-    max_tokens:Number(advanced.querySelector('[name=max_tokens]').value),partner:advanced.querySelector('[name=partner]').value,model_overrides:Object.fromEntries(Object.entries(input.model_overrides||{}).filter(([role])=>role!=='reviewer'||advanced.querySelector('[name=partner]').value===(input.partner||input.provider))),planning:advanced.querySelector('[name=planning]').value==='yes',
-    commands:Array.from(commandRows.children).filter(row=>row.querySelector('[name=executable]').value.trim()).map(row=>({name:row.querySelector('[name=name]').value,argv:[row.querySelector('[name=executable]').value.trim(),...row.querySelector('[name=arguments]').value.split('\n').filter(Boolean)],cwd:row.querySelector('[name=cwd]').value,timeout:Number(row.querySelector('[name=timeout]').value)}))});
+    max_tokens:Number(advanced.querySelector('[name=max_tokens]').value),partner:advanced.querySelector('[name=partner]').value,model_overrides:Object.fromEntries(Object.entries(input.model_overrides||{}).filter(([role])=>role!=='reviewer'||advanced.querySelector('[name=partner]').value===(input.partner||input.provider))),planning:advanced.querySelector('[name=planning]').value==='yes',command_mode:'agent'});
   function show(){
     const models=Object.entries(proposal.workflow.model_overrides||{}).map(([role,model])=>role+' = '+model).join(' · ');
     summary.replaceChildren(el('p',{class:'build-objective'},proposal.workflow.objective),
       el('p',{},input.provider+' implements → '+proposal.workflow.providers.reviewer+' reviews'),
       el('p',{class:'hint'},proposal.review),...(models?[el('p',{class:'hint'},'Models: '+models)]:[]),
-      el('div',{class:'build-checks'},el('strong',{},'Checks'),...proposal.commands.map(command=>el('p',{},el('code',{},command.argv.map(arg=>JSON.stringify(arg)).join(' ')),el('span',{class:'hint'},' · folder: '+command.cwd))),!proposal.commands.length?el('p',{},'No test command found. Add one below to verify code changes.'):null),
-      el('p',{class:'hint'},'Approving lets this team share project context, change files and run these checks using your provider allowance.'),
+      el('p',{class:'build-checks'},'AI chooses commands and checks for this task. Results and command output appear live in Tasks.'),
+      el('p',{class:'hint'},'Approving lets this team share project context, change files and choose/run project commands on this machine using your provider allowance.'),
       el('p',{class:'hint'},proposal.workflow.budget_policy==='unlimited'?'No workspace token, cost, time or provider-call cap. Provider limits and charges still apply.':'Workspace usage limits are enabled for this task.'),
-      el('details',{},el('summary',{},'Exact access and commands'),pre(proposal.approvals)));
+      el('details',{},el('summary',{},'Access details'),pre(proposal.approvals)));
     error.textContent=proposal.blockers.join(' ');start.disabled=Boolean(proposal.blockers.length);
   }
   function schedule(){
@@ -709,20 +712,9 @@ function renderTaskApproval(container,initial,input,current){
     const values=choice==='small'?[1,.1]:choice==='standard'?[3,.25]:choice==='saved'?[initial.workflow.budgets.max_cost,initial.max_call_cost]:choice===''?[0,0]:null;
     if(values){total.querySelector('input').value=values[0];perCall.querySelector('input').value=values[1];}
   });
-  const manualChecks=el('details',{},el('summary',{},'Manual command editor'));
-  const tests=el('details',{open:!initial.commands.length},el('summary',{},'Change test commands'),el('p',{class:'hint'},'Use an actual executable, such as cargo or npm. Describe your goal in the message, not here. Suggestions are not run until approval.'),commandRows,button('Add test command',()=>{addCommand();schedule();},'quiet'));
-  const checkChoice=field('Test command','check-choice',{options:[{value:'',label:'Choose a check…'},...(initial.commands.length?[{value:'detected',label:'Use project checks shown above'}]:[]),{value:'cargo',label:'Rust · cargo test'},{value:'npm',label:'Node · npm test'},{value:'go',label:'Go · go test ./...'},{value:'custom',label:'Custom command…'}],value:initial.commands.length?'detected':''});
-  checkChoice.querySelector('select').addEventListener('change',event=>{
-    const choice=event.target.value;manualChecks.open=choice==='custom';
-    if(choice==='custom')return;
-    const commands=choice==='detected'?initial.commands:choice?[{name:'tests',argv:choice==='cargo'?['cargo','test']:choice==='npm'?['npm','test']:['go','test','./...'],cwd:'.',timeout:120}]:[];
-    commandRows.replaceChildren();commands.forEach(addCommand);
-    if(!commands.length)addCommand();
-  });
-  manualChecks.append(...Array.from(tests.children).slice(1));tests.append(checkChoice,manualChecks);
   card.classList.add('simple-build-card');
   card.append(summary,el('details',{},el('summary',{},'Optional usage limits'),allowance,customAllowance,el('p',{class:'hint'},'Optional workspace limits; provider billing and model context limits still apply. Preferences are remembered, permissions are per task.')),
-    tests,el('details',{},el('summary',{},'Edit expected outcome'),criteria),advanced,error,
+    el('details',{},el('summary',{},'Edit expected outcome'),criteria),advanced,error,
     el('div',{class:'actions'},start,button('Just ask · no file changes',()=>{taskDraft(input.project_id).mode='ask';return renderPage();},'quiet')));
   card.addEventListener('input',schedule);card.addEventListener('change',event=>{if(event.target.tagName==='SELECT')schedule();});
   container.replaceChildren(card);show();
@@ -740,15 +732,23 @@ async function inlineTask(container,id,current){
       const active=w.runner_active||w.status==='RUNNING';
       for(const item of main.querySelectorAll('[data-workflow-id]'))if(item.dataset.workflowId===id)item.textContent=(w.objective||'Task')+' · '+w.status.toLowerCase().replaceAll('_',' ');
       const phases=arr(w.tasks).map(t=>t.status);
-      const stage=w.status==='COMPLETED'?'Done · tests and review verified':w.status==='CANCELLED'?'Cancelled':w.status!=='RUNNING'?'Needs attention · '+w.status.toLowerCase().replaceAll('_',' '):phases.includes('REVIEWING')?'Reviewing':phases.includes('TESTING')?'Testing':'Working';
+      const stage=w.status==='COMPLETED'?(arr(w.tasks).some(t=>t.evidence?.tests?.verification_mode==='review_only')?'Done · file review verified; no automated tests':'Done · tests and review verified'):w.status==='CANCELLED'?'Cancelled':w.status!=='RUNNING'?'Needs attention · '+w.status.toLowerCase().replaceAll('_',' '):phases.includes('REVIEWING')?'Reviewing':phases.includes('TESTING')?'Testing':'Working';
       status.textContent=stage+(w.reason?' — '+w.reason:'');controls.hidden=['COMPLETED','CANCELLED','FAILED'].includes(w.status);controls.querySelector('button').hidden=!active;
-      const next=JSON.stringify([w.status,w.reason,w.budget_policy,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events?.length]);
+      const next=JSON.stringify([w.status,w.reason,w.budget_policy,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events]);
       if(next!==signature){
+        const expanded=new Map(Array.from(details.querySelectorAll('details')).map(d=>[d.querySelector('summary')?.textContent,d.open]));
+        const outputScroll=new Map(Array.from(details.querySelectorAll('[data-output-id]')).map(node=>{const p=node.querySelector('pre');return[node.dataset.outputId,p?{top:p.scrollTop,bottom:p.scrollHeight-p.scrollTop-p.clientHeight<40}:null];}));
         signature=next;details.replaceChildren(el('h3',{},w.objective),el('p',{class:'hint'},'Working → Testing → Reviewing → Done'));
         details.append(el('details',{},el('summary',{},'Team & subtasks · '+arr(w.tasks).length),...arr(w.tasks).map(task=>el('div',{class:'item'},el('strong',{},task.title),el('p',{class:'hint'},task.executor+' / '+(w.model_overrides?.executor||'default model')+' → '+task.reviewer+' / '+(w.model_overrides?.reviewer||'default model')+' · '+task.status)))));
         const activityEvents=arr(w.events).filter(e=>e.event==='PROVIDER_EVENT'&&e.data?.type==='activity').slice(-12);
-        if(activityEvents.length)details.append(el('details',{class:'live-activity',open:active},el('summary',{},'Live agent activity'),el('ol',{},...activityEvents.map(e=>el('li',{},e.data.provider+' · '+e.data.label+' · '+e.data.phase,e.data.detail?el('code',{},e.data.detail):null)))));
+        if(activityEvents.length)details.append(el('details',{class:'live-activity',open:active},el('summary',{},'Live agent activity'),el('ol',{},...activityEvents.map(e=>el('li',{},e.data.provider+' · '+e.data.label+' · '+e.data.phase,e.data.detail?el('code',{},e.data.detail):null,e.data.output?pre(e.data.output):null)))));
+        const outputEvents=arr(w.events).filter(e=>(e.event==='PROVIDER_EVENT'&&e.data?.type==='text')||e.event==='COMMAND_OUTPUT').slice(-12);
+        if(outputEvents.length)details.append(el('section',{class:'task-live-output','aria-label':'Live output'},el('h3',{},active?'Live output':'Agent output'),
+          ...outputEvents.map(e=>el('article',{'data-output-id':e.action_id||e.id},el('strong',{},(e.data.provider||'Agent')+' · '+(e.data.label||e.data.role||'Output')+(e.data.phase?' · '+e.data.phase:'')),
+            e.data.detail?el('code',{},e.data.detail):null,e.data.text?pre(e.data.text):null,e.data.exit_code!==undefined?el('p',{class:'hint'},'Exit code: '+e.data.exit_code):null))));
         const last=arr(w.events).slice(-3);for(const e of last)details.append(el('p',{class:'hint'},String(e.event||e.kind||'Progress').replaceAll('_',' ').toLowerCase()));
+        for(const d of details.querySelectorAll('details')){const key=d.querySelector('summary')?.textContent;if(expanded.has(key))d.open=expanded.get(key);}
+        for(const node of details.querySelectorAll('[data-output-id]')){const p=node.querySelector('pre'),saved=outputScroll.get(node.dataset.outputId);if(p)p.scrollTop=!saved||saved.bottom?p.scrollHeight:saved.top;}
         requests.replaceChildren();
         for(const request of arr(w.approval_requests).filter(r=>r.status==='PENDING'))requests.append(panel('Additional permission',el('p',{},request.reason),pre(request.scope),button('Approve this scope',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'approve'});await poll();},'primary'),button('Deny',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'deny'});await poll();},'quiet')));
         if(!active)for(const action of arr(w.pending_actions)){
@@ -774,13 +774,13 @@ async function inlineTask(container,id,current){
       }
       if(!active&&!loadedResults){
         const comparison=await api('/api/tasks/'+id+'/results');if(!alive())return;loadedResults=true;
-        result.replaceChildren(panel('Results',el('p',{},w.status==='COMPLETED'?'Requested work passed the recorded tests and separate review.':'Work is not verified complete.'),el('p',{class:'hint'},comparison.notice),comparison.launch_error?el('p',{class:'error'},comparison.launch_error):null,
+        result.replaceChildren(panel('Results',el('p',{},w.status==='COMPLETED'?(arr(w.tasks).some(t=>t.evidence?.tests?.verification_mode==='review_only')?'Files were independently reviewed. Some steps had no automated tests; see the verification evidence.':'Requested work passed the recorded tests and separate review.'):'Work is not verified complete.'),el('p',{class:'hint'},comparison.notice),comparison.launch_error?el('p',{class:'error'},comparison.launch_error):null,
           el('h3',{},'Files changed since start'),comparison.files?.length?el('ul',{},comparison.files.map(f=>el('li',{},f))):el('p',{},'No recorded changes.'),
           el('details',{},el('summary',{},'Existing changes before this task'),pre(comparison.preexisting||[])),
           el('details',{},el('summary',{},'View diff'),pre(comparison.diff||'No displayable text diff.')),
           ...arr(w.tasks).map(t=>el('details',{},el('summary',{},t.title+' · test and review evidence'),pre(t.evidence||{})))));
       }
-      if(active)timer=setTimeout(poll,1200);
+      if(active)timer=setTimeout(poll,350);
     }catch(error){if(alive()){status.textContent='Connection interrupted. Saved task state will be checked; no work is repeated.';timer=setTimeout(poll,3000);}}
   }
   await poll();
