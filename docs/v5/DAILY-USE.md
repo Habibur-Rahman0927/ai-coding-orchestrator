@@ -238,12 +238,17 @@ near the bottom. Scrolling up pauses following; Jump to latest resumes it.
 ## Chat and task views
 
 Chat shows the selected conversation. Project tasks are available through the
-dedicated **Tasks** tab, with project, status and title filters; old, active or cancelled tasks never
+**Tasks** tab above Chat (no separate sidebar destination), with project, status and title filters; old, active or cancelled tasks never
 automatically replace the conversation. Starting an approved Build or recovering
-its accepted request opens that specific task. **Chat** in the sidebar returns to the
+its accepted request opens that specific task. the **Chat** tab returns to the
 conversation without cancelling any background work.
 
 Chat, Tasks and the Advanced workflow browser have separate selection state.
 The Tasks list is scoped to the selected project. Cancelled and completed workflow states take priority over unfinished task
 steps when showing progress. Markdown pipe tables render as horizontally scrollable
 tables with text-only cells; raw HTML remains inert.
+
+The task view stays within the window: its toolbar and tabs remain visible while
+the task pane follows new output. Scrolling up pauses following; Jump to latest
+returns to the newest output and resumes following. Chat drafts and conversations
+remain separate from task progress when switching tabs.

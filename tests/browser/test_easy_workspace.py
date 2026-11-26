@@ -69,7 +69,7 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_role('button',name='Send',exact=True).click()
         expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply',timeout=15000)
         expect(self.page.locator('[data-task-progress]')).to_be_hidden()
-        self.page.get_by_text('Tasks (1)',exact=True).click()
+        self.page.get_by_role('tab',name='Tasks',exact=True).click()
         self.page.get_by_label('Find task',exact=True).fill('not present')
         expect(self.page.get_by_text('No tasks here',exact=True)).to_be_visible()
         self.page.get_by_label('Find task',exact=True).fill('')
@@ -97,7 +97,7 @@ class EasyWorkspace(unittest.TestCase):
         import uuid
         started=app.tasks.start({'proposal_id':proposal['proposal_id'],'revision':proposal['revision'],
             'confirmed':True,'idempotency_key':uuid.uuid4().hex})
-        self.page.get_by_role('navigation').get_by_role('link',name='Tasks',exact=False).click()
+        self.page.get_by_role('tab',name='Tasks',exact=True).click()
         row=self.page.get_by_role('button',name='Fix app.txt · budget exhausted',exact=True)
         expect(row).to_be_visible(timeout=15000)
         row.click()
@@ -143,6 +143,39 @@ class EasyWorkspace(unittest.TestCase):
         expect(self.page.locator('.task-live-output')).to_contain_text('Browser fixture is working',timeout=15000)
         self.assertEqual(self.server.application.engine.list()[0]['status'],'RUNNING')
         expect(self.page.get_by_text('Done · tests and review verified',exact=True)).to_be_visible(timeout=30000)
+
+    def test_tasks_use_chat_tabs_and_follow_live_output_until_user_scrolls(self):
+        self.ready()
+        app=self.server.application
+        flow=app.engine.create(self.pid,'Long running output',['done'])
+        app.engine._set_status(flow['id'],'RUNNING')
+        with self.store.connect() as db:
+            for index in range(3):
+                app.engine._checkpoint(db,flow['id'],'PROVIDER_EVENT',{'type':'text','provider':'codex','role':'executor','text':'line\n'*150},action_id='live-output-'+str(index))
+        self.page.get_by_role('tab',name='Tasks',exact=True).click()
+        expect(self.page.get_by_role('navigation').get_by_role('link',name='Tasks',exact=False)).to_have_count(0)
+        self.page.get_by_role('button',name='Long running output · running',exact=True).click()
+        pane=self.page.locator('.task-detail')
+        self.page.wait_for_function("() => {const s=document.querySelector('.task-detail');return s.scrollHeight>s.clientHeight&&s.scrollHeight-s.scrollTop-s.clientHeight<5;}")
+        pane.evaluate('(s)=>s.scrollTop=0')
+        expect(self.page.get_by_role('button',name='Jump to latest',exact=True)).to_be_visible()
+        with self.store.connect() as db:
+            app.engine._checkpoint(db,flow['id'],'PROVIDER_EVENT',{'type':'text','provider':'codex','role':'executor','text':'new output\n'*100},action_id='next-output')
+        expect(pane).to_contain_text('new output')
+        self.assertLess(pane.evaluate('(s)=>s.scrollTop'),10)
+        self.page.get_by_role('button',name='Jump to latest',exact=True).click()
+        with self.store.connect() as db:
+            app.engine._checkpoint(db,flow['id'],'PROVIDER_EVENT',{'type':'text','provider':'codex','role':'executor','text':'latest output\n'*100},action_id='last-output')
+        expect(pane).to_contain_text('latest output')
+        self.page.wait_for_function("() => {const s=document.querySelector('.task-detail');return s.scrollHeight-s.scrollTop-s.clientHeight<5;}")
+        self.assertLessEqual(self.page.evaluate('document.documentElement.scrollHeight'),self.page.viewport_size['height']+1)
+        self.page.set_viewport_size({'width':390,'height':844})
+        self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'),390)
+        self.assertLessEqual(self.page.evaluate('document.documentElement.scrollHeight'),845)
+        self.assertGreater(pane.bounding_box()['height'],100)
+        self.page.get_by_role('tab',name='Chat',exact=True).click()
+        expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
+        app.engine.cancel(flow['id'])
 
     def test_markdown_tables_are_safe_and_readable(self):
         self.ready()
@@ -275,9 +308,9 @@ class EasyWorkspace(unittest.TestCase):
         self.assertNotIn('planner',[call[1] for call in self.registry.calls])
         self.assertIn('reviewer',[call[1] for call in self.registry.calls])
         self.assertEqual(self.page.url.split('#')[-1] if '#' in self.page.url else '', 'tasks')
-        # Tasks have their own everyday destination.
+        # Tasks are a tab within Chat, not another sidebar destination.
         nav=self.page.get_by_role('navigation')
-        self.assertEqual(nav.locator('a:visible').all_text_contents(), ['◌Chat','✓Tasks','▣Projects','⚙Settings'])
+        self.assertEqual(nav.locator('a:visible').all_text_contents(), ['◌Chat','▣Projects','⚙Settings'])
         directory=os.environ.get('CCX_EASY_EVIDENCE_DIR')
         if directory:
             Path(directory).mkdir(parents=True,exist_ok=True)
