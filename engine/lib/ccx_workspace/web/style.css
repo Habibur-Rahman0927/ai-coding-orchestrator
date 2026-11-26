@@ -46,3 +46,38 @@ body.extension-chat #notice{bottom:auto;top:8px;pointer-events:none}
 .extension-tasks .task-run-controls{flex:0 0 auto;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);padding:.5rem .75rem;border-radius:8px 8px 0 0}.task-run-controls .task-status{position:static;flex:1;margin:0;border:0;padding:0;min-width:120px}.task-run-controls .actions{margin:0;display:flex;gap:.4rem}.task-run-controls button{min-height:32px;padding:.35rem .7rem}.task-run-controls .token-meter{flex-basis:100%;font-size:.72rem;margin:0}.extension-tasks .task-detail>.panel>h2{display:none}.extension-tasks .task-detail>.panel{padding:.8rem;border-radius:0 0 8px 8px}.extension-tasks .task-detail .task-live-output{border:0;padding:0}.extension-tasks .task-live-output pre,.extension-tasks .live-activity pre{max-height:none!important;overflow:visible;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.95rem;line-height:1.6}.extension-tasks .task-live-output .chat-markdown{font-size:1rem;line-height:1.65}.extension-tasks .live-activity{border:0;padding:.25rem 0}.extension-tasks .live-activity li{padding:.6rem 0;border-bottom:1px solid var(--line)}.task-overview{font-size:.8rem;color:var(--muted)}.extension-tasks .task-detail .task-live-output article{padding:.8rem 0;border-bottom:1px solid var(--line)}.agent-readable-output p{line-height:1.6}.extension-tasks .tasks-toolbar{gap:.5rem}.extension-tasks .tasks-toolbar label{font-size:.7rem}.extension-tasks .tasks-toolbar .field{max-width:360px}.extension-tasks .task-list button{padding:.5rem;font-size:.8rem}.extension-tasks .tasks-layout{grid-template-columns:200px minmax(0,1fr);gap:.65rem}.simple-build-card .actions{z-index:4}
 @media(min-width:901px){.extension-tasks .app-shell{grid-template-columns:190px minmax(0,1fr)}.extension-tasks .sidebar{padding:1.1rem .7rem}.extension-tasks .brand{font-size:.85rem}}
 @media(max-width:900px){.extension-tasks .tasks-layout{grid-template-columns:1fr;grid-template-rows:minmax(40px,65px) minmax(0,1fr)}.extension-tasks .task-list>button{flex-basis:190px}.task-run-controls .task-status{font-size:.8rem}}
+
+/* Shared workspace sizing: keep navigation quiet and give every view room. */
+.app-shell{grid-template-columns:190px minmax(0,1fr)}
+.sidebar{padding:1.1rem .7rem}
+.brand{font-size:.85rem;margin:.2rem .2rem 1.5rem}
+.topbar{min-height:38px;padding:.4rem 1rem}
+main{max-width:none;width:100%;margin:0;padding:1rem}
+.page-head{gap:1rem;margin-bottom:1.25rem}
+.page-head h1{font-size:1.65rem}
+.panel{padding:1rem;margin-bottom:1rem}
+.grid,.split{gap:1rem}
+.section-head{flex-wrap:wrap}
+main input,main select{min-height:38px;padding:.55rem .7rem}
+main select{padding-right:2rem;background-position:calc(100% - 18px) 17px,calc(100% - 13px) 17px}
+main button{min-height:36px;padding:.5rem .8rem}
+main .field{margin-bottom:.8rem}
+.extension-chat .chat-markdown{font-size:1rem;line-height:1.65}
+.extension-chat .live-activity{border:0;padding:.5rem 0}
+.extension-chat .live-activity ol{max-height:none;overflow:visible}
+.extension-chat .live-activity pre{max-height:none;white-space:pre-wrap;overflow-wrap:anywhere}
+body:not(.extension-chat) .event-stream{max-height:none;overflow:visible}
+footer{padding:1rem}
+@media(max-width:900px) and (min-width:761px){.app-shell{grid-template-columns:170px minmax(0,1fr)}}
+@media(max-width:760px){
+  .sidebar{height:64px;padding:.3rem .5rem;overflow:auto}
+  .sidebar>.brand,.sidebar>.nav-label,.sidebar-bottom{display:none}
+  .sidebar nav{display:flex;align-items:center;gap:.3rem;white-space:nowrap}
+  .sidebar nav details{margin:0}
+  main{padding:.65rem}
+  .topbar{padding:.4rem .65rem}
+  .page-head{margin-bottom:1rem}
+  .panel{padding:.8rem}
+  .section-head{gap:.5rem}
+  .data-list{grid-template-columns:minmax(80px,.4fr) minmax(0,1fr)}
+}
