@@ -13,7 +13,7 @@ PRESETS = {
 
 
 def preferences(store, body=None):
-    default = {'project': '', 'favorites': [], 'recent': [], 'appearance': 'system', 'agents': {}}
+    default = {'project': '', 'favorites': [], 'recent': [], 'appearance': 'system', 'agents': {}, 'conversations': {}}
     if body is None:
         return setting(store, 'experience', default)
     initialize(store)
@@ -29,7 +29,7 @@ def preferences(store, body=None):
 
 
 def _update_preferences(store, body, value):
-    if not isinstance(body, dict) or set(body) - {'project', 'favorite', 'appearance', 'agent'}:
+    if not isinstance(body, dict) or set(body) - {'project', 'favorite', 'appearance', 'agent', 'conversation'}:
         raise ValueError('Unknown workspace preference')
     if not all(isinstance(v, str) and len(v) <= 200 for v in body.values()):
         raise ValueError('Workspace preferences must be short text values')
@@ -58,6 +58,15 @@ def _update_preferences(store, body, value):
         if body['agent'] not in PROVIDERS or not value.get('project'):
             raise ValueError('Select a project and a supported provider first')
         value['agents'][value['project']] = body['agent']
+    if 'conversation' in body:
+        with store.connect() as db:
+            chat = db.execute('SELECT project_id,provider FROM chats WHERE id=?', (body['conversation'],)).fetchone()
+        if not chat or chat['project_id'] != value.get('project'):
+            raise ValueError('Conversation belongs to another project')
+        if body.get('agent', chat['provider']) != chat['provider']:
+            raise ValueError('Conversation belongs to another agent')
+        value['conversations'] = dict(value.get('conversations', {}))
+        value['conversations'][value['project']] = body['conversation']
     return value
 
 
@@ -91,19 +100,19 @@ def propose(store, registry, body):
     if provider not in PROVIDERS or partner not in (None, '') + PROVIDERS:
         raise ValueError('Select supported providers')
     mode, preset = body.get('mode', 'solo'), body.get('preset', 'question')
-    if mode not in ('solo', 'collaborate', 'auto') or preset not in PRESETS:
+    if mode not in ('solo', 'collaborate', 'auto', 'build') or preset not in PRESETS:
         raise ValueError('Choose an available mode and preset')
     requested = re.match(r'^\s*(?:use|ask)\s+(codex|claude|minimax)(?:\s+and\s+(codex|claude|minimax)\s+together\b|\s+to\s+)', instruction, re.I)
     mentioned = [p.lower() for p in requested.groups() if p] if requested else []
     selected = [provider] + ([partner] if partner else [])
     if any(p not in selected for p in mentioned):
         raise ValueError('Your instruction requests another provider. Select it explicitly and review the sharing and usage permissions.')
-    collaboration = mode == 'collaborate' or (mode == 'auto' and preset != 'question')
+    collaboration = mode in ('collaborate', 'build') or (mode == 'auto' and preset != 'question')
     if mentioned and mentioned[0] != provider and not (collaboration and mentioned[0] == partner and re.match(r'^\s*ask\s+\w+\s+to\s+review\b', instruction, re.I)):
         raise ValueError('Select the requested implementation provider as your AI provider before continuing')
     if len(set(mentioned)) > 1 and not collaboration:
         raise ValueError('Choose Collaborate to draft a task with both requested providers')
-    if collaboration and (not partner or partner == provider):
+    if collaboration and (not partner or (partner == provider and mode != 'build')):
         raise ValueError('Choose a different collaboration partner for independent review')
     statuses = {p['id']: p for p in registry.status()}
     needed = selected if collaboration else [provider]

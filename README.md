@@ -113,9 +113,10 @@ are not certified by the mocked and synthetic test evidence.
    with those CLIs; the workspace does not replace it.
 3. Preview and register an approved Git project, or skip project selection until
    you are ready. Check the excluded paths before indexing.
-4. Use Chat for a **Solo** read-only conversation or deliberately select
-   **Collaborate** for an implementation workflow. Define what must pass, inspect
-   the plan and approve the exact provider, spending and command scopes needed.
+4. Use **Ask** to send a read-only question in one action. Choose **Build** for
+   implementation: **Review task → Approve & start**. Review the project, usage
+   reservation, exact test commands and file permissions in that single card.
+   One provider is enough; implementation and review use separate sessions.
 5. Inspect test/review evidence before treating a workflow as completed.
 
 In **Providers**:

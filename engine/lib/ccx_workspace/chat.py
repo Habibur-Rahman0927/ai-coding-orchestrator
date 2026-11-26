@@ -1,5 +1,6 @@
 """Explicitly authorized standalone conversations; never implicit workflows/tools."""
 import json
+import hashlib
 import threading
 import time
 import uuid
@@ -19,7 +20,9 @@ class Chat:
               status TEXT NOT NULL,session_id TEXT,history TEXT NOT NULL DEFAULT '[]',updated_at REAL NOT NULL);
               CREATE TABLE IF NOT EXISTS chat_messages(
               id TEXT PRIMARY KEY,chat_id TEXT NOT NULL,role TEXT NOT NULL,content TEXT NOT NULL,
-              usage TEXT NOT NULL DEFAULT '{}',created_at REAL NOT NULL);''')
+              usage TEXT NOT NULL DEFAULT '{}',created_at REAL NOT NULL);
+              CREATE TABLE IF NOT EXISTS chat_submissions(
+                key TEXT PRIMARY KEY, digest TEXT NOT NULL, chat_id TEXT NOT NULL, created_at REAL NOT NULL);''')
 
     def reconcile_startup(self):
         # Called only while the service owns the database's exclusive lifetime
@@ -61,7 +64,7 @@ class Chat:
         return dict(row,messages=messages,running=row['status']=='RUNNING',mode='standalone',
                     notice='Conversation output is not verified implementation evidence.')
 
-    def send(self, identifier, body):
+    def send(self, identifier, body, submission_key=None):
         if self.closing:raise RuntimeError('Workspace is shutting down')
         if body.get('confirmed') is not True:raise PermissionError('Explicit one-message sharing and provider-usage authorization required')
         content=safe_text(body.get('content'))
@@ -71,6 +74,13 @@ class Chat:
             raise ValueError('Invalid message limits')
         with self.store.connect() as db:
             db.execute('BEGIN IMMEDIATE')
+            if submission_key:
+                digest=hashlib.sha256(json.dumps([identifier,body],sort_keys=True).encode()).hexdigest()
+                previous=db.execute('SELECT * FROM chat_submissions WHERE key=?',(submission_key,)).fetchone()
+                if previous:
+                    if previous['digest']!=digest:raise ValueError('Submission key already used for another message')
+                    return {'accepted':True,'id':identifier,'reused':True}
+                db.execute('INSERT INTO chat_submissions VALUES(?,?,?,?)',(submission_key,digest,identifier,time.time()))
             row=db.execute('SELECT * FROM chats WHERE id=?',(identifier,)).fetchone()
             if not row:raise KeyError('Unknown conversation')
             if row['status']=='RUNNING':raise RuntimeError('A message is already running')
@@ -85,7 +95,13 @@ class Chat:
         cancellation=threading.Event()
         with self.guard:self.active[identifier]=cancellation
         thread=threading.Thread(target=self._execute,args=(record,content,maximum,timeout,cancellation),daemon=True)
-        thread.start()
+        try:
+            thread.start()
+        except Exception:
+            with self.guard:self.active.pop(identifier,None)
+            with self.store.connect() as db:
+                db.execute("UPDATE chats SET status='INTERRUPTED' WHERE id=?",(identifier,))
+            raise RuntimeError('Message saved but response could not start. Inspect the conversation before sending again.')
         return {'accepted':True,'id':identifier}
 
     def _execute(self, record, content, maximum, timeout, cancellation):

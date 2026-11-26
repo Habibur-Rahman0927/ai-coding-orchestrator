@@ -38,6 +38,8 @@ class Dashboard:
         self.closing = False
         from .chat import Chat
         self.chat = Chat(store,registry)
+        from .tasks import Tasks
+        self.tasks = Tasks(self)
 
     def close(self):
         self.closing = True
@@ -95,6 +97,18 @@ class Dashboard:
 
     def dispatch(self, method, path, body):
         parts = path.strip('/').split('/')
+        if method == 'POST' and path in ('/api/tasks/preview', '/api/tasks/start', '/api/tasks/message'):
+            from .tasks import TaskError, TaskPermissionError
+            try:
+                return getattr(self.tasks, parts[-1])(body)
+            except TaskError as error:
+                raise DashboardError(str(error), 400)
+            except TaskPermissionError as error:
+                raise DashboardError(str(error), 403)
+        if method == 'GET' and len(parts) == 4 and parts[:3] == ['api', 'tasks', 'submission']:
+            return self.tasks.submission(parts[3])
+        if method == 'GET' and len(parts) == 4 and parts[:2] == ['api', 'tasks'] and parts[3] == 'results':
+            return self.tasks.results(parts[2])
         if path == '/api/experience' and method in ('GET', 'POST'):
             from .experience import preferences
             return preferences(self.store, body if method == 'POST' else None)

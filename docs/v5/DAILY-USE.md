@@ -28,46 +28,94 @@ installation, use `python3 -B engine/orchestrator.py open` from this checkout.
 To stop: `orchestrator stop`. No OS service is registered. An older global launcher
 may not support `open`; select the intended source explicitly.
 
-Choose one agent, then preview/register a project or skip it for now. Existing
-Codex/Claude sign-in remains with those tools. Detected is not authenticated.
-Providers contains secure MiniMax configuration, local diagnostics and explicitly
-authorized live tests. No live test runs automatically.
+Chat is the home screen. Primary navigation is Chat, Projects and Settings;
+Providers, Workflows, Approvals, Memory, Context, Sessions and usage remain under
+Advanced tools, with existing deep links preserved.
 
-In Chat, choose a project and describe the task:
+If needed, connect one agent and preview/register a Git project directly in Chat.
+Provider setup offers installation/login instructions and a local Check again
+action. Existing Codex/Claude sign-in remains with those tools. Installed is not
+live-verified; no paid test, installer or login command runs automatically.
+MiniMax keeps its secure credential configuration. Registration returns directly
+to Chat without a separate onboarding completion page.
 
-- **Solo:** a read-only conversation with one selected agent. Start the
-  conversation, then explicitly authorize sharing and send.
-- **Collaborate:** implementation and independent review with two selected agents.
-  Choose a preset, say what must pass, review the exact plan, create it, then grant
-  the required scoped permissions and run it.
-- **Auto:** your question preset uses Solo; other presets use collaboration. It
-  does not choose an unapproved provider, invent rankings or infer a budget.
+## Ask or Build
 
-Quick fix and Review and test skip planning but keep tests and review. Feature
-development includes planning. Review and test is an execution workflow, not a
-read-only audit: grant only the operations you intend. Use Solo for read-only
-questions. Spending defaults remain zero; real calls need configuration and consent.
+Choose a project and agent, then write in the single composer:
 
-“Use MiniMax to implement…” and “Use Codex and MiniMax together” are checked against
-explicit provider selections. Ordinary provider references grant no permission.
-“Continue the previous task” opens saved work for inspection; it never retries
-unknown effects or restarts completed work automatically.
+- **Ask** is the default. **Send** creates a conversation when necessary and sends
+  the first message in one action. The notice beside Send explicitly describes
+  sharing and provider usage; each send authorizes that message only. It does not
+  authorize implementation. Native CLI access may exceed the filtered context.
+- **Build** uses **Review task → Approve & start**. Preview is local and free of
+  model calls. One approval card shows the project, editable acceptance criteria,
+  exact test commands, sharing/file scopes and total/per-call usage reservations.
+  Initial reservations are zero; set them explicitly before live work can start.
+  They control the engine, not a guaranteed native CLI billing cap.
 
-Projects offers search, favorites and recent projects. Switching restores only
-that project's conversations, without triggering a full index. The last project
-and its preferred agent persist in the private database. Sensitive-file exclusions
-remain in effect when context is prepared for a task.
+Build defaults to direct implementation, tests and a separate review session with
+one selected provider. It does not require a second provider account. Separate
+sessions are not different models. Advanced task options let you select a second
+reviewer or enable multi-step planning. Existing test/review completion gates are
+unchanged; the interface never calls an unverified implementation complete.
 
-Advanced tools exposes Memory, Context Inspector, Sessions and usage. Settings
-offers light/dark/system appearance, backup, diagnostics and advanced workflow
-defaults. Help explains approvals, recovery and updates. Use Tab/Shift+Tab and the
-skip link; browser/IDE shortcuts are not overridden.
+The last approved command configuration and usage values become suggestions for
+that project, not permission grants for future tasks. Each new task still needs
+Approve & start. A package.json test script can suggest `npm test`; review it as
+untrusted repository code before approval. When no command is known, fill the
+executable and one argument per line in the same card. Preview never executes a
+command or guesses a no-op test. Additional permission scopes require explicit
+approval and appear beside progress.
 
-Closing the browser does not cancel background work. Return to inspect progress,
-or use Pause/Cancel deliberately. Chat responses are not verified implementations.
-Completed workflows expose tests and review evidence; failures remain failures.
-See [Operations](OPERATIONS.md) for backup recovery and signed updates. A lost
-connection leaves a request's outcome unknown: inspect saved state before retrying.
+Task previews expire after 15 minutes. Edits to the task card automatically
+produce a new local preview. Project content, exclusions or provider settings
+changing before start require another review. Double-clicks and repeated requests
+with the same submission identity do not launch duplicate work. Request identities
+are saved before launch; after an ambiguous restart, inspect rather than rerun.
+
+## Progress, recovery and preferences
+
+Progress and results appear in Chat: Working → Testing → Reviewing → Done or
+Needs attention. Use Pause/Cancel explicitly. Completion shows test/review evidence,
+changed files and a bounded text diff against the task's starting state. Existing
+changes are listed separately. Changes made concurrently by another person/tool
+cannot be attributed to the agent; sensitive, binary and oversized diffs are omitted.
+Older workflows without a recorded task baseline say so rather than inventing one.
+
+The selected project, agent and conversation persist privately. Switching projects
+restores only that project's conversations, without a full index. Ask/Build defaults
+to Ask in a new browser session. Unsaved composer drafts stay in tab memory; errors
+preserve them while the tab remains open. Reload restores saved work, not unsent text.
+Only opaque pending-request IDs (not source or credentials) go into session storage
+so reload can inspect a lost response without resending it. If the server has no
+conclusive record, the UI asks you to inspect before deliberately starting anew.
+
+Projects still offers search, favorites and recent projects. Settings contains
+appearance, backup, diagnostics and advanced defaults. Use Tab/Shift+Tab and the
+skip link; browser/IDE shortcuts are not overridden. Closing the browser does not
+cancel background work. See [Operations](OPERATIONS.md) before recovery or upgrades.
+
+## Local validation
+
+The task coordinator has offline tests for atomic approval, stale proposals,
+duplicate starts/messages, separate-session review and bounded result comparison:
+
+```sh
+python3 -B -m unittest discover -s tests -p test_v5_easy_tasks.py -v
+```
+
+Optional Playwright tests use installed Chrome with fresh profiles, temporary
+projects and mocked providers:
+
+```sh
+python3 -B -m unittest discover -s tests/browser -p test_easy_workspace.py -v
+```
+
+Submission-click acceptance is **one** for Ask (formerly create + checkbox + send)
+and **two** for a configured Build (formerly review + create + separate permissions
+and run). Counts exclude typing, choosing Ask/Build, initial provider setup, and
+first-time test/usage configuration. This is interaction evidence, not measured
+real-world productivity or token savings. Live provider acceptance remains separate.
 
 ## Small team evaluation
 

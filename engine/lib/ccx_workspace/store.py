@@ -122,8 +122,16 @@ class Store:
         for p in (self.path,Path(str(self.path)+'-journal'),Path(str(self.path)+'-wal'),Path(str(self.path)+'-shm')):
             if native.is_link(p): raise PermissionError('Unsafe SQLite sidecar path')
             if p.exists():
-                native.validate_permissions(p)
-                if not p.is_file() or p.stat().st_nlink!=1: raise PermissionError('Unsafe SQLite file')
+                try:
+                    native.validate_permissions(p)
+                    info = p.lstat()
+                    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+                        raise PermissionError('Unsafe SQLite file')
+                except FileNotFoundError:
+                    # SQLite removes transient sidecars when another connection commits.
+                    # The database itself must never disappear during validation.
+                    if p == self.path:
+                        raise
         db=sqlite3.connect(str(self.path),timeout=15)
         db.row_factory=sqlite3.Row
         db.execute('PRAGMA foreign_keys=ON')

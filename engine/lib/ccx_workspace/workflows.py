@@ -5,6 +5,7 @@ A completed task requires engine-observed tests and independent review of the
 same filesystem snapshot. Unknown in-flight outcomes require human recovery.
 """
 import hashlib
+from contextlib import nullcontext
 import json
 import os
 from pathlib import Path
@@ -225,7 +226,7 @@ class WorkflowEngine:
         db.execute('INSERT INTO w5_checkpoints(workflow_id,task_id,action_id,event,data,created_at) VALUES(?,?,?,?,?,?)',
                    (workflow_id, task_id, action_id, event, _json(data or {}), time.time()))
 
-    def create(self, project_id, objective, criteria, providers=None, budgets=None, context_mode='retrieved', model_overrides=None, execution_policy='standard'):
+    def create(self, project_id, objective, criteria, providers=None, budgets=None, context_mode='retrieved', model_overrides=None, execution_policy='standard', transaction=None):
         self.store.project(project_id)
         if not isinstance(objective, str) or not objective.strip():
             raise ValueError('Objective is required')
@@ -263,12 +264,14 @@ class WorkflowEngine:
         if not 256 <= limits['max_request_tokens'] <= 1000000 or limits['context_reserve_tokens'] > 32000:
             raise ValueError('Request context/reserve budget outside safety bounds')
         identifier, now = _id(), time.time()
-        with self.store.connect() as db:
+        with (nullcontext(transaction) if transaction is not None else self.store.connect()) as db:
             db.execute('INSERT INTO w5_workflows(id,project_id,objective,criteria,providers,budgets,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',
                        (identifier, project_id, objective.strip(), _json(criteria), _json(roles), _json(limits), 'READY', now, now))
             db.execute('UPDATE w5_workflows SET context_mode=? WHERE id=?',(context_mode,identifier))
             db.execute('UPDATE w5_workflows SET model_overrides=?,execution_policy=? WHERE id=?',(_json(overrides),execution_policy,identifier))
             self._checkpoint(db, identifier, 'WORKFLOW_CREATED', {'criteria': criteria, 'providers': roles, 'budgets': limits})
+            if transaction is not None:
+                return self._workflow(db, identifier)
         return self.status(identifier)
 
     def _workflow(self, db, workflow_id):
@@ -557,13 +560,14 @@ class WorkflowEngine:
             scope['timeout'] = min(600, max(1, int(scope.get('timeout', 60))))
         return scope
 
-    def approve(self, workflow_id, kind, scope, actor='user'):
+    def approve(self, workflow_id, kind, scope, actor='user', transaction=None):
         """Trusted operator endpoint. This method is deliberately not a model tool."""
         if actor != 'user':
             raise PermissionError('Only an authenticated user may grant approval')
         scope=self._approval_scope(kind,scope)
-        with self.store.connect() as db:
-            db.execute('BEGIN IMMEDIATE')
+        with (nullcontext(transaction) if transaction is not None else self.store.connect()) as db:
+            if transaction is None:
+                db.execute('BEGIN IMMEDIATE')
             self._workflow(db, workflow_id)
             existing = db.execute('SELECT id FROM w5_approvals WHERE workflow_id=? AND kind=? AND scope_hash=? AND revoked=0',
                                   (workflow_id, kind, _hash(scope))).fetchone()

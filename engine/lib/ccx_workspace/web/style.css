@@ -13,3 +13,7 @@ nav details{margin-top:1rem}nav summary{padding:.65rem .8rem;color:var(--muted);
 :root[data-theme=light] label,:root[data-theme=light] .brand{color:#172536}
 :root[data-theme=light] .tag.warn{background:#fff0d1;color:#704400}
 .panel>button+button{margin-left:.5rem}
+/* The everyday workspace keeps one composer and local task cards. */
+.command-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.6rem 0}.command-row code{overflow-wrap:anywhere;white-space:pre-wrap}.command-editor{padding:1rem;margin:.7rem 0;border:1px solid var(--line);border-radius:10px}.command-editor textarea{min-height:4.5rem}textarea[name=content]{min-height:7rem}.panel:empty{display:none}[data-task-review]>.panel{border-color:var(--accent)}[data-task-progress] .result{max-height:24rem;overflow:auto}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}@media(max-width:760px){.command-row{align-items:flex-start;flex-direction:column}.form-row{display:grid;grid-template-columns:1fr}}
+
+main summary{color:var(--muted);cursor:pointer}main details>summary{margin:.5rem 0}.skip-link{color:var(--ink)}
