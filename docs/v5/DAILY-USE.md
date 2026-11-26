@@ -127,7 +127,10 @@ uncertainty when evidence is incomplete. This improves grounding; it does not
 verify model claims. “Context supplied” shows excerpts sent, not proof of citation
 accuracy. Excluded, sensitive, binary and oversized files are not part of this index.
 
-Use **Model** and **Reasoning effort** beside the Ask composer. Provider default
+Open **Settings** in the Ask composer to change **Model** and **Reasoning effort**.
+Settings starts collapsed; its summary shows your selection. **Done** returns focus
+to the message box. The conversation has its own scroll area so the composer stays
+within reach. Provider default
 keeps the provider's configuration. Model choices include the configured model,
 local Codex model-cache names when available, and Claude aliases. **Custom model**
 accepts an exact model ID. The list does not guarantee account access. Effort

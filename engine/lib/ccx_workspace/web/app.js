@@ -508,17 +508,21 @@ async function chat(){
   const customModel=field('Model ID','chat-model-id',{placeholder:'Exact model ID from your provider',value:options.model});customModel.hidden=true;
   const effortField=field('Reasoning effort','chat-effort',{options:[{value:'',label:'Provider default'},...arr(available.efforts)],value:options.effort});
   effortField.querySelector('select').disabled=!arr(available.efforts).length;
-  const chatSettings=el('div',{'data-chat-settings':''},el('div',{class:'form-row'},modelField,effortField),customModel,el('p',{class:'hint'},arr(available.efforts).length?'Optional: default follows your provider settings. Higher effort may take longer and use more allowance. Model and effort availability depend on your account and CLI.':'This provider does not expose reasoning effort here. Choose a model or keep its configured default.'));
+  const settingsSummary=el('summary',{'aria-label':'Chat settings'},el('span',{},'⚙ Settings'),el('span',{class:'chat-settings-value'}));
+  const chatSettings=el('details',{'data-chat-settings':'',class:'chat-settings'},settingsSummary,el('div',{class:'form-row'},modelField,effortField),customModel,el('p',{class:'hint'},arr(available.efforts).length?'Optional: default follows your provider settings. Higher effort may take longer and use more allowance. Model and effort availability depend on your account and CLI.':'This provider does not expose reasoning effort here. Choose a model or keep its configured default.'));
   modelField.querySelector('select').addEventListener('change',event=>{customModel.hidden=event.target.value!=='custom';customModel.querySelector('input').required=!customModel.hidden;options.model=customModel.hidden?event.target.value:customModel.querySelector('input').value;});
   customModel.querySelector('input').addEventListener('input',event=>{options.model=event.target.value.trim();});
   effortField.querySelector('select').addEventListener('change',event=>{options.effort=event.target.value;});
-  const transcript=el('div',{class:'chat-messages','aria-live':'polite'}),responseStatus=el('p',{class:'hint',role:'status'});
+  const updateSettingsSummary=()=>{settingsSummary.querySelector('.chat-settings-value').textContent=(options.model||'Default model')+' · '+(options.effort||'Default effort');};
+  chatSettings.addEventListener('input',updateSettingsSummary);chatSettings.addEventListener('change',updateSettingsSummary);updateSettingsSummary();
+  const transcript=el('div',{class:'chat-messages chat-transcript','aria-live':'polite',role:'log','aria-label':'Conversation messages'}),responseStatus=el('p',{class:'hint',role:'status'});
+  if(!selectedChat)transcript.append(el('div',{class:'chat-welcome'},el('h2',{},'Let’s work on your project'),el('p',{},'Ask a question, explore your code, or describe a change.')));
   main.append(transcript,responseStatus);
   const messageField=field('Your task','content',{multiline:true,required:true,value:draft.content,placeholder:'Explain this project, fix a bug, or describe what you want to build.'});
   const modeField=field('Action','action',{options:[{value:'ask',label:'Ask · read-only'},{value:'build',label:'Build · implement, test and review'}],value:draft.mode});
   const consent=el('p',{class:'hint'}),reviewArea=el('div',{'data-task-review':''});
-  let responseRunning=false;
-  const composer=form([modeField,chatSettings,messageField,consent],draft.mode==='ask'?'Send':'Review task',async data=>{
+  let responseRunning=false,transcriptLoaded=false;
+  const composer=form([el('div',{class:'chat-composer-toolbar'},modeField,chatSettings),messageField,consent],draft.mode==='ask'?'Send':'Review task',async data=>{
     draft.content=data.content;draft.mode=data.action;
     if(data.action==='ask'){
       const requested={project_id:project,provider:agent,content:data.content,chat_id:selectedChat||null,confirmed:true,model:options.model||null,effort:options.effort||null};
@@ -534,6 +538,9 @@ async function chat(){
       if(current())renderTaskApproval(reviewArea,proposal,{project_id:project,provider:agent,instruction:data.content},current);
     }
   });
+  composer.classList.add('chat-composer');
+  chatSettings.append(button('Done',()=>{chatSettings.open=false;messageField.querySelector('textarea').focus();},'quiet'));
+  customModel.querySelector('input').addEventListener('invalid',()=>{chatSettings.open=true;});
   const submit=composer.querySelector('[type=submit]');submit.disabled=unresolvedSubmission;
   function updateMode(){
     draft.mode=modeField.querySelector('select').value;
@@ -550,7 +557,10 @@ async function chat(){
     if(!current()||!selectedChat)return;
     try{
       const value=await api('/api/chats/'+selectedChat);if(!current())return;
+      const followLatest=!transcriptLoaded||transcript.scrollHeight-transcript.scrollTop-transcript.clientHeight<80;
       transcript.replaceChildren(...arr(value.messages).map(m=>chatMessage(m,agent)));
+      if(followLatest)transcript.scrollTop=transcript.scrollHeight;
+      transcriptLoaded=true;
       responseRunning=value.running;submit.disabled=responseRunning||unresolvedSubmission;cancel.hidden=!responseRunning;
       responseStatus.textContent=responseRunning?'Responding…':(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Your conversation is saved. Inspect it before sending again.':'Conversation saved.');
       if(responseRunning)workflowPollTimer=setTimeout(pollConversation,1200);
