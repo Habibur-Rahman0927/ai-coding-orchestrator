@@ -164,7 +164,7 @@ class WorkflowEngine:
                 db.execute('ALTER TABLE w5_actions ADD COLUMN consumed INTEGER NOT NULL DEFAULT 0')
             if 'context_mode' not in {r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}:
                 db.execute("ALTER TABLE w5_workflows ADD COLUMN context_mode TEXT NOT NULL DEFAULT 'retrieved'")
-            for column,default in (('model_overrides','{}'),('execution_policy','standard')):
+            for column,default in (('model_overrides','{}'),('execution_policy','standard'),('budget_policy','limited')):
                 if column not in {r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}:
                     db.execute("ALTER TABLE w5_workflows ADD COLUMN "+column+" TEXT NOT NULL DEFAULT '"+default+"'")
             columns={r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}
@@ -226,7 +226,7 @@ class WorkflowEngine:
         db.execute('INSERT INTO w5_checkpoints(workflow_id,task_id,action_id,event,data,created_at) VALUES(?,?,?,?,?,?)',
                    (workflow_id, task_id, action_id, event, _json(data or {}), time.time()))
 
-    def create(self, project_id, objective, criteria, providers=None, budgets=None, context_mode='retrieved', model_overrides=None, execution_policy='standard', transaction=None):
+    def create(self, project_id, objective, criteria, providers=None, budgets=None, context_mode='retrieved', model_overrides=None, execution_policy='standard', transaction=None, budget_policy='limited'):
         self.store.project(project_id)
         if not isinstance(objective, str) or not objective.strip():
             raise ValueError('Objective is required')
@@ -239,6 +239,8 @@ class WorkflowEngine:
             raise ValueError('Unknown context mode')
         if execution_policy not in ('standard','single_task'):
             raise ValueError('Execution policy must be standard or single_task (skip planning only)')
+        if budget_policy not in ('limited', 'unlimited'):
+            raise ValueError('Unknown usage limit policy')
         overrides=dict(model_overrides or {})
         if set(overrides)-{'planner','executor','reviewer'}:
             raise ValueError('Unknown override role')
@@ -269,6 +271,7 @@ class WorkflowEngine:
                        (identifier, project_id, objective.strip(), _json(criteria), _json(roles), _json(limits), 'READY', now, now))
             db.execute('UPDATE w5_workflows SET context_mode=? WHERE id=?',(context_mode,identifier))
             db.execute('UPDATE w5_workflows SET model_overrides=?,execution_policy=? WHERE id=?',(_json(overrides),execution_policy,identifier))
+            db.execute('UPDATE w5_workflows SET budget_policy=? WHERE id=?',(budget_policy,identifier))
             self._checkpoint(db, identifier, 'WORKFLOW_CREATED', {'criteria': criteria, 'providers': roles, 'budgets': limits})
             if transaction is not None:
                 return self._workflow(db, identifier)
@@ -540,6 +543,10 @@ class WorkflowEngine:
         scope = dict(scope)
         if kind in {'sharing', 'cost', 'native_agent_access', 'native_agent_write'} and not provider_identifier(scope.get('provider')):
             raise ValueError('Approval must identify a provider')
+        if kind == 'cost' and scope.get('unlimited') is True:
+            if set(scope) != {'provider', 'unlimited'}:
+                raise ValueError('Unlimited cost approval cannot include numeric caps')
+            return scope
         if kind == 'cost':
             if any(isinstance(scope.get(k), bool) or not isinstance(scope.get(k), (int, float)) or not math.isfinite(scope[k]) or scope[k] <= 0 for k in ('max_cost', 'max_call_cost')):
                 raise ValueError('Cost approval requires positive max_cost and conservative max_call_cost reservations')
@@ -688,7 +695,7 @@ class WorkflowEngine:
             if workflow['health']=='heartbeat_late':
                 workflow['health_detail']='Heartbeat is late. Pause or stop the owning runner and inspect persisted evidence; the engine does not steal ownership from a live process.'
             workflow.pop('lease_owner', None)
-            workflow['cost_accounting'] = 'conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap'
+            workflow['cost_accounting'] = 'provider_reported_only; unreported cost unknown' if workflow.get('budget_policy') == 'unlimited' else 'conservative_call_reservations_or_larger_reported_cost; not an upstream billing cap'
             workflow['token_accounting'] = 'reported where available; otherwise explicitly estimated UTF-8 bytes/4'
             return workflow
 
@@ -703,7 +710,39 @@ class WorkflowEngine:
             self._workflow(db, workflow_id)
             return [dict(row, data=_load(row['data'])) for row in db.execute('SELECT * FROM w5_checkpoints WHERE workflow_id=? ORDER BY id', (workflow_id,))]
 
+    def configure_usage_limits(self, workflow_id, policy, budgets=None, per_call=None):
+        if policy not in ('limited', 'unlimited'):
+            raise ValueError('Choose limited or unlimited workspace usage')
+        changes = dict(budgets or {})
+        if set(changes) - {'max_tokens', 'max_seconds', 'max_cost', 'max_provider_calls'}:
+            raise ValueError('Unknown usage limit')
+        for key, value in changes.items():
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+                raise ValueError('Usage limits must be positive numbers')
+            if key != 'max_cost' and (type(value) != int or value > 1000000000):
+                raise ValueError('Usage count/time limits must be bounded integers')
+        with self.store.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            workflow = self._workflow(db, workflow_id)
+            if workflow.get('lease_owner') or workflow['status'] == 'RUNNING' or workflow['status'] in TERMINAL:
+                raise ValueError('Pause the task before changing usage limits')
+            limits = dict(workflow['budgets'], **changes)
+            if policy == 'limited':
+                if isinstance(per_call, bool) or not isinstance(per_call, (int, float)) or not math.isfinite(per_call) or not 0 < per_call <= limits['max_cost']:
+                    raise ValueError('Set positive total and per-call reservations; per-call must not exceed total')
+            providers = {a['scope']['provider'] for a in self._approved(workflow_id, 'sharing')}
+            db.execute("UPDATE w5_approvals SET revoked=1 WHERE workflow_id=? AND kind='cost'", (workflow_id,))
+            for provider in sorted(providers):
+                scope = {'provider': provider, 'unlimited': True} if policy == 'unlimited' else {
+                    'provider': provider, 'max_cost': limits['max_cost'], 'max_call_cost': per_call}
+                self._approval_scope('cost', scope)
+                self.approve(workflow_id, 'cost', scope, transaction=db)
+            db.execute('UPDATE w5_workflows SET budget_policy=?,budgets=? WHERE id=?', (policy, _json(limits), workflow_id))
+            self._checkpoint(db, workflow_id, 'USAGE_LIMITS_CHANGED', {'policy': policy, 'changes': changes})
+        return self.status(workflow_id)
+
     def _budget(self, workflow):
+        if workflow.get('budget_policy') == 'unlimited': return None
         limits = workflow['budgets']
         if workflow['tokens_used'] >= limits['max_tokens']:
             return 'Token budget exhausted'
@@ -714,6 +753,7 @@ class WorkflowEngine:
         return None
 
     def _provider_budget(self, workflow):
+        if workflow.get('budget_policy') == 'unlimited': return None
         with self.store.connect() as db:
             used = db.execute("SELECT COUNT(*) FROM w5_actions WHERE workflow_id=? AND role IN ('planner','executor','reviewer')", (workflow['id'],)).fetchone()[0]
         if used >= workflow['budgets']['max_provider_calls']:
@@ -727,12 +767,14 @@ class WorkflowEngine:
         if not getattr(registry, 'offline', False):
             capabilities = registry.get(provider).status().get('capabilities', {})
             cost = self._approved(identifier, 'cost', provider=provider)
-            if not cost or workflow['budgets']['max_cost'] <= 0:
+            unlimited = workflow.get('budget_policy') == 'unlimited'
+            if not cost or (unlimited and cost[-1]['scope'].get('unlimited') is not True) or (not unlimited and (cost[-1]['scope'].get('unlimited') or workflow['budgets']['max_cost'] <= 0)):
                 return 'Billable-call approval and positive workflow cost budget required for ' + provider
             if capabilities.get('native_agent_authorization_required') and not self._approved(identifier, 'native_agent_access', provider=provider):
                 return 'Native agent filesystem-access approval required for ' + provider
             if capabilities.get('native_tools') and role == 'executor' and not self._approved(identifier, 'native_agent_write', provider=provider):
                 return 'Native agent workspace-write approval required for ' + provider
+            if unlimited: return None
             reservation = cost[-1]['scope']['max_call_cost']
             with self.store.connect() as db:
                 spent = sum(max(_load(row['request'], {}).get('cost_reservation', 0),
@@ -791,7 +833,7 @@ class WorkflowEngine:
         for capability in ('native_agent_access', 'native_agent_write'):
             if (capability != 'native_agent_write' or role == 'executor') and self._approved(workflow['id'], capability, provider=provider):
                 operations.append(capability)
-        remaining = workflow['budgets']['max_tokens'] - workflow['tokens_used']
+        remaining = workflow['budgets']['max_request_tokens'] if workflow.get('budget_policy') == 'unlimited' else workflow['budgets']['max_tokens'] - workflow['tokens_used']
         if remaining < 128:
             self._set_status(workflow['id'], 'BUDGET_EXHAUSTED', 'Insufficient remaining context/token budget')
             return None
@@ -804,9 +846,9 @@ class WorkflowEngine:
                                       'estimated_tokens': context['estimated_tokens'], 'id': context['id'],
                                       'excluded':context['excluded'],'budget':context['budget'],'bytes':context['bytes']})
         request = {'project': project, 'prompt': _json(prompt), 'role': role, 'session_id': session['session_id'],
-                   'timeout': min(workflow['budgets']['call_timeout'], max(1, workflow['budgets']['max_seconds'] - int(time.time() - workflow['started_at']))),
+                   'timeout': workflow['budgets']['call_timeout'] if workflow.get('budget_policy') == 'unlimited' else min(workflow['budgets']['call_timeout'], max(1, workflow['budgets']['max_seconds'] - int(time.time() - workflow['started_at']))),
                    'allowed_operations': operations, 'history': _load(session['history'], []),
-                   'max_output_tokens': min(workflow['budgets']['max_output_tokens'], workflow['budgets']['max_tokens'] - workflow['tokens_used'])}
+                   'max_output_tokens': min(workflow['budgets']['max_output_tokens'], remaining)}
         if workflow.get('model_overrides',{}).get(role):
             request['model']=workflow['model_overrides'][role]
         estimate_input = max(1, (len(request['prompt'].encode('utf-8')) + len(_json(request['history']).encode('utf-8')) + 3) // 4)
@@ -819,10 +861,12 @@ class WorkflowEngine:
         request_limit=workflow['budgets']['max_request_tokens']
         reserve=workflow['budgets']['context_reserve_tokens']
         output_room=request_limit-estimate_input-reserve
+        if workflow.get('budget_policy') == 'unlimited' and output_room >= 16:
+            request['max_output_tokens'] = min(request['max_output_tokens'], output_room)
         if output_room < request['max_output_tokens']:
             self._set_status(workflow['id'], 'BUDGET_EXHAUSTED', 'Estimated request plus output reserve exceeds configured request context budget; split the task or explicitly adjust the budget')
             return None
-        reservation = 0 if getattr(registry, 'offline', False) else self._approved(workflow['id'], 'cost', provider=provider)[-1]['scope']['max_call_cost']
+        reservation = 0 if getattr(registry, 'offline', False) or workflow.get('budget_policy') == 'unlimited' else self._approved(workflow['id'], 'cost', provider=provider)[-1]['scope']['max_call_cost']
         journal_request = dict(request, cost_reservation=reservation)
         journal_request['context_package_id'] = context['id']
         journal_request['context_accounting']={'estimated_input_tokens':estimate_input,
@@ -913,7 +957,7 @@ class WorkflowEngine:
                 result['error_kind'] = stored['error_kind'] = classify_failure(result)
             # Provider approval requests are ordinary output, never capability grants.
             stored['usage_accounting'] = accounting
-            stored['cost_accounting'] = 'reported_or_reserved_maximum' if reservation else 'offline_mock'
+            stored['cost_accounting'] = 'reported_or_reserved_maximum' if reservation else 'offline_mock' if getattr(registry, 'offline', False) else 'provider_reported_only; unreported cost unknown'
             stored['cost_reserved'] = reservation
             stored['tokens_accounted'] = used
             with self.store.connect() as db:
@@ -972,7 +1016,7 @@ class WorkflowEngine:
                 return None
             # Command permissions are exact argv; provider claims never supply this evidence.
             approved_scope_hash = _hash(spec)
-            remaining = max(1, workflow['budgets']['max_seconds'] - int(time.time() - workflow['started_at']))
+            remaining = workflow['budgets']['call_timeout'] if workflow.get('budget_policy') == 'unlimited' else max(1, workflow['budgets']['max_seconds'] - int(time.time() - workflow['started_at']))
             spec = dict(spec, timeout=min(spec['timeout'], workflow['budgets']['call_timeout'], remaining))
             tools = self._tools(project, ['run_command'], {name: spec},
                                 exclusions=_load(self.store.project(workflow['project_id']).get('exclusions'), []), cancel_event=cancel_event)
@@ -1022,7 +1066,7 @@ class WorkflowEngine:
             rounds += len(calls)
             with self.store.connect() as db:
                 used_tools = db.execute("SELECT COUNT(*) FROM w5_actions WHERE workflow_id=? AND role LIKE 'tool:%'", (workflow['id'],)).fetchone()[0]
-            if used_tools + len(calls) > workflow['budgets']['max_tool_calls']:
+            if workflow.get('budget_policy') != 'unlimited' and used_tools + len(calls) > workflow['budgets']['max_tool_calls']:
                 self._set_status(workflow['id'], 'BUDGET_EXHAUSTED', 'Workflow tool-call budget exhausted')
                 return None
             if not calls or rounds > workflow['budgets']['max_tool_calls']:

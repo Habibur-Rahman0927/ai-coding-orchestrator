@@ -79,7 +79,7 @@ class Tasks:
 
     def preview(self, body):
         permitted = {'project_id', 'provider', 'partner', 'instruction', 'criteria', 'commands',
-                     'max_cost', 'max_call_cost', 'max_tokens', 'planning', 'model_overrides'}
+                     'max_cost', 'max_call_cost', 'max_tokens', 'planning', 'model_overrides', 'budget_policy', 'max_seconds'}
         if set(body) - permitted:
             raise TaskError('Unknown task field')
         project = self.store.project(body.get('project_id'))
@@ -115,6 +115,13 @@ class Tasks:
             normalized.append(self.engine._approval_scope('command', command))
         if len({c['name'] for c in normalized}) != len(normalized):
             raise TaskError('Test command names must be unique')
+        policy = body.get('budget_policy', 'limited' if any(key in body for key in ('max_cost','max_call_cost','max_tokens','max_seconds')) else saved.get('budget_policy', 'unlimited'))
+        if policy not in ('limited', 'unlimited'): raise TaskError('Choose a valid usage limit policy')
+        plan['workflow']['budget_policy'] = policy
+        if policy == 'unlimited': plan['workflow']['budgets']['call_timeout'] = 3600
+        seconds = body.get('max_seconds', saved.get('max_seconds', plan['workflow']['budgets']['max_seconds']))
+        if type(seconds) != int or not 1 <= seconds <= 1000000000: raise TaskError('Time limit must be a positive number of seconds')
+        plan['workflow']['budgets']['max_seconds'] = seconds
         max_cost = body.get('max_cost', saved.get('max_cost', plan['workflow']['budgets']['max_cost']))
         per_call = body.get('max_call_cost', saved.get('max_call_cost', 0))
         tokens = body.get('max_tokens', saved.get('max_tokens', plan['workflow']['budgets']['max_tokens']))
@@ -126,14 +133,16 @@ class Tasks:
         blockers = []
         if not normalized:
             blockers.append('Choose an exact test command before starting. No tests are run during preview.')
-        if max_cost <= 0 or per_call <= 0 or per_call > max_cost:
+        if policy == 'limited' and (max_cost <= 0 or per_call <= 0 or per_call > max_cost):
             blockers.append('Set positive total and per-call usage reservations. Per-call must not exceed total.')
         plan['workflow']['budgets'].update(max_cost=max_cost, max_tokens=tokens)
         names = sorted({provider, partner})
         approvals = []
         for name in names:
             approvals.append({'kind': 'sharing', 'scope': {'provider': name}})
-            if not blockers or (max_cost > 0 and 0 < per_call <= max_cost):
+            if policy == 'unlimited':
+                approvals.append({'kind':'cost','scope':{'provider':name,'unlimited':True}})
+            elif not blockers or (max_cost > 0 and 0 < per_call <= max_cost):
                 approvals.append({'kind': 'cost', 'scope': {'provider': name, 'max_cost': max_cost, 'max_call_cost': per_call}})
             caps = self.app.registry.get(name).status().get('capabilities', {})
             if caps.get('native_agent_authorization_required'):
@@ -245,7 +254,7 @@ class Tasks:
             db.execute('BEGIN IMMEDIATE')
             row = db.execute("SELECT value FROM dashboard_settings WHERE key='task_preferences'").fetchone()
             saved = json.loads(row[0]) if row else {}
-            saved[workflow['project_id']] = {'commands': payload['commands'], 'max_cost': workflow['budgets']['max_cost'],
+            saved[workflow['project_id']] = {'budget_policy': workflow.get('budget_policy','limited'), 'max_seconds':workflow['budgets']['max_seconds'], 'commands': payload['commands'], 'max_cost': workflow['budgets']['max_cost'],
                                            'max_call_cost': payload['max_call_cost'], 'max_tokens': workflow['budgets']['max_tokens']}
             db.execute('INSERT OR REPLACE INTO dashboard_settings(key,value) VALUES(?,?)', ('task_preferences', json.dumps(saved)))
         return result

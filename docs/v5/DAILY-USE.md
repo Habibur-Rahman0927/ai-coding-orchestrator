@@ -198,9 +198,12 @@ confirmation card. Expected-outcome editing, command arguments and advanced
 workflow settings stay collapsed. Saved checks and allowances are reused as
 suggestions, never as permission to execute a new task.
 
-On first use, select a usage allowance: Small (1 total / 0.10 per call), Larger
-(3 total / 0.25 per call), or Custom. These are explicit local reservation values,
-not guaranteed provider billing caps. No preset is selected automatically.
+New tasks default to no cumulative workspace token, cost, time or provider-call
+limit. Optional usage limits lets you choose a preset or custom limits. Provider
+charges and quotas still apply; model context, per-call deadlines and loop/retry
+safeguards remain. Existing tasks retain their limits. For a stopped task, edit
+Usage limits in Tasks, or choose Remove usage limits & resume when budget-exhausted.
+Saving limits alone never starts a task. Numeric reservations are not provider billing caps.
 
 The workspace suggests npm test from package.json, cargo test from Cargo.toml
 (including backend/Cargo.toml), and go test ./... from go.mod. Discovery does not
@@ -229,13 +232,12 @@ mirror of a provider's extension.
 ## Chat and task views
 
 Chat shows the selected conversation. Project tasks are available through the
-compact **Tasks** menu in the toolbar; old, active or cancelled tasks never
+dedicated **Tasks** tab, with project, status and title filters; old, active or cancelled tasks never
 automatically replace the conversation. Starting an approved Build or recovering
-its accepted request opens that specific task. **Back to chat** returns to the
+its accepted request opens that specific task. **Chat** in the sidebar returns to the
 conversation without cancelling any background work.
 
-New chat, project changes, agent changes and conversation-history selection clear
-the task panel selection. The Advanced workflow browser has separate selection
-state. Cancelled and completed workflow states take priority over unfinished task
+Chat, Tasks and the Advanced workflow browser have separate selection state.
+The Tasks list is scoped to the selected project. Cancelled and completed workflow states take priority over unfinished task
 steps when showing progress. Markdown pipe tables render as horizontally scrollable
 tables with text-only cells; raw HTML remains inert.

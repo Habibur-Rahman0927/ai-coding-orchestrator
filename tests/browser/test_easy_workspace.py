@@ -70,17 +70,44 @@ class EasyWorkspace(unittest.TestCase):
         expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply',timeout=15000)
         expect(self.page.locator('[data-task-progress]')).to_be_hidden()
         self.page.get_by_text('Tasks (1)',exact=True).click()
-        self.page.get_by_role('button',name='Old cancelled task · CANCELLED',exact=True).click()
+        self.page.get_by_label('Find task',exact=True).fill('not present')
+        expect(self.page.get_by_text('No tasks here',exact=True)).to_be_visible()
+        self.page.get_by_label('Find task',exact=True).fill('')
+        self.page.get_by_label('Show tasks',exact=True).select_option('done')
+        expect(self.page.get_by_text('No tasks here',exact=True)).to_be_visible()
+        self.page.get_by_label('Show tasks',exact=True).select_option('all')
+        self.page.get_by_role('button',name='Old cancelled task · cancelled',exact=True).click()
         expect(self.page.locator('[data-task-progress] [role=status]')).to_contain_text('Cancelled')
         expect(self.page.locator('[data-task-progress] [role=status]')).not_to_contain_text('Testing')
         expect(self.page.locator('.chat-messages')).to_be_hidden()
-        self.page.get_by_role('button',name='Back to chat',exact=True).click()
+        self.page.get_by_role('navigation').get_by_role('link',name='Chat',exact=False).click()
         expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply')
         expect(self.page.locator('[data-task-progress]')).to_be_hidden()
         self.page.get_by_role('button',name='New chat',exact=True).click()
         expect(self.page.get_by_label('Your task',exact=True)).to_have_value('')
         expect(self.page.locator('.chat-message')).to_have_count(0)
         expect(self.page.locator('[data-task-progress]')).to_be_hidden()
+
+    def test_remove_budget_limit_and_resume_from_tasks(self):
+        self.ready()
+        app=self.server.application
+        proposal=app.tasks.preview({'project_id':self.pid,'provider':'codex',
+            'instruction':'Fix app.txt','max_tokens':128,'max_cost':1,'max_call_cost':.1,
+            'commands':[{'name':'tests','argv':[sys.executable,'-B','check.py'],'cwd':'.','timeout':15}]})
+        import uuid
+        started=app.tasks.start({'proposal_id':proposal['proposal_id'],'revision':proposal['revision'],
+            'confirmed':True,'idempotency_key':uuid.uuid4().hex})
+        self.page.get_by_role('navigation').get_by_role('link',name='Tasks',exact=False).click()
+        row=self.page.get_by_role('button',name='Fix app.txt · budget exhausted',exact=True)
+        expect(row).to_be_visible(timeout=15000)
+        row.click()
+        expect(self.page.get_by_role('button',name='Resume task',exact=True)).to_have_count(0)
+        self.page.get_by_role('button',name='Remove usage limits & resume',exact=True).click()
+        expect(self.page.get_by_text('Done · tests and review verified',exact=True)).to_be_visible(timeout=30000)
+        self.assertEqual(app.engine.status(started['workflow_id'])['budget_policy'],'unlimited')
+        self.page.get_by_role('button',name='New task',exact=True).click()
+        expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
+        expect(self.page.get_by_label('Action',exact=True)).to_have_value('build')
 
     def test_markdown_tables_are_safe_and_readable(self):
         self.ready()
@@ -117,6 +144,7 @@ class EasyWorkspace(unittest.TestCase):
         expect(self.page.get_by_label('Test executable',exact=True)).to_be_hidden()
         expect(self.page.get_by_label('Total usage reservation',exact=True)).to_be_hidden()
         expect(self.page.get_by_label('What should work when finished?',exact=True)).to_be_hidden()
+        self.page.get_by_text('Optional usage limits',exact=True).click()
         self.page.get_by_label('Usage allowance',exact=True).select_option('small')
         expect(self.page.get_by_role('button',name='Approve & start',exact=True)).to_be_enabled()
         directory=os.environ.get('CCX_EASY_EVIDENCE_DIR')
@@ -143,6 +171,7 @@ class EasyWorkspace(unittest.TestCase):
         expect(self.page.locator('[data-task-review]')).to_contain_text('Separate minimax review session')
         expect(self.page.locator('[data-task-review]')).to_contain_text('executor = worker-model')
         expect(self.page.locator('[data-task-review]')).to_contain_text('reviewer = review-model')
+        self.page.get_by_text('Optional usage limits',exact=True).click()
         self.page.get_by_label('Usage allowance',exact=True).select_option('small')
         expect(self.page.locator('[data-task-review]')).to_contain_text('reviewer = review-model')
         self.assertEqual(self.registry.calls,[])
@@ -206,12 +235,14 @@ class EasyWorkspace(unittest.TestCase):
         expect(self.page.locator('[data-task-progress] pre').filter(has_text='+good')).to_be_visible()
         self.assertEqual((self.project/'app.txt').read_text(),'good')
         self.assertEqual(len(self.server.application.engine.list()),1)
+        self.assertEqual(self.server.application.engine.list()[0]['budget_policy'],'unlimited')
+        expect(self.page.get_by_label('Your task',exact=True)).to_have_count(0)
         self.assertNotIn('planner',[call[1] for call in self.registry.calls])
         self.assertIn('reviewer',[call[1] for call in self.registry.calls])
-        self.assertEqual(self.page.url.split('#')[-1] if '#' in self.page.url else '', '')
-        # Only three everyday navigation destinations are visible.
+        self.assertEqual(self.page.url.split('#')[-1] if '#' in self.page.url else '', 'tasks')
+        # Tasks have their own everyday destination.
         nav=self.page.get_by_role('navigation')
-        self.assertEqual(nav.locator('a:visible').all_text_contents(), ['◌Chat','▣Projects','⚙Settings'])
+        self.assertEqual(nav.locator('a:visible').all_text_contents(), ['◌Chat','✓Tasks','▣Projects','⚙Settings'])
         directory=os.environ.get('CCX_EASY_EVIDENCE_DIR')
         if directory:
             Path(directory).mkdir(parents=True,exist_ok=True)
@@ -239,6 +270,7 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_label('Test command',exact=True).select_option('custom')
         self.page.get_by_label('Test executable',exact=True).fill(sys.executable)
         self.page.get_by_label('Arguments · one per line',exact=True).fill('-B\ncheck.py')
+        self.page.get_by_text('Optional usage limits',exact=True).click()
         self.page.get_by_label('Usage allowance',exact=True).select_option('small')
         expect(approve).to_be_enabled(timeout=10000)
         self.page.get_by_label('Your task',exact=True).fill('A different task')

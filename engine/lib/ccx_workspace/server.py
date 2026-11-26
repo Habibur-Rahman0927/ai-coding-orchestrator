@@ -231,6 +231,9 @@ class Dashboard:
                     return self.run(workflow)
                 if action in ('pause', 'resume', 'cancel'):
                     return getattr(self.engine, action)(workflow)
+                if action == 'limits':
+                    if body.get('confirmed') is not True: raise DashboardError('Confirm changes to task usage limits',403)
+                    return self.engine.configure_usage_limits(workflow,body.get('policy'),body.get('budgets'),body.get('max_call_cost'))
                 if action == 'retry':
                     self.engine.resume(workflow)
                     return self.run(workflow)

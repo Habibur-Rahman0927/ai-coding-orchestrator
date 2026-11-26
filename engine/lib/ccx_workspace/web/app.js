@@ -1,11 +1,11 @@
 'use strict';
 let fieldSequence = 0, workflowViewVersion = 0, workflowPollTimer = null;
-let token = '', csrf = sessionStorage.getItem('ccx-session-proof') || '', authenticated = false, state = {}, setupState = {}, experience = {}, page = 'chat', selectedProject = '', selectedWorkflow = '', selectedChat = '', selectedChatTask = '';
+let token = '', csrf = sessionStorage.getItem('ccx-session-proof') || '', authenticated = false, state = {}, setupState = {}, experience = {}, page = 'chat', selectedProject = '', selectedWorkflow = '', selectedChat = '', selectedTaskId = '';
 // Consume the fragment before any network request; a bootstrap secret never remains in history.
 let bootstrapCredential = new URLSearchParams(location.hash.slice(1)).get('bootstrap');
 if (bootstrapCredential) history.replaceState(null, '', location.pathname);
 const main = document.getElementById('main');
-const pages = [['overview','Overview','◈'],['chat','Chat','◌'],['projects','Projects','▣'],['memory','Memory','▤'],['context','Context','◎'],['workflows','Workflows','◇'],['providers','Providers','⊞'],['sessions','Sessions','◷'],['approvals','Approvals','✓'],['activity','Activity & usage','◷'],['settings','Settings','⚙'],['help','Help','?']];
+const pages = [['overview','Overview','◈'],['chat','Chat','◌'],['tasks','Tasks','✓'],['projects','Projects','▣'],['memory','Memory','▤'],['context','Context','◎'],['workflows','Workflows','◇'],['providers','Providers','⊞'],['sessions','Sessions','◷'],['approvals','Approvals','✓'],['activity','Activity & usage','◷'],['settings','Settings','⚙'],['help','Help','?']];
 const el = (tag, attrs = {}, ...children) => {
   const node = document.createElement(tag);
   for (const [key,value] of Object.entries(attrs)) {
@@ -43,11 +43,11 @@ function field(label,name,options={}) {const id='field-'+(++fieldSequence);const
 function form(children, label, action) {const f=el('form',{},...children,el('button',{type:'submit',class:'primary'},label));f.addEventListener('submit',async event=>{event.preventDefault();const submit=f.querySelector('[type=submit]');submit.disabled=true;try{await action(Object.fromEntries(new FormData(f)));}catch(error){notice(error.message,true);}finally{submit.disabled=false;}});return f;}
 function heading(title,description,actions) {return el('div',{class:'page-head'},el('div',{},el('p',{class:'eyebrow'},'ORCHESTRATOR WORKSPACE'),el('h1',{},title),el('p',{},description)),actions?el('div',{class:'actions'},actions):null);}
 function projectOptions(){return arr(state.projects).map(p=>({value:p.id,label:projectName(p)}));}
-function projectPicker(action){const f=field('Project','active-project',{options:projectOptions(),value:selectedProject});f.querySelector('select').addEventListener('change',async event=>{selectedProject=event.target.value;selectedChat='';selectedWorkflow='';selectedChatTask='';try{experience=await api('/api/experience',{project:selectedProject});await action();}catch(error){notice(error.message,true);}});return f;}
+function projectPicker(action){const f=field('Project','active-project',{options:projectOptions(),value:selectedProject});f.querySelector('select').addEventListener('change',async event=>{selectedProject=event.target.value;selectedChat='';selectedWorkflow='';try{experience=await api('/api/experience',{project:selectedProject});await action();}catch(error){notice(error.message,true);}});return f;}
 function projectNeeded(){if(!arr(state.projects).length){main.append(empty('Start with a project','Choose an approved repository to keep its conversations and context together.'),button('Choose a project',()=>go('projects'),'primary'));return true;}if(!selectedProject||!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;return false;}
 async function refresh(render=true){[state,setupState,experience]=await Promise.all([api('/api/state'),api('/api/setup'),api('/api/experience')]);if(!selectedProject)selectedProject=experience.project||'';applyAppearance();document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});if(render)await renderPage();}
 function go(name){if(location.hash==='#'+name)renderPage().catch(error=>notice(error.message,true));else location.hash=name;}
-async function renderPage(){document.body.classList.remove('extension-chat');document.getElementById('notice').hidden=true;clearTimeout(workflowPollTimer);workflowViewVersion++;page=location.hash.slice(1)||'chat';if(!pages.some(x=>x[0]===page)&&page!=='setup')page='chat';document.getElementById('breadcrumb').textContent='Workspace / '+(page==='setup'?'Setup':pages.find(x=>x[0]===page)[1]);for(const a of document.querySelectorAll('nav a'))a.setAttribute('aria-current',a.hash==='#'+page?'page':'false');main.replaceChildren();await ({overview,projects,memory,context,workflows,providers,activity,settings,setup,chat,sessions,approvals,help}[page])();}
+async function renderPage(){document.body.classList.remove('extension-chat');document.getElementById('notice').hidden=true;clearTimeout(workflowPollTimer);workflowViewVersion++;page=location.hash.slice(1)||'chat';if(!pages.some(x=>x[0]===page)&&page!=='setup')page='chat';document.getElementById('breadcrumb').textContent='Workspace / '+(page==='setup'?'Setup':pages.find(x=>x[0]===page)[1]);for(const a of document.querySelectorAll('nav a'))a.setAttribute('aria-current',a.hash==='#'+page?'page':'false');main.replaceChildren();await ({overview,projects,memory,context,workflows,providers,activity,settings,setup,chat,tasks,sessions,approvals,help}[page])();}
 function overview(){const projects=arr(state.projects),flows=arr(state.workflows),available=arr(state.providers).filter(p=>p.available);main.append(heading('Your work, in view.','Keep project knowledge close and coordinate agent work with explicit boundaries.'),el('div',{class:'metrics'},...[[projects.length,'Registered projects'],[flows.length,'Workflows'],[arr(state.running).length,'Active runners'],[available.length,'Locally available providers']].map(([n,label])=>el('div',{class:'metric'},el('p',{},label),el('strong',{class:'number'},n)))));const recent=panel('Projects',projects.length?projects.slice(0,4).map(p=>el('div',{class:'item'},el('h3',{},projectName(p)),el('p',{class:'path'},p.path||p.root),button('Open project',()=>{selectedProject=p.id;go('memory');},'quiet'))):empty('A clear place to begin','Register a local repository to build its project index.'),el('div',{class:'actions'},button('Manage projects',()=>go('projects'),'primary')));const flowsPanel=panel('Workflow queue',flows.length?flows.slice(0,4).map(w=>el('div',{class:'item'},el('h3',{},w.objective||w.id),statusTag(w.status||w.state),el('div',{class:'actions'},button('View workflow',()=>{selectedWorkflow=w.id;go('workflows');},'quiet')))):empty('No workflows yet','Define an objective and success criteria. Agent execution starts only when you run it.'));main.append(el('div',{class:'grid'},recent,flowsPanel),panel('This machine',el('p',{class:'muted'},'Machine information is local context. Refresh it when tools or the environment change.'),machineSummary(state.machine)));}
 async function memory(){main.append(heading('Project memory','Inspect stored knowledge, search the project index, and remove records you no longer want.'));if(projectNeeded())return;main.append(projectPicker(memoryReload));await memoryReload();}
 async function memoryReload(){document.getElementById('memory-content')?.remove();const container=el('div',{id:'memory-content'});main.append(container);const rows=arr(await api('/api/projects/'+selectedProject+'/memories'));const result=el('div',{});container.append(panel('Add a memory',form([field('Title','title',{required:true}),field('Instruction or note','body',{required:true,multiline:true}),field('Scope','scope',{options:['project','workflow','session','error','verification','skills','temporary']})],'Save memory',async data=>{await api('/api/projects/'+selectedProject+'/remember',data);await memoryReload();notice('Memory saved as a user instruction.');})),panel('Search knowledge',form([field('Search query','query',{required:true,placeholder:'Where is authentication configured?'}),field('Scope','scope',{placeholder:'Optional scope'})],'Search',async data=>{const found=await api('/api/projects/'+selectedProject+'/search',{query:data.query,scope:data.scope||null,limit:20});result.replaceChildren(pre(found));}),result),panel('Stored records',el('div',{class:'section-head'},el('p',{class:'muted'},rows.length+' memory records'),button('Export project memory',async()=>download(await api('/api/projects/'+selectedProject+'/export'),'project-memory.json'))),rows.length?rows.map(row=>el('article',{class:'item'},el('h3',{},row.title||row.key||row.kind||row.id),el('p',{class:'hint'},row.scope||row.source||'Project memory'),pre(row.body||row.content||row.value||row),button('Delete record',async()=>{if(!confirm('Delete this memory record? This cannot be undone here.'))return;await api('/api/projects/'+selectedProject+'/delete-memory',{id:row.id});await memoryReload();notice('Memory record deleted.');},'danger'))):empty('No memory records','Indexing and workflow activity can provide project knowledge. Search the index above.')));}
@@ -226,7 +226,7 @@ async function enterWorkspace(){
   document.getElementById('token').value='';document.getElementById('login').hidden=true;
   document.getElementById('workspace').hidden=false;await renderPage();
 }
-const advancedNav=el('details',{},el('summary',{},'Advanced tools'));for(const [name,label,icon]of pages){const link=el('a',{href:'#'+name},el('span',{class:'nav-icon','aria-hidden':'true'},icon),label);(!['chat','projects','settings'].includes(name)?advancedNav:document.getElementById('navigation')).append(link);}document.getElementById('navigation').append(advancedNav);
+const advancedNav=el('details',{},el('summary',{},'Advanced tools'));for(const [name,label,icon]of pages){const link=el('a',{href:'#'+name},el('span',{class:'nav-icon','aria-hidden':'true'},icon),label);(!['chat','tasks','projects','settings'].includes(name)?advancedNav:document.getElementById('navigation')).append(link);}document.getElementById('navigation').append(advancedNav);
 document.getElementById('login-form').addEventListener('submit',async event=>{event.preventDefault();token=document.getElementById('token').value.trim();try{await enterWorkspace();}catch(error){token='';notice(error.message,true);}});
 document.getElementById('disconnect').addEventListener('click',disconnect);
 document.getElementById('refresh').addEventListener('click',()=>refresh().catch(error=>notice(error.message,true)));
@@ -321,7 +321,7 @@ function projects(){
   const render=()=>{const query=search.querySelector('input').value.toLowerCase();const favorites=experience.favorites||[],recent=experience.recent||[];
     const sorted=arr(state.projects).slice().sort((a,b)=>Number(favorites.includes(b.id))-Number(favorites.includes(a.id))||(recent.indexOf(a.id)<0?999:recent.indexOf(a.id))-(recent.indexOf(b.id)<0?999:recent.indexOf(b.id)));
     list.replaceChildren(...sorted.filter(p=>(projectName(p)+' '+p.path).toLowerCase().includes(query)).map(p=>el('article',{class:'item'},el('h3',{},projectName(p)),el('p',{class:'path'},p.path),el('p',{class:'hint'},(p.id===experience.project?'Last active project · ':'')+arr(state.workflows).filter(w=>w.project_id===p.id&&!['COMPLETED','CANCELLED'].includes(w.status)).length+' unfinished workflows'),
-      el('div',{class:'actions'},button('Open '+projectName(p),async()=>{selectedProject=p.id;selectedChat='';selectedWorkflow='';selectedChatTask='';experience=await api('/api/experience',{project:p.id});go('chat');},'primary'),button(favorites.includes(p.id)?'Remove favorite':'Add favorite',async()=>{experience=await api('/api/experience',{favorite:p.id});render();},'quiet'),button('Refresh context',async()=>{notice('Updating project context…');const result=await api('/api/projects/'+p.id+'/index',{});preview.replaceChildren(panel('Project knowledge ready',pre(result)));notice('Project knowledge updated.');},'quiet')))));
+      el('div',{class:'actions'},button('Open '+projectName(p),async()=>{selectedProject=p.id;selectedChat='';selectedWorkflow='';experience=await api('/api/experience',{project:p.id});go('chat');},'primary'),button(favorites.includes(p.id)?'Remove favorite':'Add favorite',async()=>{experience=await api('/api/experience',{favorite:p.id});render();},'quiet'),button('Refresh context',async()=>{notice('Updating project context…');const result=await api('/api/projects/'+p.id+'/index',{});preview.replaceChildren(panel('Project knowledge ready',pre(result)));notice('Project knowledge updated.');},'quiet')))));
     if(!list.childElementCount)list.append(empty('No matching projects','Register a repository below or change your search.'));
   };search.querySelector('input').addEventListener('input',render);render();
   main.append(panel('Recent and favorite projects',search,list),el('details',{open:!arr(state.projects).length},el('summary',{},'Register a project'),projectRegistrationForm(preview)),preview);
@@ -486,7 +486,6 @@ async function chat(){
   if(!state.projects.some(p=>p.id===selectedProject))selectedProject=experience.project||state.projects[0].id;
   if(!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;
   const project=selectedProject,draft=taskDraft(project);
-  if(selectedChatTask&&!arr(state.workflows).some(w=>w.id===selectedChatTask&&w.project_id===project))selectedChatTask='';
   const current=()=>workflowViewVersion===version&&selectedProject===project;
   let agent=experience.agents?.[project]||defaults().executor||'codex';
   const agentField=field('Agent','task-agent',{options:providerOptions(),value:agent});
@@ -495,12 +494,12 @@ async function chat(){
   if(pending&&!draft.messageRequest){
     try{const recovered=await api('/api/tasks/submission/'+encodeURIComponent(pending.key));if(!current())return;
       if(recovered.chat_id&&recovered.submitted){selectedChat=recovered.chat_id;draft.newConversation=false;pendingSubmission(project,null);}
-      else if(recovered.workflow_id){selectedChatTask=recovered.workflow_id;pendingSubmission(project,null);}
+      else if(recovered.workflow_id){selectedTaskId=recovered.workflow_id;pendingSubmission(project,null);go('tasks');return;}
       else unresolvedSubmission=true;
     }catch{unresolvedSubmission=true;}
   }
   if(unresolvedSubmission)main.append(panel('Previous submission needs inspection',el('p',{},'The previous request may have reached the server. No work has been resent. Inspect recent work before starting another request.'),button('Check saved state',()=>renderPage(),'primary'),button('I inspected; start a new request',()=>{pendingSubmission(project,null);return renderPage();},'quiet')));
-  const controls=el('div',{class:'chat-top-toolbar'},projectPicker(()=>renderPage()),agentField,button('New chat',()=>{selectedChat='';selectedChatTask='';draft.newConversation=true;draft.content='';return renderPage();},'quiet'));
+  const controls=el('div',{class:'chat-top-toolbar'},projectPicker(()=>renderPage()),agentField,button('New chat',()=>{selectedChat='';draft.newConversation=true;draft.content='';return renderPage();},'quiet'));
   main.append(controls);
   const choices=arr(await api('/api/chats')).filter(c=>c.project_id===project&&c.provider===agent);
   if(!current())return;
@@ -508,7 +507,7 @@ async function chat(){
   if(!draft.newConversation&&!choices.some(c=>c.id===selectedChat))selectedChat=choices.find(c=>c.id===saved)?.id||choices[0]?.id||'';
   if(draft.newConversation)selectedChat='';
   agentField.querySelector('select').addEventListener('change',async event=>{
-    try{experience=await api('/api/experience',{project,agent:event.target.value});selectedChat='';selectedChatTask='';draft.newConversation=false;await renderPage();}catch(error){notice(error.message,true);}
+    try{experience=await api('/api/experience',{project,agent:event.target.value});selectedChat='';draft.newConversation=false;await renderPage();}catch(error){notice(error.message,true);}
   });
   const provider=arr(state.providers).find(p=>p.id===agent);
   controls.append(el('span',{class:'chat-connection',title:providerStatus(provider||{})},provider?.available?'● Agent available':'○ Connect agent'));
@@ -517,7 +516,7 @@ async function chat(){
   if(choices.length){
     const selector=field('Conversation','task-conversation',{options:[{value:'',label:'New conversation'},...choices.map(c=>({value:c.id,label:c.title||c.id}))],value:selectedChat});
     selector.querySelector('select').addEventListener('change',async event=>{
-      try{selectedChatTask='';selectedChat=event.target.value;draft.newConversation=!selectedChat;if(selectedChat)experience=await api('/api/experience',{project,agent,conversation:selectedChat});await renderPage();}catch(error){notice(error.message,true);}
+      try{selectedChat=event.target.value;draft.newConversation=!selectedChat;if(selectedChat)experience=await api('/api/experience',{project,agent,conversation:selectedChat});await renderPage();}catch(error){notice(error.message,true);}
     });controls.append(el('details',{class:'chat-history'},el('summary',{},'History'),selector));
   }
   const available=await api('/api/chat/options/'+agent);if(!current())return;
@@ -579,7 +578,7 @@ async function chat(){
       pendingSubmission(project,{key:draft.messageRequest.key});
       const reply=await api('/api/tasks/message',{...draft.messageRequest.input,idempotency_key:draft.messageRequest.key});
       if(!current())return;
-      pendingSubmission(project,null);selectedChatTask='';selectedChat=reply.chat_id;draft.newConversation=false;draft.content='';draft.messageRequest=null;
+      pendingSubmission(project,null);selectedChat=reply.chat_id;draft.newConversation=false;draft.content='';draft.messageRequest=null;
       await refresh(false);if(current())await renderPage();
     }else{
       const input={project_id:project,provider:agent,instruction:data.content,...teamInput()};
@@ -602,12 +601,12 @@ async function chat(){
     consent.textContent=draft.mode==='ask'?'Send authorizes this message and relevant project context to '+agent+', using your subscription allowance or API credits. This is a read-only conversation; native CLI access can be broader than filtered context.':'Review task prepares a local approval card. No agent runs until you approve it. Tests and a separate review session are included.';
     reviewArea.replaceChildren();
   }
-  modeField.querySelector('select').addEventListener('change',()=>{if(modeField.querySelector('select').value==='ask'){selectedChatTask='';const pane=main.querySelector('.chat-task-results');if(pane)pane.hidden=true;transcript.hidden=false;responseStatus.hidden=false;pollConversation();}updateMode();});updateMode();
+  modeField.querySelector('select').addEventListener('change',updateMode);updateMode();
   messageField.querySelector('textarea').addEventListener('input',event=>{draft.content=event.target.value;reviewArea.replaceChildren();});
   const dock=el('div',{class:'chat-dock'},composer);main.append(dock,reviewArea);
   const cancel=button('Cancel response',async()=>{if(selectedChat)await api('/api/chats/'+selectedChat+'/cancel',{});await pollConversation();},'quiet');cancel.hidden=true;main.append(cancel);
   async function pollConversation(){
-    if(!current()||!selectedChat||selectedChatTask)return;
+    if(!current()||!selectedChat)return;
     try{
       const value=await api('/api/chats/'+selectedChat);if(!current())return;
       const followLatest=!transcriptLoaded||(transcript.closest('.chat-stream')||transcript).scrollHeight-(transcript.closest('.chat-stream')||transcript).scrollTop-(transcript.closest('.chat-stream')||transcript).clientHeight<80;
@@ -621,21 +620,41 @@ async function chat(){
   }
   await pollConversation();
   const flows=arr(state.workflows).filter(w=>w.project_id===project);
-  if(!flows.some(w=>w.id===selectedChatTask))selectedChatTask='';
-  const recent=el('details',{class:'project-tasks'},el('summary',{},'Tasks ('+flows.length+')'));
-  recent.hidden=!flows.length;controls.append(recent);
-  const taskView=el('div',{'data-task-progress':''});
-  const taskResults=el('section',{class:'chat-task-results',hidden:!selectedChatTask},
-    button('Back to chat',()=>{selectedChatTask='';return renderPage();},'quiet'),taskView);
-  for(const w of flows.slice(0,30)){const item=button((w.objective||'Task').slice(0,90)+' · '+w.status,()=>{
-    selectedChatTask=w.id;recent.open=false;transcript.hidden=true;responseStatus.hidden=true;cancel.hidden=true;
-    clearTimeout(workflowPollTimer);taskResults.hidden=false;taskView.replaceChildren();return inlineTask(taskView,w.id,current);
-  },'quiet');item.dataset.workflowId=w.id;recent.append(item);}
-  const stream=el('section',{class:'chat-stream','aria-label':'Chat and task activity'},transcript,responseStatus,reviewArea,taskResults);
+  controls.append(button('Tasks ('+flows.length+')',()=>{selectedTaskId='';go('tasks');},'quiet'));
+  const stream=el('section',{class:'chat-stream','aria-label':'Conversation'},transcript,responseStatus,reviewArea);
   main.insertBefore(stream,dock);dock.append(cancel);
-  if(selectedChatTask){transcript.hidden=true;responseStatus.hidden=true;cancel.hidden=true;await inlineTask(taskView,selectedChatTask,current);}
 
 }
+async function tasks(){
+  const version=workflowViewVersion;
+  main.append(heading('Tasks','Manage work here. Use Chat to describe the next change.',button('New task',()=>{if(selectedProject)taskDraft(selectedProject).mode='build';go('chat');},'primary')));
+  if(projectNeeded())return;
+  const project=selectedProject,current=()=>workflowViewVersion===version&&page==='tasks'&&selectedProject===project;
+  const filter=field('Show tasks','task-filter',{options:[{value:'all',label:'All tasks'},{value:'active',label:'Active'},{value:'attention',label:'Needs attention'},{value:'done',label:'Completed'}]});
+  const search=field('Find task','task-search',{placeholder:'Search task titles'});
+  const list=el('div',{class:'task-list'}),detail=el('div',{'data-task-progress':'',class:'task-detail'}),feedback=el('p',{class:'hint'});
+  main.append(el('div',{class:'form-row tasks-toolbar'},projectPicker(()=>{selectedTaskId='';return renderPage();}),filter,search),feedback,el('div',{class:'tasks-layout'},list,detail));
+  let rows=[],opened='',signature='',timer;
+  function draw(){
+    const query=search.querySelector('input').value.toLowerCase(),mode=filter.querySelector('select').value;
+    const shown=rows.filter(w=>(w.objective||'').toLowerCase().includes(query)&&(mode==='all'||mode==='active'&&['READY','RUNNING'].includes(w.status)||mode==='done'&&w.status==='COMPLETED'||mode==='attention'&&!['READY','RUNNING','COMPLETED','CANCELLED'].includes(w.status)));
+    list.replaceChildren(...shown.map(w=>{const row=button((w.objective||'Task')+' · '+w.status.toLowerCase().replaceAll('_',' '),()=>{selectedTaskId=w.id;return openTask(w.id);},'list-button');row.dataset.workflowId=w.id;return row;}));
+    if(!shown.length)list.append(empty('No tasks here',query?'Try another search.':'Start a task from Chat.'));
+    feedback.textContent=rows.length+' tasks in this project';
+  }
+  async function openTask(id){opened=id;detail.replaceChildren();await inlineTask(detail,id,()=>current()&&opened===id);}
+  filter.querySelector('select').addEventListener('change',draw);search.querySelector('input').addEventListener('input',draw);
+  async function pollList(){
+    clearTimeout(timer);if(!current())return;
+    try{const value=await api('/api/state');if(!current())return;rows=arr(value.workflows).filter(w=>w.project_id===project);
+      const next=JSON.stringify(rows.map(w=>[w.id,w.status,w.objective]));if(next!==signature){signature=next;draw();}
+      if(selectedTaskId&&opened!==selectedTaskId&&rows.some(w=>w.id===selectedTaskId))await openTask(selectedTaskId);
+    }catch(error){if(current())feedback.textContent='Connection interrupted. Your tasks remain saved.';}
+    if(current())timer=setTimeout(pollList,3000);
+  }
+  await pollList();
+}
+
 function renderTaskApproval(container,initial,input,current){
   let proposal=initial,version=0,key=submissionKey(),timer;
   const card=panel('Review task'),error=el('p',{class:'error',role:'status'}),summary=el('div',{}),commandRows=el('div',{});
@@ -659,10 +678,10 @@ function renderTaskApproval(container,initial,input,current){
     pendingSubmission(input.project_id,{key});
     const result=await api('/api/tasks/start',{proposal_id:proposal.proposal_id,revision:proposal.revision,confirmed:true,idempotency_key:key});
     if(!current())return;
-    pendingSubmission(input.project_id,null);selectedChatTask=result.workflow_id;taskDraft(input.project_id).content='';await refresh(false);if(current())await renderPage();
+    pendingSubmission(input.project_id,null);selectedTaskId=result.workflow_id;taskDraft(input.project_id).content='';await refresh(false);if(current())go('tasks');
     if(result.notice)notice(result.notice);
   },'primary');
-  const read=()=>({...input,criteria:criteria.querySelector('textarea').value,
+  const read=()=>({...input,budget_policy:allowance.querySelector('select').value==='unlimited'?'unlimited':'limited',max_seconds:Number(timeLimit.querySelector('input').value),criteria:criteria.querySelector('textarea').value,
     max_cost:Number(total.querySelector('input').value),max_call_cost:Number(perCall.querySelector('input').value),
     max_tokens:Number(advanced.querySelector('[name=max_tokens]').value),partner:advanced.querySelector('[name=partner]').value,model_overrides:Object.fromEntries(Object.entries(input.model_overrides||{}).filter(([role])=>role!=='reviewer'||advanced.querySelector('[name=partner]').value===(input.partner||input.provider))),planning:advanced.querySelector('[name=planning]').value==='yes',
     commands:Array.from(commandRows.children).filter(row=>row.querySelector('[name=executable]').value.trim()).map(row=>({name:row.querySelector('[name=name]').value,argv:[row.querySelector('[name=executable]').value.trim(),...row.querySelector('[name=arguments]').value.split('\n').filter(Boolean)],cwd:row.querySelector('[name=cwd]').value,timeout:Number(row.querySelector('[name=timeout]').value)}))});
@@ -673,6 +692,7 @@ function renderTaskApproval(container,initial,input,current){
       el('p',{class:'hint'},proposal.review),...(models?[el('p',{class:'hint'},'Models: '+models)]:[]),
       el('div',{class:'build-checks'},el('strong',{},'Checks'),...proposal.commands.map(command=>el('p',{},el('code',{},command.argv.map(arg=>JSON.stringify(arg)).join(' ')),el('span',{class:'hint'},' · folder: '+command.cwd))),!proposal.commands.length?el('p',{},'No test command found. Add one below to verify code changes.'):null),
       el('p',{class:'hint'},'Approving lets this team share project context, change files and run these checks using your provider allowance.'),
+      el('p',{class:'hint'},proposal.workflow.budget_policy==='unlimited'?'No workspace token, cost, time or provider-call cap. Provider limits and charges still apply.':'Workspace usage limits are enabled for this task.'),
       el('details',{},el('summary',{},'Exact access and commands'),pre(proposal.approvals)));
     error.textContent=proposal.blockers.join(' ');start.disabled=Boolean(proposal.blockers.length);
   }
@@ -680,9 +700,10 @@ function renderTaskApproval(container,initial,input,current){
     clearTimeout(timer);const revision=++version;proposal=null;start.disabled=true;error.textContent='Updating task preview…';
     timer=setTimeout(async()=>{try{const value=await api('/api/tasks/preview',read());if(!current()||!container.isConnected||revision!==version)return;proposal=value;key=submissionKey();show();}catch(err){if(current()&&revision===version){error.textContent=err.message;start.disabled=true;}}},250);
   }
+  const timeLimit=field('Task time limit (seconds)','max_seconds',{type:'number',min:1,value:initial.workflow.budgets.max_seconds});
   const savedAllowance=initial.workflow.budgets.max_cost>0&&initial.max_call_cost>0&&initial.max_call_cost<=initial.workflow.budgets.max_cost;
-  const allowance=field('Usage allowance','usage-preset',{options:[{value:'',label:'Choose once for this project…'},...(savedAllowance?[{value:'saved',label:'Use previous allowance ('+initial.workflow.budgets.max_cost+' total / '+initial.max_call_cost+' per call)'}]:[]),{value:'small',label:'Small task · 1 total / 0.10 per call'},{value:'standard',label:'Larger task · 3 total / 0.25 per call'},{value:'custom',label:'Custom allowance…'}],value:savedAllowance?'saved':''});
-  const customAllowance=el('div',{class:'form-row',hidden:true},total,perCall);
+  const allowance=field('Usage allowance','usage-preset',{options:[{value:'unlimited',label:'No workspace usage limit (default)'},{value:'',label:'Choose a limit…'},...(savedAllowance?[{value:'saved',label:'Use previous allowance ('+initial.workflow.budgets.max_cost+' total / '+initial.max_call_cost+' per call)'}]:[]),{value:'small',label:'Small task · 1 total / 0.10 per call'},{value:'standard',label:'Larger task · 3 total / 0.25 per call'},{value:'custom',label:'Custom allowance…'}],value:initial.workflow.budget_policy==='unlimited'?'unlimited':savedAllowance?'saved':''});
+  const customAllowance=el('div',{class:'form-row',hidden:true},total,perCall,timeLimit);
   allowance.querySelector('select').addEventListener('change',event=>{
     const choice=event.target.value;customAllowance.hidden=choice!=='custom';
     const values=choice==='small'?[1,.1]:choice==='standard'?[3,.25]:choice==='saved'?[initial.workflow.budgets.max_cost,initial.max_call_cost]:choice===''?[0,0]:null;
@@ -700,7 +721,7 @@ function renderTaskApproval(container,initial,input,current){
   });
   manualChecks.append(...Array.from(tests.children).slice(1));tests.append(checkChoice,manualChecks);
   card.classList.add('simple-build-card');
-  card.append(summary,allowance,customAllowance,el('p',{class:'hint'},'Local usage reservations, not a guaranteed bill cap. Values are remembered; each task still needs approval.'),
+  card.append(summary,el('details',{},el('summary',{},'Optional usage limits'),allowance,customAllowance,el('p',{class:'hint'},'Optional workspace limits; provider billing and model context limits still apply. Preferences are remembered, permissions are per task.')),
     tests,el('details',{},el('summary',{},'Edit expected outcome'),criteria),advanced,error,
     el('div',{class:'actions'},start,button('Just ask · no file changes',()=>{taskDraft(input.project_id).mode='ask';return renderPage();},'quiet')));
   card.addEventListener('input',schedule);card.addEventListener('change',event=>{if(event.target.tagName==='SELECT')schedule();});
@@ -717,11 +738,11 @@ async function inlineTask(container,id,current){
     try{
       const w=await api('/api/workflows/'+id);if(!alive())return;
       const active=w.runner_active||w.status==='RUNNING';
-      for(const item of main.querySelectorAll('[data-workflow-id]'))if(item.dataset.workflowId===id)item.textContent=(w.objective||'Task').slice(0,90)+' · '+w.status;
+      for(const item of main.querySelectorAll('[data-workflow-id]'))if(item.dataset.workflowId===id)item.textContent=(w.objective||'Task')+' · '+w.status.toLowerCase().replaceAll('_',' ');
       const phases=arr(w.tasks).map(t=>t.status);
       const stage=w.status==='COMPLETED'?'Done · tests and review verified':w.status==='CANCELLED'?'Cancelled':w.status!=='RUNNING'?'Needs attention · '+w.status.toLowerCase().replaceAll('_',' '):phases.includes('REVIEWING')?'Reviewing':phases.includes('TESTING')?'Testing':'Working';
-      status.textContent=stage+(w.reason?' — '+w.reason:'');controls.hidden=['COMPLETED','CANCELLED'].includes(w.status);
-      const next=JSON.stringify([w.status,w.reason,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events?.length]);
+      status.textContent=stage+(w.reason?' — '+w.reason:'');controls.hidden=['COMPLETED','CANCELLED','FAILED'].includes(w.status);controls.querySelector('button').hidden=!active;
+      const next=JSON.stringify([w.status,w.reason,w.budget_policy,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events?.length]);
       if(next!==signature){
         signature=next;details.replaceChildren(el('h3',{},w.objective),el('p',{class:'hint'},'Working → Testing → Reviewing → Done'));
         details.append(el('details',{},el('summary',{},'Team & subtasks · '+arr(w.tasks).length),...arr(w.tasks).map(task=>el('div',{class:'item'},el('strong',{},task.title),el('p',{class:'hint'},task.executor+' / '+(w.model_overrides?.executor||'default model')+' → '+task.reviewer+' / '+(w.model_overrides?.reviewer||'default model')+' · '+task.status)))));
@@ -734,7 +755,22 @@ async function inlineTask(container,id,current){
           const approved=arr(w.approvals).some(a=>!a.revoked&&a.kind==='recovery'&&a.scope.action_id===action.id);
           requests.append(panel('Inspect interrupted action',el('p',{},action.provider+' · '+action.role),el('p',{class:'hint'},'This action may already have changed files. Inspect the diff and provider history before allowing a retry.'),pre({action_id:action.id,state:action.state}),approved?el('p',{},'Recovery permission recorded. Resume only when ready.'):button('I inspected; allow retry of this action',async()=>{await api('/api/workflows/'+id+'/approve',{kind:'recovery',scope:{action_id:action.id,decision:'retry'}});await poll();},'primary')));
         }
-        if(!active&&!['COMPLETED','CANCELLED'].includes(w.status))requests.append(el('p',{class:'hint'},'Inspect changes before continuing. Unknown effects are never retried automatically.'),button('Resume task',async()=>{try{await api('/api/workflows/'+id+'/retry',{});}catch(error){notice('Inspect the interrupted action before approving a retry.',true);}loadedResults=false;await poll();},'primary'),el('details',{},el('summary',{},'Permission details'),approvalForm(id,poll)));
+        if(!active&&!['COMPLETED','CANCELLED','FAILED'].includes(w.status)){
+          const limitsEditor=el('details',{},el('summary',{},'Usage limits · '+(w.budget_policy==='unlimited'?'off':'on')));
+          limitsEditor.append(form([
+            field('Limit policy','policy',{options:[{value:'unlimited',label:'No workspace usage limit'},{value:'limited',label:'Set workspace limits'}],value:w.budget_policy||'limited'}),
+            el('details',{},el('summary',{},'Custom limit values'),
+              field('Total cost reservation','max_cost',{type:'number',min:0,step:.01,value:w.budgets.max_cost||1}),
+              field('Per-call cost reservation','max_call_cost',{type:'number',min:0,step:.01,value:.1}),
+              field('Token limit','max_tokens',{type:'number',min:128,value:w.budgets.max_tokens}),
+              field('Time limit (seconds)','max_seconds',{type:'number',min:1,value:w.budgets.max_seconds}))
+          ],'Save limits',async data=>{await api('/api/workflows/'+id+'/limits',{confirmed:true,policy:data.policy,budgets:data.policy==='limited'?{max_cost:Number(data.max_cost),max_tokens:Number(data.max_tokens),max_seconds:Number(data.max_seconds)}:{},max_call_cost:Number(data.max_call_cost)});await poll();}));
+          requests.append(limitsEditor);
+          if(w.status==='BUDGET_EXHAUSTED'&&w.budget_policy!=='unlimited'&&!arr(w.pending_actions).length)requests.append(
+            el('p',{class:'hint'},'This task stopped at a workspace usage limit. Remove it to continue; provider charges and limits still apply.'),
+            button('Remove usage limits & resume',async()=>{await api('/api/workflows/'+id+'/limits',{confirmed:true,policy:'unlimited'});await api('/api/workflows/'+id+'/retry',{});loadedResults=false;await poll();},'primary'));
+        }
+        if(!active&&!['COMPLETED','CANCELLED','FAILED'].includes(w.status)&&!(w.status==='BUDGET_EXHAUSTED'&&w.budget_policy!=='unlimited'&&!arr(w.pending_actions).length))requests.append(el('p',{class:'hint'},'Inspect changes before continuing. Unknown effects are never retried automatically.'),button('Resume task',async()=>{try{await api('/api/workflows/'+id+'/retry',{});}catch(error){notice('Inspect the interrupted action before approving a retry.',true);}loadedResults=false;await poll();},'primary'),el('details',{},el('summary',{},'Permission details'),approvalForm(id,poll)));
       }
       if(!active&&!loadedResults){
         const comparison=await api('/api/tasks/'+id+'/results');if(!alive())return;loadedResults=true;

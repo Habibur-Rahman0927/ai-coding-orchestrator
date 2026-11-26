@@ -115,9 +115,13 @@ are not certified by the mocked and synthetic test evidence.
    you are ready. Check the excluded paths before indexing.
 4. Use **Ask** to send a read-only question in one action. Choose **Build** for
    implementation: **Review task → Approve & start**. Review the project, usage
-   reservation, exact test commands and file permissions in that single card.
+   settings, exact test commands and file permissions in that single card.
    One provider is enough; implementation and review use separate sessions.
-5. Inspect test/review evidence before treating a workflow as completed.
+5. Manage progress, results, pause/resume and cancellation in **Tasks**. Chat stays
+   focused on your conversation. New tasks have no cumulative workspace usage cap;
+   add one under **Optional usage limits** if wanted. Provider quotas, billing,
+   model context and execution safeguards still apply. Inspect test/review evidence
+   before treating a workflow as completed.
 
 In **Providers**:
 
