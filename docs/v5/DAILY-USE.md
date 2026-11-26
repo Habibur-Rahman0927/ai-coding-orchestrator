@@ -190,3 +190,24 @@ sub-agent spawning. Native provider capabilities and limits still apply.
 Team choices stay in the current tab; the accepted workflow records the exact
 providers and model overrides durably. Existing Ask model/effort preferences remain
 scoped to chat and are not silently reused as Build permissions or settings.
+
+## Compact Build confirmation
+
+Build shows the outcome, selected team and exact proposed checks in a compact
+confirmation card. Expected-outcome editing, command arguments and advanced
+workflow settings stay collapsed. Saved checks and allowances are reused as
+suggestions, never as permission to execute a new task.
+
+On first use, select a usage allowance: Small (1 total / 0.10 per call), Larger
+(3 total / 0.25 per call), or Custom. These are explicit local reservation values,
+not guaranteed provider billing caps. No preset is selected automatically.
+
+The workspace suggests npm test from package.json, cargo test from Cargo.toml
+(including backend/Cargo.toml), and go test ./... from go.mod. Discovery does not
+execute project code. Review the command and working directory before approval.
+If none is detected, choose a check preset or open Custom command. Build still
+requires actual tests and a separate review before reporting verified completion.
+
+For explanations or “what is done / what remains”, use Ask. The confirmation card's
+“Just ask · no file changes” retains the prompt and switches modes without sending
+it or granting execution permissions.

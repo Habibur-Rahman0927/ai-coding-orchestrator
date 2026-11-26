@@ -62,6 +62,15 @@ class EasyTasks(unittest.TestCase):
         self.assertNotIn(workflow, self.app.jobs)
         return self.app.engine.status(workflow)
 
+    def test_rust_checks_are_suggested_without_execution(self):
+        self.file('backend/Cargo.toml', '[package]\nname="sample"\nversion="0.1.0"\n')
+        data=dict(self.data);data.pop('commands')
+        proposal=self.app.tasks.preview(data)
+        self.assertEqual(proposal['commands'][0]['argv'],['cargo','test'])
+        self.assertEqual(proposal['commands'][0]['cwd'],'backend')
+        self.assertEqual(self.registry.calls,[])
+        self.assertEqual(self.app.engine.list(),[])
+
     def test_custom_team_models_reach_separate_role_sessions(self):
         for reviewer in ('codex', 'minimax'):
             with self.subTest(reviewer=reviewer):

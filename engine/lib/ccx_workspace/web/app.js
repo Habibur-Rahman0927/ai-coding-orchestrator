@@ -520,7 +520,7 @@ async function chat(){
   if(!selectedChat)transcript.append(el('div',{class:'chat-welcome'},el('h2',{},'Let’s work on your project'),el('p',{},'Ask a question, explore your code, or describe a change.')));
   main.append(transcript,responseStatus);
   const messageField=field('Your task','content',{multiline:true,required:true,value:draft.content,placeholder:'Explain this project, fix a bug, or describe what you want to build.'});
-  const modeField=field('Action','action',{options:[{value:'ask',label:'Ask · read-only'},{value:'build',label:'Build · implement, test and review'}],value:draft.mode});
+  const modeField=field('Action','action',{options:[{value:'ask',label:'Ask · no changes'},{value:'build',label:'Build · make changes'}],value:draft.mode});
   draft.teams=draft.teams||{};
   const team=draft.teams[agent]||(draft.teams[agent]={mode:'auto',partner:agent,executor_model:'',reviewer_model:'',planning:false});
   const teamMode=field('Team mode','team-mode',{options:[{value:'auto',label:'Auto · selected agent + separate review'},{value:'custom',label:'Custom team'}],value:team.mode});
@@ -537,7 +537,7 @@ async function chat(){
   const teamSummary=el('summary',{'aria-label':'Build team'},'Auto team');
   const teamSettings=el('details',{class:'chat-settings build-team'},teamSummary,teamMode,customTeam,planning,el('p',{class:'hint'},'After approval, the engine runs the selected team within task and usage limits. Subtasks run sequentially; this does not enable native CLI sub-agents.'));
   const teamDescription=()=>team.mode==='auto'?agent+' → '+agent+' review':agent+(team.executor_model?' / '+team.executor_model:'')+' → '+team.partner+(team.reviewer_model?' / '+team.reviewer_model:'');
-  function updateTeam(){teamSummary.textContent=(team.mode==='auto'?'Auto team · ':'Team · ')+teamDescription();customTeam.hidden=team.mode!=='custom';}
+  function updateTeam(){teamSummary.textContent=team.mode==='auto'?'Auto team · '+agent:'Team · '+teamDescription();teamSummary.title=teamDescription();customTeam.hidden=team.mode!=='custom';}
   teamMode.querySelector('select').addEventListener('change',event=>{team.mode=event.target.value;updateTeam();});
   reviewer.querySelector('select').addEventListener('change',event=>{team.partner=event.target.value;team.reviewer_model='';reviewModel.querySelector('input').value='';updateTeam();loadReviewModels();});
   implementModel.querySelector('input').addEventListener('input',event=>{team.executor_model=event.target.value.trim();updateTeam();});
@@ -640,13 +640,43 @@ function renderTaskApproval(container,initial,input,current){
     max_cost:Number(total.querySelector('input').value),max_call_cost:Number(perCall.querySelector('input').value),
     max_tokens:Number(advanced.querySelector('[name=max_tokens]').value),partner:advanced.querySelector('[name=partner]').value,model_overrides:Object.fromEntries(Object.entries(input.model_overrides||{}).filter(([role])=>role!=='reviewer'||advanced.querySelector('[name=partner]').value===(input.partner||input.provider))),planning:advanced.querySelector('[name=planning]').value==='yes',
     commands:Array.from(commandRows.children).filter(row=>row.querySelector('[name=executable]').value.trim()).map(row=>({name:row.querySelector('[name=name]').value,argv:[row.querySelector('[name=executable]').value.trim(),...row.querySelector('[name=arguments]').value.split('\n').filter(Boolean)],cwd:row.querySelector('[name=cwd]').value,timeout:Number(row.querySelector('[name=timeout]').value)}))});
-  function show(){summary.replaceChildren(el('p',{},'Project: '+proposal.project_path),el('p',{},proposal.review),el('p',{class:'hint'},'Models: '+(Object.entries(proposal.workflow.model_overrides||{}).map(([role,model])=>role+' = '+model).join(' · ')||'Provider defaults')),el('p',{class:'hint'},proposal.notice),el('details',{},el('summary',{},'Exact access and commands'),pre(proposal.approvals)));error.textContent=proposal.blockers.join(' ');start.disabled=Boolean(proposal.blockers.length);}
+  function show(){
+    const models=Object.entries(proposal.workflow.model_overrides||{}).map(([role,model])=>role+' = '+model).join(' · ');
+    summary.replaceChildren(el('p',{class:'build-objective'},proposal.workflow.objective),
+      el('p',{},input.provider+' implements → '+proposal.workflow.providers.reviewer+' reviews'),
+      el('p',{class:'hint'},proposal.review),...(models?[el('p',{class:'hint'},'Models: '+models)]:[]),
+      el('div',{class:'build-checks'},el('strong',{},'Checks'),...proposal.commands.map(command=>el('p',{},el('code',{},command.argv.map(arg=>JSON.stringify(arg)).join(' ')),el('span',{class:'hint'},' · folder: '+command.cwd))),!proposal.commands.length?el('p',{},'No test command found. Add one below to verify code changes.'):null),
+      el('p',{class:'hint'},'Approving lets this team share project context, change files and run these checks using your provider allowance.'),
+      el('details',{},el('summary',{},'Exact access and commands'),pre(proposal.approvals)));
+    error.textContent=proposal.blockers.join(' ');start.disabled=Boolean(proposal.blockers.length);
+  }
   function schedule(){
     clearTimeout(timer);const revision=++version;proposal=null;start.disabled=true;error.textContent='Updating task preview…';
     timer=setTimeout(async()=>{try{const value=await api('/api/tasks/preview',read());if(!current()||!container.isConnected||revision!==version)return;proposal=value;key=submissionKey();show();}catch(err){if(current()&&revision===version){error.textContent=err.message;start.disabled=true;}}},250);
   }
-  card.append(summary,criteria,panel('Tests to run',el('p',{class:'hint'},'Approve the exact executable and arguments. Suggested project scripts are untrusted until you review them.'),commandRows,button('Add test command',()=>{addCommand();schedule();},'quiet')),
-    el('div',{class:'form-row'},total,perCall),el('p',{class:'hint'},'Zero blocks live work. These reservations control the local engine; native CLI subscription usage and billing cannot be capped here. Preferences are remembered, permissions are not.'),advanced,error,start);
+  const savedAllowance=initial.workflow.budgets.max_cost>0&&initial.max_call_cost>0&&initial.max_call_cost<=initial.workflow.budgets.max_cost;
+  const allowance=field('Usage allowance','usage-preset',{options:[{value:'',label:'Choose once for this project…'},...(savedAllowance?[{value:'saved',label:'Use previous allowance ('+initial.workflow.budgets.max_cost+' total / '+initial.max_call_cost+' per call)'}]:[]),{value:'small',label:'Small task · 1 total / 0.10 per call'},{value:'standard',label:'Larger task · 3 total / 0.25 per call'},{value:'custom',label:'Custom allowance…'}],value:savedAllowance?'saved':''});
+  const customAllowance=el('div',{class:'form-row',hidden:true},total,perCall);
+  allowance.querySelector('select').addEventListener('change',event=>{
+    const choice=event.target.value;customAllowance.hidden=choice!=='custom';
+    const values=choice==='small'?[1,.1]:choice==='standard'?[3,.25]:choice==='saved'?[initial.workflow.budgets.max_cost,initial.max_call_cost]:choice===''?[0,0]:null;
+    if(values){total.querySelector('input').value=values[0];perCall.querySelector('input').value=values[1];}
+  });
+  const manualChecks=el('details',{},el('summary',{},'Manual command editor'));
+  const tests=el('details',{open:!initial.commands.length},el('summary',{},'Change test commands'),el('p',{class:'hint'},'Use an actual executable, such as cargo or npm. Describe your goal in the message, not here. Suggestions are not run until approval.'),commandRows,button('Add test command',()=>{addCommand();schedule();},'quiet'));
+  const checkChoice=field('Test command','check-choice',{options:[{value:'',label:'Choose a check…'},...(initial.commands.length?[{value:'detected',label:'Use project checks shown above'}]:[]),{value:'cargo',label:'Rust · cargo test'},{value:'npm',label:'Node · npm test'},{value:'go',label:'Go · go test ./...'},{value:'custom',label:'Custom command…'}],value:initial.commands.length?'detected':''});
+  checkChoice.querySelector('select').addEventListener('change',event=>{
+    const choice=event.target.value;manualChecks.open=choice==='custom';
+    if(choice==='custom')return;
+    const commands=choice==='detected'?initial.commands:choice?[{name:'tests',argv:choice==='cargo'?['cargo','test']:choice==='npm'?['npm','test']:['go','test','./...'],cwd:'.',timeout:120}]:[];
+    commandRows.replaceChildren();commands.forEach(addCommand);
+    if(!commands.length)addCommand();
+  });
+  manualChecks.append(...Array.from(tests.children).slice(1));tests.append(checkChoice,manualChecks);
+  card.classList.add('simple-build-card');
+  card.append(summary,allowance,customAllowance,el('p',{class:'hint'},'Local usage reservations, not a guaranteed bill cap. Values are remembered; each task still needs approval.'),
+    tests,el('details',{},el('summary',{},'Edit expected outcome'),criteria),advanced,error,
+    el('div',{class:'actions'},start,button('Just ask · no file changes',()=>{taskDraft(input.project_id).mode='ask';return renderPage();},'quiet')));
   card.addEventListener('input',schedule);card.addEventListener('change',event=>{if(event.target.tagName==='SELECT')schedule();});
   container.replaceChildren(card);show();
 }

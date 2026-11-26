@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from .experience import propose, preferences
 from .settings import setting, provider_config
-from .store import read_source, safe_text, allowed
+from .store import read_source, safe_text, allowed, git_ignored
 from .security import sensitive_content
 from .workflows import snapshot, _hash
 
@@ -59,12 +59,22 @@ class Tasks:
         root, exclusions = project['path'], json.loads(project['exclusions'])
         try:
             from .store import allowed
-            if allowed('package.json', exclusions):
+            if allowed('package.json', exclusions) and not git_ignored(Path(root), 'package.json'):
                 package = json.loads(read_source(Path(root), 'package.json', limit=65536))
                 if isinstance(package.get('scripts', {}).get('test'), str):
                     return [{'name': 'tests', 'argv': ['npm', 'test'], 'cwd': '.', 'timeout': 120}]
         except (OSError, ValueError, PermissionError):
             pass
+        # Suggest exact commands from recognizable manifests, without executing them.
+        for manifest, argv, cwd in [('Cargo.toml', ['cargo', 'test'], '.'),
+                                    ('backend/Cargo.toml', ['cargo', 'test'], 'backend'),
+                                    ('go.mod', ['go', 'test', './...'], '.')]:
+            try:
+                if allowed(manifest, exclusions) and not git_ignored(Path(root), manifest):
+                    safe_text(read_source(Path(root), manifest, limit=65536).decode('utf-8'))
+                    return [{'name': 'tests', 'argv': argv, 'cwd': cwd, 'timeout': 120}]
+            except (OSError, ValueError, PermissionError, UnicodeError):
+                continue
         return []
 
     def preview(self, body):
