@@ -37,6 +37,7 @@ class BrowserRegistry:
     def __init__(self):
         self.config = {}
         self.calls = []
+        self.requests = []
         self.delay = 0.3
         self.executions = 0
     def status(self):
@@ -52,6 +53,7 @@ class BrowserRegistry:
                 return next(p for p in registry.status() if p['id'] == name)
             def execute(self, request):
                 registry.calls.append((name, request.role))
+                registry.requests.append(request)
                 session=request.session_id or str(uuid.uuid4())
                 yield {'type':'session','session_id':session}
                 for index,chunk in enumerate(('A deterministic ', 'standalone reply.')):

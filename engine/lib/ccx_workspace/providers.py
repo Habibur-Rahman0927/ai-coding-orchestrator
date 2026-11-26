@@ -23,6 +23,17 @@ from .tools import supervised_command, tool_definitions
 from .security import sensitive_content
 
 MAX_RESPONSE = 4 * 1024 * 1024
+EFFORTS = ('low', 'medium', 'high', 'xhigh', 'max', 'ultra')
+
+def validate_chat_options(provider, model=None, effort=None):
+    if model is not None:
+        validate_model(model)
+    supported = EFFORTS if provider == 'codex' else EFFORTS[:-1] if provider == 'claude' else ()
+    if effort is not None and effort not in supported:
+        raise ValueError('Reasoning effort is not supported by this provider')
+    return {'model': model, 'effort': effort}
+
+
 MINIMAX_ENDPOINT = 'https://api.minimax.io/v1/chat/completions'
 
 
@@ -39,6 +50,7 @@ class ProviderRequest:
     cancel_event: object = None
     max_output_tokens: int = 4096
     event_callback: object = None
+    effort: str = None
 
     def validate(self):
         self.project = Path(self.project).resolve(strict=True)
@@ -62,6 +74,8 @@ class ProviderRequest:
             raise ValueError('Event callback must be callable')
         if self.model is not None:
             validate_model(self.model)
+        if self.effort is not None and self.effort not in EFFORTS:
+            raise ValueError('Unsupported reasoning effort')
         return self
 
     def cancelled(self):
@@ -157,6 +171,7 @@ class CLIProvider:
                 'limitation': 'Native CLI settings/authentication are upstream controlled; scoped-tool policy does not sandbox the CLI.'}
 
     def command(self, request):
+        validate_chat_options(self.id, request.model, request.effort)
         if 'native_agent_access' not in request.allowed_operations:
             raise PermissionError('Native CLI access requires explicit native_agent_access approval')
         if self.id == 'codex':
@@ -168,6 +183,8 @@ class CLIProvider:
             model = request.model or self.config.get('model')
             if model:
                 argv += ['--model', model]
+            if request.effort:
+                argv += ['-c', 'model_reasoning_effort=' + json.dumps(request.effort)]
             if request.session_id:
                 argv += [request.session_id]
             argv += ['--', request.prompt]
@@ -179,6 +196,8 @@ class CLIProvider:
         model = request.model or self.config.get('model')
         if model:
             argv += ['--model', model]
+        if request.effort:
+            argv += ['--effort', request.effort]
         if request.session_id:
             argv += ['--resume', request.session_id]
         argv += ['--', request.prompt]
@@ -296,6 +315,7 @@ class MiniMaxProvider:
 
     def execute(self, request):
         request.validate()
+        validate_chat_options('minimax', request.model, request.effort)
         model = validate_model(request.model or self.config.get('model'))
         key_name = self.config.get('api_key_env')
         if self.config.get('credential_mode', 'environment') == 'environment' and (not isinstance(key_name, str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,127}', key_name)):

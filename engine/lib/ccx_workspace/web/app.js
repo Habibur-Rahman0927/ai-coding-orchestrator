@@ -408,6 +408,49 @@ function connectAgent(container,agent){
   const detail=el('details',{open:agent==='minimax'},el('summary',{},'Connection settings'));
   renderProviderCards(detail,agent);card.append(detail);container.append(card);
 }
+// Render a deliberately small Markdown subset with DOM nodes, never HTML injection.
+function chatMarkdown(value){
+  const root=el('div',{class:'chat-markdown'});
+  function inline(parent,text){
+    const pattern=/(`[^`\n]+`|\*\*[^*\n]+\*\*|\[[^\]\n]+\]\([^\s)]+\))/g;let offset=0;
+    for(const match of text.matchAll(pattern)){
+      parent.append(document.createTextNode(text.slice(offset,match.index)));
+      const token=match[0];
+      if(token.startsWith('`'))parent.append(el('code',{},token.slice(1,-1)));
+      else if(token.startsWith('**'))parent.append(el('strong',{},token.slice(2,-2)));
+      else{const link=token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);let url;
+        try{url=new URL(link[2]);}catch{}
+        if(url&&['https:','http:'].includes(url.protocol))parent.append(el('a',{href:url.href,target:'_blank',rel:'noopener noreferrer'},link[1]));
+        else parent.append(document.createTextNode(token));}
+      offset=match.index+token.length;
+    }
+    parent.append(document.createTextNode(text.slice(offset)));
+  }
+  let paragraph=[],list=null,code=null;
+  const flush=()=>{if(paragraph.length){const p=el('p',{});inline(p,paragraph.join('\n'));root.append(p);paragraph=[];}list=null;};
+  for(const line of String(value||'').split('\n')){
+    if(/^\s*```/.test(line)){
+      flush();if(code!==null){root.append(el('pre',{},el('code',{},code.join('\n'))));code=null;}else code=[];continue;
+    }
+    if(code!==null){code.push(line);continue;}
+    if(!line.trim()){flush();continue;}
+    const heading=line.match(/^#{1,6}\s+(.+)$/),item=line.match(/^\s*(?:([-*+])|\d+\.)\s+(.+)$/);
+    if(heading){flush();const h=el('h3',{});inline(h,heading[1]);root.append(h);}
+    else if(item){if(paragraph.length)flush();const tag=item[1]?'ul':'ol';if(!list||list.tagName.toLowerCase()!==tag){list=el(tag,{});root.append(list);}const li=el('li',{});inline(li,item[2]);list.append(li);}
+    else{list=null;paragraph.push(line);}
+  }
+  flush();if(code!==null)root.append(el('pre',{},el('code',{},code.join('\n'))));return root;
+}
+function chatMessage(message,agent){
+  const node=el('article',{class:'chat-message '+message.role},el('h3',{},message.role==='user'?'You':agent),message.role==='user'?el('p',{},message.content||''):chatMarkdown(message.content));
+  const metadata=message.metadata||{};
+  if(message.role==='assistant'&&metadata.sources){
+    node.append(el('p',{class:'hint'},'Requested: '+(metadata.requested_model||'provider default')+' · effort '+(metadata.requested_effort||'default')));
+    const sources=Array.from(new Set(arr(metadata.sources).map(r=>r.source+':'+r.line)));
+    node.append(el('details',{},el('summary',{},'Context supplied · '+sources.length+' source excerpts'),el('p',{class:'hint'},'These sources were supplied to the model; they do not verify its answer. '+metadata.indexed_text_files+' text files indexed.'),el('ul',{},...sources.map(source=>el('li',{},el('code',{},source))))));
+  }
+  return node;
+}
 async function chat(){
   const version=workflowViewVersion;
   main.append(heading('What would you like to work on?','Ask a question or build something in your project.'));
@@ -455,16 +498,30 @@ async function chat(){
       try{selectedChat=event.target.value;draft.newConversation=!selectedChat;if(selectedChat)experience=await api('/api/experience',{project,agent,conversation:selectedChat});await renderPage();}catch(error){notice(error.message,true);}
     });main.append(selector);
   }
+  const available=await api('/api/chat/options/'+agent);if(!current())return;
+  const savedChoice=choices.find(c=>c.id===selectedChat)||{};
+  draft.chatOptions=draft.chatOptions||{};
+  const optionKey=agent+':'+(selectedChat||'new');
+  const options=draft.chatOptions[optionKey]||(draft.chatOptions[optionKey]={model:savedChoice.model||'',effort:savedChoice.effort||''});
+  const modelNames=Array.from(new Set([...arr(available.models),...(options.model?[options.model]:[])]));
+  const modelField=field('Model','chat-model',{options:[{value:'',label:'Provider default'},...modelNames,{value:'custom',label:'Custom model…'}],value:options.model});
+  const customModel=field('Model ID','chat-model-id',{placeholder:'Exact model ID from your provider',value:options.model});customModel.hidden=true;
+  const effortField=field('Reasoning effort','chat-effort',{options:[{value:'',label:'Provider default'},...arr(available.efforts)],value:options.effort});
+  effortField.querySelector('select').disabled=!arr(available.efforts).length;
+  const chatSettings=el('div',{'data-chat-settings':''},el('div',{class:'form-row'},modelField,effortField),customModel,el('p',{class:'hint'},arr(available.efforts).length?'Optional: default follows your provider settings. Higher effort may take longer and use more allowance. Model and effort availability depend on your account and CLI.':'This provider does not expose reasoning effort here. Choose a model or keep its configured default.'));
+  modelField.querySelector('select').addEventListener('change',event=>{customModel.hidden=event.target.value!=='custom';customModel.querySelector('input').required=!customModel.hidden;options.model=customModel.hidden?event.target.value:customModel.querySelector('input').value;});
+  customModel.querySelector('input').addEventListener('input',event=>{options.model=event.target.value.trim();});
+  effortField.querySelector('select').addEventListener('change',event=>{options.effort=event.target.value;});
   const transcript=el('div',{class:'chat-messages','aria-live':'polite'}),responseStatus=el('p',{class:'hint',role:'status'});
   main.append(transcript,responseStatus);
   const messageField=field('Your task','content',{multiline:true,required:true,value:draft.content,placeholder:'Explain this project, fix a bug, or describe what you want to build.'});
   const modeField=field('Action','action',{options:[{value:'ask',label:'Ask · read-only'},{value:'build',label:'Build · implement, test and review'}],value:draft.mode});
   const consent=el('p',{class:'hint'}),reviewArea=el('div',{'data-task-review':''});
   let responseRunning=false;
-  const composer=form([modeField,messageField,consent],draft.mode==='ask'?'Send':'Review task',async data=>{
+  const composer=form([modeField,chatSettings,messageField,consent],draft.mode==='ask'?'Send':'Review task',async data=>{
     draft.content=data.content;draft.mode=data.action;
     if(data.action==='ask'){
-      const requested={project_id:project,provider:agent,content:data.content,chat_id:selectedChat||null,confirmed:true};
+      const requested={project_id:project,provider:agent,content:data.content,chat_id:selectedChat||null,confirmed:true,model:options.model||null,effort:options.effort||null};
       // Preserve the exact identity across an ambiguous response. Do not turn retry into a second call.
       if(!draft.messageRequest||JSON.stringify(draft.messageRequest.input)!==JSON.stringify(requested))draft.messageRequest={input:requested,key:submissionKey()};
       pendingSubmission(project,{key:draft.messageRequest.key});
@@ -480,6 +537,7 @@ async function chat(){
   const submit=composer.querySelector('[type=submit]');submit.disabled=unresolvedSubmission;
   function updateMode(){
     draft.mode=modeField.querySelector('select').value;
+    chatSettings.hidden=draft.mode!=='ask';customModel.querySelector('input').required=draft.mode==='ask'&&!customModel.hidden;
     submit.textContent=draft.mode==='ask'?'Send':'Review task';
     consent.textContent=draft.mode==='ask'?'Send authorizes this message and relevant project context to '+agent+', using your subscription allowance or API credits. This is a read-only conversation; native CLI access can be broader than filtered context.':'Review task prepares a local approval card. No agent runs until you approve it. Tests and a separate review session are included.';
     reviewArea.replaceChildren();
@@ -492,7 +550,7 @@ async function chat(){
     if(!current()||!selectedChat)return;
     try{
       const value=await api('/api/chats/'+selectedChat);if(!current())return;
-      transcript.replaceChildren(...arr(value.messages).map(m=>el('article',{class:'chat-message '+m.role},el('h3',{},m.role==='user'?'You':agent),el('p',{},m.content||''))));
+      transcript.replaceChildren(...arr(value.messages).map(m=>chatMessage(m,agent)));
       responseRunning=value.running;submit.disabled=responseRunning||unresolvedSubmission;cancel.hidden=!responseRunning;
       responseStatus.textContent=responseRunning?'Responding…':(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Your conversation is saved. Inspect it before sending again.':'Conversation saved.');
       if(responseRunning)workflowPollTimer=setTimeout(pollConversation,1200);

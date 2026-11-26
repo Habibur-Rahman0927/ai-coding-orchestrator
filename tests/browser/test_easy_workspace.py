@@ -20,6 +20,40 @@ class EasyWorkspace(unittest.TestCase):
     login = browser_tests.WorkspaceBrowser.login
     ready = browser_tests.WorkspaceBrowser.ready
 
+    def test_chat_model_effort_persist_and_reach_provider(self):
+        self.ready()
+        self.page.get_by_label('Model',exact=True).select_option('custom')
+        self.page.get_by_label('Model ID',exact=True).fill('fixture-model')
+        self.page.get_by_label('Reasoning effort',exact=True).select_option('high')
+        self.page.get_by_label('Your task',exact=True).fill('Explain this project')
+        self.page.get_by_role('button',name='Send',exact=True).click()
+        expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply',timeout=15000)
+        request=self.registry.requests[-1]
+        self.assertEqual((request.model,request.effort),('fixture-model','high'))
+        expect(self.page.locator('.chat-message.assistant')).to_contain_text('Requested: fixture-model')
+        self.page.reload()
+        expect(self.page.get_by_label('Model',exact=True)).to_have_value('fixture-model')
+        expect(self.page.get_by_label('Reasoning effort',exact=True)).to_have_value('high')
+        self.page.get_by_label('Agent',exact=True).select_option('minimax')
+        expect(self.page.get_by_label('Reasoning effort',exact=True)).to_be_disabled()
+        expect(self.page.get_by_label('Model',exact=True)).to_have_value('')
+        self.page.get_by_label('Action',exact=True).select_option('build')
+        expect(self.page.locator('[data-chat-settings]')).to_be_hidden()
+
+    def test_markdown_renders_without_executing_html_or_unsafe_links(self):
+        self.ready()
+        self.page.evaluate(r"""() => {
+          const node=chatMarkdown('## Answer\n**Python** and `SQLite`\n- One\n- Two\n```python\nprint("hello")\n```\n<img src=x onerror="window.chatXss=true">\n[bad](javascript:alert(1))\n[docs](https://example.com/docs)');
+          node.id='markdown-check';document.querySelector('main').append(node);
+        }""")
+        rendered=self.page.locator('#markdown-check')
+        expect(rendered.locator('strong')).to_have_text('Python')
+        expect(rendered.locator('li')).to_have_count(2)
+        expect(rendered.locator('pre code')).to_contain_text('print("hello")')
+        expect(rendered.locator('img, script')).to_have_count(0)
+        expect(rendered.locator('a')).to_have_count(1)
+        self.assertFalse(self.page.evaluate('Boolean(window.chatXss)'))
+
     def test_one_click_question_and_two_click_build(self):
         self.pid = self.store.register(self.project)['id']
         save_setting(self.store, 'task_preferences', {self.pid: {'max_cost':1,'max_call_cost':.1,

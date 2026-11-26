@@ -232,7 +232,7 @@ class Tasks:
         return result
 
     def message(self, body):
-        allowed = {'project_id', 'provider', 'content', 'chat_id', 'confirmed', 'idempotency_key', 'max_output_tokens'}
+        allowed = {'project_id', 'provider', 'content', 'chat_id', 'confirmed', 'idempotency_key', 'max_output_tokens', 'model', 'effort'}
         if set(body) - allowed or body.get('confirmed') is not True:
             raise TaskPermissionError('Send explicitly authorizes this message and provider usage')
         key = identifier(body.get('idempotency_key'))
@@ -246,6 +246,11 @@ class Tasks:
         maximum = body.get('max_output_tokens', 1024)
         if type(maximum) != int or not 16 <= maximum <= 2048:
             raise TaskError('Invalid response limit')
+        from .providers import validate_chat_options
+        try:
+            options = validate_chat_options(provider, body.get('model'), body.get('effort'))
+        except ValueError as error:
+            raise TaskError(str(error))
         digest = _hash(body)
         with self.store.connect() as db:
             db.execute('BEGIN IMMEDIATE')
@@ -267,7 +272,7 @@ class Tasks:
                                (chat_id, project, provider, content.strip()[:80], 'IDLE', time.time()))
                 db.execute('INSERT INTO task_conversations VALUES(?,?,?)', (key, digest, chat_id))
         result = self.app.chat.send(chat_id, {'content': content, 'confirmed': True,
-                                            'max_output_tokens': maximum, 'timeout': 60}, submission_key=key)
+                                            'max_output_tokens': maximum, 'timeout': 120, **options}, submission_key=key)
         preferences(self.store, {'project': project, 'agent': provider, 'conversation': chat_id})
         return dict(result, chat_id=chat_id)
 

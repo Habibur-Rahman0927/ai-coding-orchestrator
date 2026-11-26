@@ -109,6 +109,8 @@ class Dashboard:
             return self.tasks.submission(parts[3])
         if method == 'GET' and len(parts) == 4 and parts[:2] == ['api', 'tasks'] and parts[3] == 'results':
             return self.tasks.results(parts[2])
+        if method == 'GET' and len(parts) == 4 and parts[:3] == ['api', 'chat', 'options']:
+            return self.chat.options(parts[3])
         if path == '/api/experience' and method in ('GET', 'POST'):
             from .experience import preferences
             return preferences(self.store, body if method == 'POST' else None)

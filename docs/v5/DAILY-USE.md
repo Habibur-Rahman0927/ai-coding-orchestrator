@@ -117,6 +117,31 @@ and run). Counts exclude typing, choosing Ask/Build, initial provider setup, and
 first-time test/usage configuration. This is interaction evidence, not measured
 real-world productivity or token savings. Live provider acceptance remains separate.
 
+## Chat answers, models and effort
+
+Ask renders headings, bold text, lists, inline code, code blocks and HTTP(S) links.
+Raw HTML and executable links stay inert text. The prompt includes a bounded
+inventory of indexed text files, manifest/README excerpts and retrieved context.
+It asks for answers in the user's language with file references, and for explicit
+uncertainty when evidence is incomplete. This improves grounding; it does not
+verify model claims. “Context supplied” shows excerpts sent, not proof of citation
+accuracy. Excluded, sensitive, binary and oversized files are not part of this index.
+
+Use **Model** and **Reasoning effort** beside the Ask composer. Provider default
+keeps the provider's configuration. Model choices include the configured model,
+local Codex model-cache names when available, and Claude aliases. **Custom model**
+accepts an exact model ID. The list does not guarantee account access. Effort
+support depends on the model and installed CLI; higher effort may take longer
+and consume more allowance. MiniMax effort is disabled because this adapter does
+not expose an equivalent setting. No model discovery request is sent to providers.
+
+Selections are saved when sending and restored with the conversation. Each answer
+records its requested settings; these are not a claim about the actual model
+returned upstream. Changing options keeps the exact conversation session and does
+not silently create a new one. These controls apply to **Ask**; Build continues to
+use its separately reviewed workflow configuration. Unsaved selections stay in the
+tab. Account authentication and provider defaults are not modified.
+
 ## Small team evaluation
 
 Each developer uses their own local installation, accounts, projects and private
