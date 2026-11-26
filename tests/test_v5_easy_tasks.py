@@ -256,9 +256,27 @@ class EasyTasks(unittest.TestCase):
 
     def test_unconfirmed_message_or_cross_project_chat_rejected(self):
         with self.assertRaises(PermissionError):self.app.tasks.message(self.message(confirmed=False))
-        chat=self.app.chat.create(self.pid,'claude','Different agent')
+        chat=self.app.chat.create(self.pid,'claude','Different project')
+        with self.store.connect() as db:db.execute('UPDATE chats SET project_id=? WHERE id=?',('different-project',chat['id']))
         with self.assertRaises(ValueError):self.app.tasks.message(self.message(chat_id=chat['id']))
         self.assertEqual(self.registry.calls,[])
+
+    def test_agent_switch_keeps_conversation_and_separate_native_sessions(self):
+        first=self.app.tasks.message(self.message())
+        deadline=time.time()+3
+        while self.app.chat.active and time.time()<deadline:time.sleep(.02)
+        original=self.app.chat.status(first['chat_id'])['session_id']
+        second=self.app.tasks.message(self.message(chat_id=first['chat_id'],provider='claude'))
+        deadline=time.time()+3
+        while self.app.chat.active and time.time()<deadline:time.sleep(.02)
+        alternate=self.app.chat.status(first['chat_id'])['session_id']
+        self.assertNotEqual(original,alternate)
+        third=self.app.tasks.message(self.message(chat_id=first['chat_id'],provider='codex'))
+        deadline=time.time()+3
+        while self.app.chat.active and time.time()<deadline:time.sleep(.02)
+        self.assertEqual(first['chat_id'],second['chat_id'])
+        self.assertEqual(first['chat_id'],third['chat_id'])
+        self.assertEqual(self.app.chat.status(first['chat_id'])['session_id'],original)
 
     def test_restart_duplicate_message_not_resent(self):
         body=self.message();first=self.app.tasks.message(body)

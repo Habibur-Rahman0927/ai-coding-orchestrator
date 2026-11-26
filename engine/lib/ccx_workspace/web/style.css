@@ -81,3 +81,16 @@ footer{padding:1rem}
   .section-head{gap:.5rem}
   .data-list{grid-template-columns:minmax(80px,.4fr) minmax(0,1fr)}
 }
+
+/* Conversation is the primary work surface; the same task renderer fits inline. */
+.conversation-task-shell{display:block;overflow:visible;min-width:0}
+.conversation-task-detail{min-width:0}
+.conversation-task-shell .task-run-controls{position:sticky;top:0;z-index:3;background:var(--panel);padding:.5rem;border:1px solid var(--line);display:flex;flex-wrap:wrap;gap:.5rem}
+.conversation-task-shell .task-run-controls .task-status{flex:1}
+.conversation-task-shell .task-live-output{border:0;padding:0}
+.conversation-task-shell .task-live-output article{padding:.8rem 0;border-bottom:1px solid var(--line)}
+.conversation-task-shell .task-live-output pre{max-height:none;white-space:pre-wrap;overflow-wrap:anywhere}
+.conversation-tasks{display:flex;flex-direction:column;align-items:flex-start;gap:.4rem}
+.task-event-output>summary{font-size:.85rem}
+.conversation-task-detail>.panel{border:0;background:transparent;padding:.5rem 0;margin:0}
+.conversation-task-detail>.panel>h2{display:none}

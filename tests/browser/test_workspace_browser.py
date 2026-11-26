@@ -172,9 +172,12 @@ class WorkspaceBrowser(unittest.TestCase):
         save_setting(self.store, 'setup', {'completed': True, 'step': 6, 'defaults': dict(DEFAULTS)})
         self.login()
     def nav(self, name):
-        if name not in ('Chat','Projects','Settings') and not self.page.get_by_role('navigation').get_by_role('link',name=name,exact=True).is_visible():
-            self.page.get_by_text('Advanced tools',exact=True).click()
-        self.page.get_by_role('navigation').get_by_role('link', name=name, exact=True).click()
+        if name not in ('Chat','Projects','Settings'):
+            self.page.get_by_role('navigation').get_by_role('link',name='Settings',exact=True).click()
+            self.page.get_by_text('Developer tools',exact=True).first.click()
+            self.page.get_by_role('navigation',name='Developer tools',exact=True).get_by_role('link',name=name,exact=True).click()
+        else:
+            self.page.get_by_role('navigation').get_by_role('link',name='Workspace' if name=='Chat' else name,exact=True).click()
     def approve(self, permission, values=None):
         form = self.page.locator('#workflow-detail form').filter(has=self.page.get_by_role('button', name='Approve this permission'))
         form.get_by_label('Permission', exact=True).select_option(permission)
@@ -303,6 +306,7 @@ class WorkspaceBrowser(unittest.TestCase):
         self.ready()
         self.nav('Chat')
         self.page.get_by_label('Agent',exact=True).select_option('minimax')
+        self.page.get_by_label('Action',exact=True).select_option('ask')
         self.page.get_by_label('Your task',exact=True).fill('Explain app.txt')
         self.page.get_by_role('button',name='Send',exact=True).click()
         expect(self.page.locator('.chat-message.assistant')).to_have_count(1)

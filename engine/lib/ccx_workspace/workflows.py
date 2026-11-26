@@ -164,9 +164,25 @@ class WorkflowEngine:
                 db.execute('ALTER TABLE w5_actions ADD COLUMN consumed INTEGER NOT NULL DEFAULT 0')
             if 'context_mode' not in {r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}:
                 db.execute("ALTER TABLE w5_workflows ADD COLUMN context_mode TEXT NOT NULL DEFAULT 'retrieved'")
-            for column,default in (('model_overrides','{}'),('execution_policy','standard'),('budget_policy','limited')):
+            for column,default in (('effort_overrides','{}'),('continuation_context',''),('model_overrides','{}'),('execution_policy','standard'),('budget_policy','limited')):
                 if column not in {r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}:
                     db.execute("ALTER TABLE w5_workflows ADD COLUMN "+column+" TEXT NOT NULL DEFAULT '"+default+"'")
+            if 'revision' not in {r['name'] for r in db.execute('PRAGMA table_info(w5_checkpoints)')}:
+                db.execute('ALTER TABLE w5_checkpoints ADD COLUMN revision INTEGER NOT NULL DEFAULT 0')
+                db.execute('UPDATE w5_checkpoints SET revision=id')
+            db.executescript('''
+                CREATE TABLE IF NOT EXISTS w5_event_clock(id INTEGER PRIMARY KEY CHECK(id=1), value INTEGER NOT NULL);
+                INSERT OR IGNORE INTO w5_event_clock SELECT 1, COALESCE(MAX(revision),0) FROM w5_checkpoints;
+                CREATE INDEX IF NOT EXISTS w5_checkpoint_revision ON w5_checkpoints(workflow_id,revision);
+                CREATE TRIGGER IF NOT EXISTS w5_checkpoint_insert AFTER INSERT ON w5_checkpoints BEGIN
+                    UPDATE w5_event_clock SET value=value+1 WHERE id=1;
+                    UPDATE w5_checkpoints SET revision=(SELECT value FROM w5_event_clock WHERE id=1) WHERE id=NEW.id;
+                END;
+                CREATE TRIGGER IF NOT EXISTS w5_checkpoint_update AFTER UPDATE OF data ON w5_checkpoints BEGIN
+                    UPDATE w5_event_clock SET value=value+1 WHERE id=1;
+                    UPDATE w5_checkpoints SET revision=(SELECT value FROM w5_event_clock WHERE id=1) WHERE id=NEW.id;
+                END;
+            ''')
             columns={r['name'] for r in db.execute('PRAGMA table_info(w5_workflows)')}
             for column in ('lease_pid','lease_start_ticks'):
                 if column not in columns:
@@ -226,7 +242,7 @@ class WorkflowEngine:
         db.execute('INSERT INTO w5_checkpoints(workflow_id,task_id,action_id,event,data,created_at) VALUES(?,?,?,?,?,?)',
                    (workflow_id, task_id, action_id, event, _json(data or {}), time.time()))
 
-    def create(self, project_id, objective, criteria, providers=None, budgets=None, context_mode='retrieved', model_overrides=None, execution_policy='standard', transaction=None, budget_policy='limited'):
+    def create(self, project_id, objective, criteria, providers=None, budgets=None, context_mode='retrieved', model_overrides=None, execution_policy='standard', transaction=None, budget_policy='limited', effort_overrides=None):
         self.store.project(project_id)
         if not isinstance(objective, str) or not objective.strip():
             raise ValueError('Objective is required')
@@ -241,6 +257,12 @@ class WorkflowEngine:
             raise ValueError('Execution policy must be standard or single_task (skip planning only)')
         if budget_policy not in ('limited', 'unlimited'):
             raise ValueError('Unknown usage limit policy')
+        efforts = dict(effort_overrides or {})
+        from .providers import validate_chat_options
+        if set(efforts) - {'planner', 'executor', 'reviewer'}:
+            raise ValueError('Unknown effort role')
+        for role, effort in efforts.items():
+            validate_chat_options((providers or {}).get(role, 'codex'), None, effort)
         overrides=dict(model_overrides or {})
         if set(overrides)-{'planner','executor','reviewer'}:
             raise ValueError('Unknown override role')
@@ -272,6 +294,7 @@ class WorkflowEngine:
             db.execute('UPDATE w5_workflows SET context_mode=? WHERE id=?',(context_mode,identifier))
             db.execute('UPDATE w5_workflows SET model_overrides=?,execution_policy=? WHERE id=?',(_json(overrides),execution_policy,identifier))
             db.execute('UPDATE w5_workflows SET budget_policy=? WHERE id=?',(budget_policy,identifier))
+            db.execute('UPDATE w5_workflows SET effort_overrides=? WHERE id=?', (_json(efforts), identifier))
             self._checkpoint(db, identifier, 'WORKFLOW_CREATED', {'criteria': criteria, 'providers': roles, 'budgets': limits})
             if transaction is not None:
                 return self._workflow(db, identifier)
@@ -282,7 +305,7 @@ class WorkflowEngine:
         if not row:
             raise KeyError('Unknown workflow')
         value = dict(row)
-        for key in ('criteria', 'providers', 'budgets', 'model_overrides'):
+        for key in ('criteria', 'providers', 'budgets', 'model_overrides', 'effort_overrides'):
             value[key] = _load(value[key])
         value['budgets'] = dict(DEFAULT_BUDGETS, **value['budgets'])
         return value
@@ -849,10 +872,14 @@ class WorkflowEngine:
         prompt = dict(prompt, context={'content': context['content'], 'references': context['references'],
                                       'estimated_tokens': context['estimated_tokens'], 'id': context['id'],
                                       'excluded':context['excluded'],'budget':context['budget'],'bytes':context['bytes']})
+        if workflow.get('continuation_context'):
+            prompt['conversation_reference'] = workflow['continuation_context']
         request = {'project': project, 'prompt': _json(prompt), 'role': role, 'session_id': session['session_id'],
                    'timeout': workflow['budgets']['call_timeout'] if workflow.get('budget_policy') == 'unlimited' else min(workflow['budgets']['call_timeout'], max(1, workflow['budgets']['max_seconds'] - int(time.time() - workflow['started_at']))),
                    'allowed_operations': operations, 'history': _load(session['history'], []),
                    'max_output_tokens': min(workflow['budgets']['max_output_tokens'], remaining)}
+        if workflow.get('effort_overrides', {}).get(role):
+            request['effort'] = workflow['effort_overrides'][role]
         if workflow.get('model_overrides',{}).get(role):
             request['model']=workflow['model_overrides'][role]
         estimate_input = max(1, (len(request['prompt'].encode('utf-8')) + len(_json(request['history']).encode('utf-8')) + 3) // 4)

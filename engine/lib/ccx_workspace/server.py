@@ -40,9 +40,13 @@ class Dashboard:
         self.chat = Chat(store,registry)
         from .tasks import Tasks
         self.tasks = Tasks(self)
+        from .delivery import Delivery
+        self.delivery = Delivery(self)
 
     def close(self):
         self.closing = True
+        self.delivery.stop.set()
+        self.delivery.thread.join(timeout=2)
         for workflow_id in list(self.jobs):
             self.engine.pause(workflow_id)
         if hasattr(self, 'chat'):
@@ -57,9 +61,10 @@ class Dashboard:
     def save_setting(self, key, value):
         save_setting(self.store, key, value)
 
-    def workflow_status(self, workflow_id):
+    def workflow_status(self, workflow_id, include_events=True):
         value = self.engine.status(workflow_id)
-        value['events'] = self.engine.checkpoints(workflow_id)
+        if include_events:
+            value['events'] = self.engine.checkpoints(workflow_id)
         value['approvals'] = self.engine.approvals(workflow_id)
         value['usage'] = {'recorded_tokens': value.get('tokens_used'),
                           'recorded_cost': value.get('cost_used'),
@@ -68,9 +73,15 @@ class Dashboard:
                           'note': 'Totals may include local token estimates and spending reservations. They are not a provider bill; omitted usage is not zero.'}
         value['runner_error'] = self.errors.get(workflow_id)
         value['runner_active'] = workflow_id in self.jobs
+        value.update(self.delivery.describe(workflow_id))
         return value
 
     def run(self, workflow_id):
+        if workflow_id in self.jobs:
+            raise DashboardError('This workflow already has a runner.', 409)
+        return self.delivery.enqueue(workflow_id)
+
+    def _launch(self, workflow_id):
         if self.closing:
             raise DashboardError('Workspace is shutting down.', 409)
         self.engine.status(workflow_id)
@@ -90,13 +101,25 @@ class Dashboard:
                 # Never log exceptions containing agent prompts or credentials here.
                 self.errors[workflow_id] = 'Runner stopped unexpectedly; inspect the last persisted checkpoint before retrying.'
             finally:
-                with self.guard:
-                    self.jobs.pop(workflow_id, None)
+                try:
+                    self.delivery.finished(workflow_id)
+                except Exception:
+                    self.errors[workflow_id] = 'Final comparison could not be saved. Inspect project changes before continuing.'
+                finally:
+                    with self.guard:
+                        self.jobs.pop(workflow_id, None)
         threading.Thread(target=execute, name='ccx-workflow', daemon=True).start()
         return {'accepted': True, 'workflow_id': workflow_id}
 
     def dispatch(self, method, path, body):
         parts = path.strip('/').split('/')
+        if path == '/api/tasks/submit' and method == 'POST':
+            return self.delivery.submit(body)
+        if len(parts) == 4 and parts[:2] == ['api', 'projects'] and parts[3] in ('access', 'draft') and method in ('GET', 'POST'):
+            return getattr(self.delivery, parts[3])(parts[2], body if method == 'POST' else None)
+        if len(parts) == 4 and parts[:2] == ['api', 'chats'] and parts[3] == 'tasks' and method == 'GET':
+            self.chat.status(parts[2])
+            return self.delivery.conversations(parts[2])
         if method == 'POST' and path in ('/api/tasks/preview', '/api/tasks/start', '/api/tasks/message'):
             from .tasks import TaskError, TaskPermissionError
             try:
@@ -107,6 +130,8 @@ class Dashboard:
                 raise DashboardError(str(error), 403)
         if method == 'GET' and len(parts) == 4 and parts[:3] == ['api', 'tasks', 'submission']:
             return self.tasks.submission(parts[3])
+        if method == 'POST' and len(parts) == 4 and parts[:2] == ['api', 'tasks'] and parts[3] == 'updates':
+            return self.delivery.updates(parts[2], body)
         if method == 'GET' and len(parts) == 4 and parts[:2] == ['api', 'tasks'] and parts[3] == 'results':
             return self.tasks.results(parts[2])
         if method == 'GET' and len(parts) == 4 and parts[:3] == ['api', 'chat', 'options']:
@@ -151,7 +176,7 @@ class Dashboard:
             from .diagnostics import Diagnostics
             diagnostics=Diagnostics(self.store,registry=self.registry)
             return {'projects': self.store.projects(), 'machine': self.store.machine(),
-                    'workflows': self.engine.list(), 'providers': [diagnostics.summary(p['id']) for p in self.registry.status()],
+                    'workflows': [dict(w, **self.delivery.describe(w['id'])) for w in self.engine.list()], 'providers': [diagnostics.summary(p['id']) for p in self.registry.status()],
                     'running': list(self.jobs), 'settings': {'host': 'loopback',
                     'authentication': 'browser session or local bearer token', 'provider_config': self.setting('providers', {}),
                     'setup':self.setting('setup',{'completed':False})}}

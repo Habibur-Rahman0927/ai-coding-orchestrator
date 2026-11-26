@@ -206,8 +206,9 @@ async function activity(){
   }
 }
 function settings(){
+  const developerTools=el('details',{class:'developer-tools'},el('summary',{},'Developer tools'),el('nav',{'aria-label':'Developer tools'},...pages.filter(([name])=>!['chat','tasks','projects','settings'].includes(name)).map(([name,label])=>el('a',{href:'#'+name},label))));
   const diagnostics=el('div',{}),backupResult=el('div',{}),appearance=field('Appearance','appearance',{options:['system','light','dark'],value:experience.appearance||'system'});appearance.querySelector('select').addEventListener('change',async event=>{try{experience=await api('/api/experience',{appearance:event.target.value});applyAppearance();}catch(error){notice(error.message,true);}});
-  main.append(heading('Workspace settings','Manage onboarding, session security, and local diagnostics.'),panel('Appearance',appearance),
+  main.append(heading('Workspace settings','Manage onboarding, session security, and local diagnostics.'),panel('Appearance',appearance),developerTools,
     panel('Getting started',el('p',{class:'muted'},'Use connection help in Chat or inspect advanced workflow defaults. Existing provider login stays untouched.'),button('Advanced workflow defaults',async()=>{await api('/api/setup',{step:4});await refresh(false);go('setup');},'quiet'),button('Reopen setup',async()=>{await api('/api/setup',{step:1});await refresh(false);go('setup');},'primary')),
     el('div',{class:'grid'},panel('Connection & privacy',el('dl',{class:'data-list'},el('dt',{},'Network'),el('dd',{},'IPv4 loopback only'),el('dt',{},'Authentication'),el('dd',{},token?'Manual token in tab memory':'Expiring local browser session'),el('dt',{},'Cross-origin access'),el('dd',{},'Refused')),button('Sign out',disconnect,'danger'),button('Rotate browser credentials',async()=>{if(!confirm('Invalidate all dashboard sessions? Reopen the workspace from its startup command to sign in again.'))return;await api('/api/auth/rotate',{});await disconnect();},'quiet')),
     panel('Machine context',button('Refresh machine information',async()=>{state.machine=await api('/api/machine/refresh',{});await renderPage();}),machineSummary(state.machine))),
@@ -226,7 +227,7 @@ async function enterWorkspace(){
   document.getElementById('token').value='';document.getElementById('login').hidden=true;
   document.getElementById('workspace').hidden=false;await renderPage();
 }
-const advancedNav=el('details',{},el('summary',{},'Advanced tools'));for(const [name,label,icon]of pages){if(name==='tasks')continue;const link=el('a',{href:'#'+name},el('span',{class:'nav-icon','aria-hidden':'true'},icon),label);(!['chat','tasks','projects','settings'].includes(name)?advancedNav:document.getElementById('navigation')).append(link);}document.getElementById('navigation').append(advancedNav);
+for(const [name,label,icon]of pages){if(!['chat','projects','settings'].includes(name))continue;document.getElementById('navigation').append(el('a',{href:'#'+name},el('span',{class:'nav-icon','aria-hidden':'true'},icon),name==='chat'?'Workspace':label));}
 document.getElementById('login-form').addEventListener('submit',async event=>{event.preventDefault();token=document.getElementById('token').value.trim();try{await enterWorkspace();}catch(error){token='';notice(error.message,true);}});
 document.getElementById('disconnect').addEventListener('click',disconnect);
 document.getElementById('refresh').addEventListener('click',()=>refresh().catch(error=>notice(error.message,true)));
@@ -394,7 +395,7 @@ async function sessions(){
 // Drafts and retry identities stay in this tab; credentials never enter these records.
 const taskDrafts = new Map();
 function taskDraft(project){
-  if(!taskDrafts.has(project))taskDrafts.set(project,{content:'',mode:'ask',newConversation:false});
+  if(!taskDrafts.has(project))taskDrafts.set(project,{content:'',mode:'build',newConversation:false});
   return taskDrafts.get(project);
 }
 function submissionKey(){return crypto.randomUUID();}
@@ -479,6 +480,7 @@ function workflowTokenUsage(w){
   return (end?'Last call · ':'Live call · ')+(start.data?.provider||'Agent')+' · '+(start.data?.role||'call')+' · '+tokenUsageText(usage,text,start.created_at,end);
 }
 function chatMessage(message,agent){
+  agent=message.metadata?.provider||agent;
   const node=el('article',{class:'chat-message '+message.role},el('h3',{},message.role==='user'?'You':agent),message.role==='user'?el('p',{},message.content||''):chatMarkdown(message.content));
   if(message.id)node.dataset.messageId=message.id;
   const metadata=message.metadata||{};
@@ -522,6 +524,11 @@ async function chat(){
   if(!state.projects.some(p=>p.id===selectedProject))selectedProject=experience.project||state.projects[0].id;
   if(!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;
   const project=selectedProject,draft=taskDraft(project);
+  if(!draft.loaded){Object.assign(draft,await api('/api/projects/'+project+'/draft'));draft.loaded=true;}
+  let projectAccess=await api('/api/projects/'+project+'/access');
+  let draftTimer;
+  const saveDraft=()=>{clearTimeout(draftTimer);const payload=Object.fromEntries(['content','mode','teams','chatOptions','newConversation'].filter(k=>draft[k]!==undefined).map(k=>[k,draft[k]]));return api('/api/projects/'+project+'/draft',payload);};
+  const scheduleDraft=()=>{clearTimeout(draftTimer);draftTimer=setTimeout(()=>saveDraft().catch(error=>notice('Draft could not be saved: '+error.message,true)),250);};
   const current=()=>workflowViewVersion===version&&selectedProject===project;
   let agent=experience.agents?.[project]||defaults().executor||'codex';
   const agentField=field('Agent','task-agent',{options:providerOptions(),value:agent});
@@ -529,21 +536,21 @@ async function chat(){
   const pending=pendingSubmission(project);
   if(pending&&!draft.messageRequest){
     try{const recovered=await api('/api/tasks/submission/'+encodeURIComponent(pending.key));if(!current())return;
-      if(recovered.chat_id&&recovered.submitted){selectedChat=recovered.chat_id;draft.newConversation=false;pendingSubmission(project,null);}
-      else if(recovered.workflow_id){selectedTaskId=recovered.workflow_id;pendingSubmission(project,null);go('tasks');return;}
+      if(recovered.chat_id&&recovered.submitted&&!recovered.workflow_id){selectedChat=recovered.chat_id;draft.newConversation=false;pendingSubmission(project,null);}
+      else if(recovered.workflow_id){selectedTaskId=recovered.workflow_id;selectedChat=recovered.chat_id||'';draft.newConversation=false;pendingSubmission(project,null);}
       else unresolvedSubmission=true;
     }catch{unresolvedSubmission=true;}
   }
   if(unresolvedSubmission)main.append(panel('Previous submission needs inspection',el('p',{},'The previous request may have reached the server. No work has been resent. Inspect recent work before starting another request.'),button('Check saved state',()=>renderPage(),'primary'),button('I inspected; start a new request',()=>{pendingSubmission(project,null);return renderPage();},'quiet')));
-  const controls=el('div',{class:'chat-top-toolbar'},projectPicker(()=>renderPage()),agentField,button('New chat',()=>{selectedChat='';draft.newConversation=true;draft.content='';return renderPage();},'quiet'));
+  const controls=el('div',{class:'chat-top-toolbar'},projectPicker(()=>renderPage()),agentField,button('New chat',()=>{selectedChat='';draft.newConversation=true;draft.content='';saveDraft();return renderPage();},'quiet'));
   main.append(chatTabs(),controls);
-  const choices=arr(await api('/api/chats')).filter(c=>c.project_id===project&&c.provider===agent);
+  const choices=arr(await api('/api/chats')).filter(c=>c.project_id===project);
   if(!current())return;
   const saved=experience.conversations?.[project];
   if(!draft.newConversation&&!choices.some(c=>c.id===selectedChat))selectedChat=choices.find(c=>c.id===saved)?.id||choices[0]?.id||'';
   if(draft.newConversation)selectedChat='';
   agentField.querySelector('select').addEventListener('change',async event=>{
-    try{experience=await api('/api/experience',{project,agent:event.target.value});selectedChat='';draft.newConversation=false;await renderPage();}catch(error){notice(error.message,true);}
+    try{experience=await api('/api/experience',{project,agent:event.target.value});draft.newConversation=false;await renderPage();}catch(error){notice(error.message,true);}
   });
   const provider=arr(state.providers).find(p=>p.id===agent);
   controls.append(el('span',{class:'chat-connection',title:providerStatus(provider||{})},provider?.available?'● Agent available':'○ Connect agent'));
@@ -558,8 +565,8 @@ async function chat(){
   const available=await api('/api/chat/options/'+agent);if(!current())return;
   const savedChoice=choices.find(c=>c.id===selectedChat)||{};
   draft.chatOptions=draft.chatOptions||{};
-  const optionKey=agent+':'+(selectedChat||'new');
-  const options=draft.chatOptions[optionKey]||(draft.chatOptions[optionKey]={model:savedChoice.model||'',effort:savedChoice.effort||''});
+  const optionKey=agent;
+  const options=draft.chatOptions[optionKey]||(draft.chatOptions[optionKey]={model:savedChoice.provider===agent?savedChoice.model||'':'',effort:savedChoice.provider===agent?savedChoice.effort||'':''});
   const modelNames=Array.from(new Set([...arr(available.models),...(options.model?[options.model]:[])]));
   const modelField=field('Model','chat-model',{options:[{value:'',label:'Provider default'},...modelNames,{value:'custom',label:'Custom model…'}],value:options.model});
   const customModel=field('Model ID','chat-model-id',{placeholder:'Exact model ID from your provider',value:options.model});customModel.hidden=true;
@@ -602,10 +609,32 @@ async function chat(){
   updateTeam();await loadReviewModels();if(!current())return;
   const teamInput=()=>({partner:team.mode==='custom'?team.partner:agent,planning:team.planning,model_overrides:team.mode==='custom'?{...(team.executor_model?{executor:team.executor_model,planner:team.executor_model}:{}),...(team.reviewer_model?{reviewer:team.reviewer_model}:{})}:{}});
   const consent=el('p',{class:'hint chat-consent'}),reviewArea=el('div',{'data-task-review':''});
-  const toolbar=el('div',{class:'chat-composer-toolbar'},modeField,chatSettings,teamSettings);
+  const limitPolicy=field('Usage limits','task-limits',{options:[{value:'unlimited',label:'No workspace cap'},{value:'limited',label:'Set workspace limits'}],value:team.budget_policy||'unlimited'});
+  const limitCost=field('Total cost reservation','task-cost',{type:'number',min:0,step:.1,value:team.max_cost||3}),limitCall=field('Per-call reservation','task-call-cost',{type:'number',min:0,step:.01,value:team.max_call_cost||.25}),limitTime=field('Time limit (seconds)','task-time',{type:'number',min:1,value:team.max_seconds||3600});
+  const limitValues=el('div',{},limitCost,limitCall,limitTime);limitValues.hidden=limitPolicy.querySelector('select').value!=='limited';
+  const usageSettings=el('details',{},el('summary',{},'Optional usage limits'),limitPolicy,limitValues,el('p',{class:'hint'},'Workspace reservations are not a provider billing cap. Provider limits still apply.'));
+  usageSettings.addEventListener('change',()=>{team.budget_policy=limitPolicy.querySelector('select').value;team.max_cost=Number(limitCost.querySelector('input').value);team.max_call_cost=Number(limitCall.querySelector('input').value);team.max_seconds=Number(limitTime.querySelector('input').value);limitValues.hidden=team.budget_policy!=='limited';});
+  chatSettings.append(teamMode,customTeam,planning,usageSettings);
+  const accessArea=el('div',{class:'project-access-settings'});
+  function drawAccess(){accessArea.replaceChildren(el('p',{class:'hint'},projectAccess.enabled?'Project coding access: '+projectAccess.providers.join(', '):'Project coding access is off. Your first coding request will ask once.'),projectAccess.enabled?button('Revoke project access',async()=>{projectAccess=await api('/api/projects/'+project+'/access',{confirmed:true,enabled:false});drawAccess();updateMode();},'quiet'):button('Enable project coding',async()=>{projectAccess=await api('/api/projects/'+project+'/access',{confirmed:true,enabled:true,providers:Array.from(new Set([agent,team.mode==='custom'?team.partner:agent]))});drawAccess();},'primary'),el('p',{class:'hint'},'Enabling access permits the selected team to share project context, edit files and run commands for your coding requests, using your provider allowance.'));}
+  chatSettings.append(el('details',{},el('summary',{},'Project access'),accessArea));drawAccess();
+  chatSettings.addEventListener('input',scheduleDraft);chatSettings.addEventListener('change',scheduleDraft);
+  const toolbar=el('div',{class:'chat-composer-toolbar'},modeField,chatSettings);
+  async function sendBuild(input){
+    const requested={...input,chat_id:selectedChat||null,confirmed:true};
+    if(!draft.buildRequest||JSON.stringify(draft.buildRequest.input)!==JSON.stringify(requested))draft.buildRequest={input:requested,key:submissionKey()};
+    pendingSubmission(project,{key:draft.buildRequest.key});
+    const reply=await api('/api/tasks/submit',{...requested,idempotency_key:draft.buildRequest.key});
+    pendingSubmission(project,null);selectedChat=reply.chat_id;selectedTaskId=reply.workflow_id;draft.newConversation=false;draft.content='';draft.buildRequest=null;await saveDraft();
+    await refresh(false);if(current())await renderPage();
+  }
+  function requestProjectAccess(input){
+    const names=Array.from(new Set([agent,input.partner||agent]));
+    reviewArea.replaceChildren(panel('Allow coding in this project',el('p',{},projectAccess.root),el('p',{},'Allow '+names.join(' and ')+' to use project context, edit files and run commands for requests you send. Provider charges apply. Native CLI permissions still apply; commands are not sandboxed by the project directory.'),el('p',{class:'hint'},'Saved for this project. Revoke access in Agent settings. New providers require another approval.'),el('div',{class:'actions'},button('Allow project & send',async()=>{projectAccess=await api('/api/projects/'+project+'/access',{confirmed:true,enabled:true,providers:Array.from(new Set([...projectAccess.providers,...names]))});await sendBuild(input);},'primary'),button('Review this task only',async()=>{const proposal=await api('/api/tasks/preview',{...input,chat_id:selectedChat||null});renderTaskApproval(reviewArea,proposal,{...input,chat_id:selectedChat||null},current);},'quiet'),button('Cancel',()=>reviewArea.replaceChildren(),'quiet'))));
+  }
 
   let responseRunning=false,transcriptLoaded=false,transcriptSignature='';
-  const composer=form([messageField,toolbar,el('details',{class:'chat-access'},el('summary',{},'Access & usage · sends context using your provider allowance'),consent)],draft.mode==='ask'?'Send':'Review task',async data=>{
+  const composer=form([messageField,toolbar,el('details',{class:'chat-access'},el('summary',{},'Access & usage · sends context using your provider allowance'),consent)],'Send',async data=>{
     draft.content=data.content;draft.mode=data.action;
     if(data.action==='ask'){
       const requested={project_id:project,provider:agent,content:data.content,chat_id:selectedChat||null,confirmed:true,model:options.model||null,effort:options.effort||null};
@@ -615,11 +644,14 @@ async function chat(){
       const reply=await api('/api/tasks/message',{...draft.messageRequest.input,idempotency_key:draft.messageRequest.key});
       if(!current())return;
       pendingSubmission(project,null);selectedChat=reply.chat_id;draft.newConversation=false;draft.content='';draft.messageRequest=null;
-      await refresh(false);if(current())await renderPage();
+      await saveDraft();await refresh(false);if(current())await renderPage();
     }else{
-      const input={project_id:project,provider:agent,instruction:data.content,...teamInput()};
-      const proposal=await api('/api/tasks/preview',input);
-      if(current()){renderTaskApproval(reviewArea,proposal,input,current);reviewArea.scrollIntoView({block:'nearest'});}
+      const input={project_id:project,provider:agent,instruction:data.content,...teamInput(),budget_policy:team.budget_policy||'unlimited',...(team.budget_policy==='limited'?{max_cost:team.max_cost,max_call_cost:team.max_call_cost,max_seconds:team.max_seconds}:{})};
+      if(options.model&&!input.model_overrides.executor){input.model_overrides.executor=options.model;input.model_overrides.planner=options.model;}
+      if(options.effort)input.effort_overrides={executor:options.effort,planner:options.effort};
+      projectAccess=await api('/api/projects/'+project+'/access');
+      if(projectAccess.enabled&&[agent,input.partner].every(name=>projectAccess.providers.includes(name)))await sendBuild(input);
+      else if(current()){requestProjectAccess(input);reviewArea.scrollIntoView({block:'nearest'});}
     }
   });
   composer.classList.add('chat-composer');
@@ -631,20 +663,27 @@ async function chat(){
   teamSettings.addEventListener('input',()=>reviewArea.replaceChildren());teamSettings.addEventListener('change',()=>reviewArea.replaceChildren());
   function updateMode(){
     draft.mode=modeField.querySelector('select').value;
-    teamSettings.hidden=draft.mode!=='build';chatSettings.hidden=draft.mode!=='ask';customModel.querySelector('input').required=draft.mode==='ask'&&!customModel.hidden;
-    submit.textContent=draft.mode==='ask'?'Send':'Review task';
-    composer.querySelector('.chat-access summary').textContent=draft.mode==='ask'?'Access & usage · sends context using your provider allowance':'Access & usage · no agent runs until you approve';
-    consent.textContent=draft.mode==='ask'?'Send authorizes this message and relevant project context to '+agent+', using your subscription allowance or API credits. This is a read-only conversation; native CLI access can be broader than filtered context.':'Review task prepares a local approval card. No agent runs until you approve it. Tests and a separate review session are included.';
+    teamMode.hidden=draft.mode!=='build';customTeam.hidden=draft.mode!=='build'||team.mode!=='custom';planning.hidden=draft.mode!=='build';customModel.querySelector('input').required=!customModel.hidden;
+    submit.textContent='Send';
+    composer.querySelector('.chat-access summary').textContent=draft.mode==='ask'?'Access & usage · sends context using your provider allowance':'Access & usage · project coding permissions';
+    consent.textContent=draft.mode==='ask'?'Send authorizes this message and relevant project context to '+agent+', using your subscription allowance or API credits. This is a read-only conversation; native CLI access can be broader than filtered context.':'Send starts coding with saved project access, or asks you to enable access first. Busy projects queue follow-ups. Tests and a separate review session are included.';
     reviewArea.replaceChildren();
   }
-  modeField.querySelector('select').addEventListener('change',updateMode);updateMode();
-  messageField.querySelector('textarea').addEventListener('input',event=>{draft.content=event.target.value;reviewArea.replaceChildren();});
+  modeField.querySelector('select').addEventListener('change',()=>{updateMode();saveDraft().catch(error=>notice(error.message,true));});updateMode();
+  messageField.querySelector('textarea').addEventListener('input',event=>{draft.content=event.target.value;scheduleDraft();reviewArea.replaceChildren();});
   const dock=el('div',{class:'chat-dock'},composer);main.append(dock,reviewArea);
   const cancel=button('Cancel response',async()=>{if(selectedChat)await api('/api/chats/'+selectedChat+'/cancel',{});await pollConversation();},'quiet');cancel.hidden=true;main.append(cancel);
+const linkedTasks=el('div',{class:'conversation-tasks'}),liveTask=el('div',{class:'conversation-task-shell'}),liveDetail=el('div',{class:'conversation-task-detail'});liveTask.append(liveDetail);
+  let linkedSignature='',openWorkflow='';
   async function pollConversation(){
     if(!current()||!selectedChat)return;
     try{
       const value=await api('/api/chats/'+selectedChat);if(!current())return;
+      const linked=await api('/api/chats/'+selectedChat+'/tasks');if(!current())return;
+      const visible=linked.find(w=>w.queue_state==='running'&&!['COMPLETED','CANCELLED','FAILED'].includes(w.status))||linked.at(-1);
+      const linkSignature=JSON.stringify(linked);
+      if(linkSignature!==linkedSignature){linkedSignature=linkSignature;linkedTasks.replaceChildren(...linked.filter(w=>w.id!==visible?.id).map(w=>el('div',{class:'actions'},button(w.objective+' · '+(w.queue_state==='queued'?'Queued':w.status.toLowerCase()),()=>{selectedTaskId=w.id;go('tasks');},'quiet'),w.queue_state==='queued'?button('Cancel queued task',async()=>{await api('/api/workflows/'+w.id+'/cancel',{});await pollConversation();},'quiet'):null)));}
+      if(visible&&visible.id!==openWorkflow){openWorkflow=visible.id;inlineTask(liveDetail,visible.id,()=>current()&&openWorkflow===visible.id).catch(error=>notice(error.message,true));}
       const followLatest=!transcriptLoaded||(transcript.closest('.chat-stream')||transcript).scrollHeight-(transcript.closest('.chat-stream')||transcript).scrollTop-(transcript.closest('.chat-stream')||transcript).clientHeight<80;
       const nextSignature=JSON.stringify(value.messages);
       if(nextSignature!==transcriptSignature){
@@ -662,11 +701,11 @@ async function chat(){
       transcriptLoaded=true;
       responseRunning=value.running;submit.disabled=responseRunning||unresolvedSubmission;cancel.hidden=!responseRunning;
       responseStatus.textContent=responseRunning?'Responding…':(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Your conversation is saved. Inspect it before sending again.':'Conversation saved.');
-      if(responseRunning)workflowPollTimer=setTimeout(pollConversation,350);
+      if(responseRunning||linked.length)workflowPollTimer=setTimeout(pollConversation,responseRunning?350:1200);
     }catch(error){if(current()){responseStatus.textContent='Connection lost. The outcome may be unknown; no message was resent.';workflowPollTimer=setTimeout(pollConversation,3000);}}
   }
 
-  const stream=el('section',{class:'chat-stream','aria-label':'Conversation'},transcript,responseStatus,reviewArea);
+  const stream=el('section',{class:'chat-stream','aria-label':'Conversation'},transcript,linkedTasks,liveTask,responseStatus,reviewArea);
   main.insertBefore(stream,dock);dock.append(cancel);
   const latest=button('Jump to latest',()=>{stream.scrollTop=stream.scrollHeight;latest.hidden=true;},'quiet jump-latest');
   latest.hidden=true;dock.prepend(latest);
@@ -691,7 +730,7 @@ async function tasks(){
   function draw(){
     const query=search.querySelector('input').value.toLowerCase(),mode=filter.querySelector('select').value;
     const shown=rows.filter(w=>(w.objective||'').toLowerCase().includes(query)&&(mode==='all'||mode==='active'&&['READY','RUNNING'].includes(w.status)||mode==='done'&&w.status==='COMPLETED'||mode==='attention'&&!['READY','RUNNING','COMPLETED','CANCELLED'].includes(w.status)));
-    list.replaceChildren(...shown.map(w=>{const row=button((w.objective||'Task')+' · '+w.status.toLowerCase().replaceAll('_',' '),()=>{selectedTaskId=w.id;return openTask(w.id);},'list-button');row.dataset.workflowId=w.id;row.setAttribute('aria-current',String(w.id===selectedTaskId));return row;}));
+    list.replaceChildren(...shown.map(w=>{const row=button((w.objective||'Task')+' · '+(w.queue_state==='queued'?'queued':w.status.toLowerCase().replaceAll('_',' ')),()=>{selectedTaskId=w.id;return openTask(w.id);},'list-button');row.dataset.workflowId=w.id;row.setAttribute('aria-current',String(w.id===selectedTaskId));return row;}));
     if(!shown.length)list.append(empty('No tasks here',query?'Try another search.':'Start a task from Chat.'));
     feedback.textContent=rows.length+' tasks in this project';
   }
@@ -700,7 +739,7 @@ async function tasks(){
   async function pollList(){
     clearTimeout(timer);if(!current())return;
     try{const value=await api('/api/state');if(!current())return;rows=arr(value.workflows).filter(w=>w.project_id===project);
-      const next=JSON.stringify(rows.map(w=>[w.id,w.status,w.objective]));if(next!==signature){signature=next;draw();}
+      const next=JSON.stringify(rows.map(w=>[w.id,w.status,w.objective,w.queue_state]));if(next!==signature){signature=next;draw();}
       if(selectedTaskId&&opened!==selectedTaskId&&rows.some(w=>w.id===selectedTaskId))await openTask(selectedTaskId);
     }catch(error){if(current())feedback.textContent='Connection interrupted. Your tasks remain saved.';}
     if(current())timer=setTimeout(pollList,3000);
@@ -726,7 +765,10 @@ function renderTaskApproval(container,initial,input,current){
     let result;cancelPreview.disabled=true;
     try{result=await api('/api/tasks/start',{proposal_id:proposal.proposal_id,revision:proposal.revision,confirmed:true,idempotency_key:key});}finally{cancelPreview.disabled=false;}
     if(!current())return;
-    pendingSubmission(input.project_id,null);selectedTaskId=result.workflow_id;taskDraft(input.project_id).content='';await refresh(false);if(current())go('tasks');
+    pendingSubmission(input.project_id,null);selectedTaskId=result.workflow_id;const draft=taskDraft(input.project_id);draft.content='';
+    if(result.chat_id){selectedChat=result.chat_id;draft.newConversation=false;experience=await api('/api/experience',{project:input.project_id,agent:input.provider,conversation:result.chat_id});}
+    await api('/api/projects/'+input.project_id+'/draft',Object.fromEntries(['content','mode','teams','chatOptions','newConversation'].filter(k=>draft[k]!==undefined).map(k=>[k,draft[k]])));
+    await refresh(false);if(current()){if(result.chat_id)await renderPage();else go('tasks');}
     if(result.notice)notice(result.notice);
   },'primary');
   function selectedReviewModel(){
@@ -778,8 +820,12 @@ function renderTaskApproval(container,initial,input,current){
   card.addEventListener('input',schedule);card.addEventListener('change',event=>{if(event.target.tagName==='SELECT')schedule();});
   container.replaceChildren(card);show();loadReviewerModels();
 }
+function commandOutput(text){
+  const value=String(text);if(value.length<=1600&&value.split('\n').length<=20)return pre(value);
+  return el('details',{class:'task-event-output'},el('summary',{},'Expand output · '+value.split('\n').length+' lines'),el('p',{class:'path'},value.slice(0,240)+'…'),pre(value));
+}
 function renderAgentOutput(text,command=false){
-  if(command)return pre(text);
+  if(command)return commandOutput(text);
   try{
     const data=JSON.parse(text),body=el('div',{class:'agent-readable-output'});
     if(Array.isArray(data.tasks))for(const task of data.tasks)body.append(el('h3',{},task.title||'Task'),el('p',{},task.description||''));
@@ -791,6 +837,7 @@ function renderAgentOutput(text,command=false){
 async function inlineTask(container,id,current){
   const card=panel('Task progress'),status=el('p',{role:'status',class:'task-status'}),details=el('div',{}),requests=el('div',{}),result=el('div',{});
   let timer,signature='',loadedResults=false,firstRender=true,lastResultsAt=0,timelineLimit=30;
+  const timeline=el('section',{class:'task-live-output','aria-label':'Live output'});let timelineHeader=null,eventCursor=0;const eventCache=new Map();
   const controls=el('div',{class:'actions'},button('Pause task',async()=>{await api('/api/workflows/'+id+'/pause',{});await poll();},'quiet'),button('Cancel task',async()=>{await api('/api/workflows/'+id+'/cancel',{});await poll();},'danger'));
   const meter=el('p',{class:'hint token-meter',title:'Current or latest provider call. Rates are averages over elapsed call time, not instantaneous billing or hardware throughput. Visible output estimates exclude hidden reasoning and tool output.'});
   const pinned=el('div',{class:'task-run-controls'},status,controls,meter);
@@ -800,34 +847,52 @@ async function inlineTask(container,id,current){
   async function poll(){
     clearTimeout(timer);if(!alive())return;
     try{
-      const w=await api('/api/workflows/'+id);if(!alive())return;
+      const update=await api('/api/tasks/'+id+'/updates',{cursor:eventCursor});if(!alive())return;
+      if(update.reset)eventCache.clear();for(const event of update.events)eventCache.set(event.id,event);eventCursor=update.cursor;
+      const w={...update.state,events:Array.from(eventCache.values()).sort((a,b)=>a.id-b.id)};
       meter.textContent=workflowTokenUsage(w);
-      const follow=firstRender||container.scrollHeight-container.scrollTop-container.clientHeight<80;
-      const scrollTop=container.scrollTop;
-      const active=w.runner_active||w.status==='RUNNING';
-      for(const item of main.querySelectorAll('[data-workflow-id]'))if(item.dataset.workflowId===id)item.textContent=(w.objective||'Task')+' · '+w.status.toLowerCase().replaceAll('_',' ');
+      const scroll=container.closest('.chat-stream')||container;
+      const follow=firstRender||scroll.scrollHeight-scroll.scrollTop-scroll.clientHeight<80;
+      const scrollTop=scroll.scrollTop;
+      const active=w.runner_active||w.status==='RUNNING',queued=w.queue_state==='queued';
+      for(const item of main.querySelectorAll('[data-workflow-id]'))if(item.dataset.workflowId===id)item.textContent=(w.objective||'Task')+' · '+(w.queue_state==='queued'?'queued':w.status.toLowerCase().replaceAll('_',' '));
       const phases=arr(w.tasks).map(t=>t.status);
       const stage=w.status==='COMPLETED'?(arr(w.tasks).some(t=>t.evidence?.tests?.verification_mode==='review_only')?'Done · file review verified; no automated tests':'Done · tests and review verified'):w.status==='CANCELLED'?'Cancelled':w.status!=='RUNNING'?'Needs attention · '+w.status.toLowerCase().replaceAll('_',' '):phases.includes('REVIEWING')?'Reviewing':phases.includes('TESTING')?'Testing':'Working';
-      status.textContent=stage+(w.reason?' — '+w.reason:'');controls.hidden=['COMPLETED','CANCELLED','FAILED'].includes(w.status);controls.querySelector('button').hidden=!active;
-      const next=JSON.stringify([w.status,w.reason,w.budget_policy,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events]);
+      status.textContent=(queued?'Queued · waiting for this project or an available runner':stage)+(w.queue_reason?' — '+w.queue_reason:w.reason?' — '+w.reason:'');
+      if(page==='tasks'&&w.chat_id&&!pinned.querySelector('[data-open-conversation]'))pinned.append(button('Open conversation',async()=>{selectedChat=w.chat_id;selectedProject=w.project_id;taskDraft(w.project_id).newConversation=false;const c=await api('/api/chats/'+w.chat_id);experience=await api('/api/experience',{project:w.project_id,agent:c.provider,conversation:w.chat_id});go('chat');},'quiet'));
+      pinned.querySelectorAll('button').forEach(b=>{if(b.textContent==='Open conversation')b.setAttribute('data-open-conversation','');});controls.hidden=['COMPLETED','CANCELLED','FAILED'].includes(w.status);controls.querySelector('button').hidden=!active;
+      const next=JSON.stringify([w.status,w.reason,w.queue_state,w.queue_reason,w.budget_policy,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events]);
       if(next!==signature){
-        const expanded=new Map(Array.from(details.querySelectorAll('details')).map(d=>[d.querySelector('summary')?.textContent,d.open]));
+        const expanded=new Map(Array.from(details.querySelectorAll('details')).map(d=>[(d.closest('[data-output-id]')?.dataset.outputId||'meta')+':'+d.querySelector('summary')?.textContent,d.open]));
         const outputScroll=new Map(Array.from(details.querySelectorAll('[data-output-id]')).map(node=>{const p=node.querySelector('pre');return[node.dataset.outputId,p?{top:p.scrollTop,bottom:p.scrollHeight-p.scrollTop-p.clientHeight<40}:null];}));
         signature=next;details.replaceChildren(el('details',{class:'task-overview'},el('summary',{},w.objective),el('p',{class:'hint'},'Working → Testing → Reviewing → Done')));
         details.querySelector('.task-overview').append(el('details',{},el('summary',{},'Team & subtasks · '+arr(w.tasks).length),...arr(w.tasks).map(task=>el('div',{class:'item'},el('strong',{},task.title),el('p',{class:'hint'},task.executor+' / '+(w.model_overrides?.executor||'default model')+' → '+task.reviewer+' / '+(w.model_overrides?.reviewer||'default model')+' · '+task.status)))));
         const allOutput=arr(w.events).filter(e=>(e.event==='PROVIDER_EVENT'&&['text','activity'].includes(e.data?.type))||e.event==='COMMAND_OUTPUT');
         const outputEvents=allOutput.slice(-timelineLimit);
         if(outputEvents.length){
-          const timeline=el('section',{class:'task-live-output','aria-label':'Live output'},el('h3',{},active?'Live output':'Agent output'),el('p',{class:'hint'},'Live agent activity'));
-          if(allOutput.length>timelineLimit)timeline.append(button('Show earlier activity',()=>{timelineLimit+=30;signature='';return poll();},'quiet'));
-          for(const e of outputEvents)timeline.append(el('article',{'data-output-id':String(e.id)},el('strong',{},(e.data.provider||'Agent')+' · '+(e.data.label||e.data.role||'Output')+(e.data.phase?' · '+e.data.phase:'')),
-            e.data.detail?el('code',{},e.data.detail):null,
-            e.data.text?renderAgentOutput(e.data.text,e.event==='COMMAND_OUTPUT'):null,
-            e.data.output?pre(e.data.output):null,
-            e.data.exit_code!==undefined?el('p',{class:'hint'},'Exit code: '+e.data.exit_code):null));
+          if(!timelineHeader){timelineHeader=el('h3',{},'Live output');timeline.append(timelineHeader,el('p',{class:'hint'},'Live agent activity'));}
+          timelineHeader.textContent=active?'Live output':'Agent output';
+          timeline.querySelector('[data-earlier]')?.remove();
+          if(allOutput.length>timelineLimit){const earlier=button('Show earlier activity',()=>{timelineLimit+=30;signature='';return poll();},'quiet');earlier.dataset.earlier='';timeline.insertBefore(earlier,timelineHeader.nextSibling);}
+          const retained=new Set(outputEvents.map(e=>String(e.id)));
+          for(const node of timeline.querySelectorAll('[data-output-id]'))if(!retained.has(node.dataset.outputId))node.remove();
+          let previous=null;
+          for(const e of outputEvents){
+            let node=Array.from(timeline.querySelectorAll('[data-output-id]')).find(n=>n.dataset.outputId===String(e.id));
+            if(!node){node=el('article',{'data-output-id':String(e.id)});if(previous)previous.after(node);else timeline.insertBefore(node,timeline.querySelector('article'));}
+            const eventSignature=JSON.stringify(e.data);
+            if(node._eventSignature!==eventSignature){
+              const opened=Array.from(node.querySelectorAll('details')).map(d=>d.open);
+              node.replaceChildren(el('strong',{},(e.data.provider||'Agent')+' · '+(e.data.label||e.data.role||'Output')+(e.data.phase?' · '+e.data.phase:'')),
+                e.data.detail?el('code',{},e.data.detail):'',e.data.text?renderAgentOutput(e.data.text,e.event==='COMMAND_OUTPUT'):'',
+                e.data.output?commandOutput(e.data.output):'',e.data.exit_code!=null?el('p',{class:'hint'},'Exit code: '+e.data.exit_code):'');
+              Array.from(node.querySelectorAll('details')).forEach((d,i)=>{if(opened[i])d.open=true;});node._eventSignature=eventSignature;
+            }
+            previous=node;
+          }
           details.append(timeline);
-        }else details.append(el('p',{class:'hint'},'Waiting for visible agent activity…'));
-        for(const d of details.querySelectorAll('details')){const key=d.querySelector('summary')?.textContent;if(expanded.has(key))d.open=expanded.get(key);}
+        }else details.append(el('p',{class:'hint'},queued?'Queued. This project is busy or a runner is not available.':'Working; no new visible output yet.'));
+        for(const d of details.querySelectorAll('details')){const key=(d.closest('[data-output-id]')?.dataset.outputId||'meta')+':'+d.querySelector('summary')?.textContent;if(expanded.has(key))d.open=expanded.get(key);}
         for(const node of details.querySelectorAll('[data-output-id]')){const p=node.querySelector('pre'),saved=outputScroll.get(node.dataset.outputId);if(p)p.scrollTop=!saved||saved.bottom?p.scrollHeight:saved.top;}
         requests.replaceChildren();
         for(const request of arr(w.approval_requests).filter(r=>r.status==='PENDING'))requests.append(panel('Additional permission',el('p',{},request.reason),pre(request.scope),button('Approve this scope',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'approve'});await poll();},'primary'),button('Deny',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'deny'});await poll();},'quiet')));
@@ -835,7 +900,7 @@ async function inlineTask(container,id,current){
           const approved=arr(w.approvals).some(a=>!a.revoked&&a.kind==='recovery'&&a.scope.action_id===action.id);
           requests.append(panel('Inspect interrupted action',el('p',{},action.provider+' · '+action.role),el('p',{class:'hint'},'This action may already have changed files. Inspect the diff and provider history before allowing a retry.'),pre({action_id:action.id,state:action.state}),approved?el('p',{},'Recovery permission recorded. Resume only when ready.'):button('I inspected; allow retry of this action',async()=>{await api('/api/workflows/'+id+'/approve',{kind:'recovery',scope:{action_id:action.id,decision:'retry'}});await poll();},'primary')));
         }
-        if(!active&&!['COMPLETED','CANCELLED','FAILED'].includes(w.status)){
+        if(!active&&!queued&&!['COMPLETED','CANCELLED','FAILED'].includes(w.status)){
           const limitsEditor=el('details',{},el('summary',{},'Usage limits · '+(w.budget_policy==='unlimited'?'off':'on')));
           limitsEditor.append(form([
             field('Limit policy','policy',{options:[{value:'unlimited',label:'No workspace usage limit'},{value:'limited',label:'Set workspace limits'}],value:w.budget_policy||'limited'}),
@@ -849,22 +914,22 @@ async function inlineTask(container,id,current){
             el('p',{class:'hint'},'This task stopped at a workspace usage limit. Remove it to continue; provider charges and limits still apply.'),
             button('Remove usage limits & resume',async()=>{await api('/api/workflows/'+id+'/limits',{confirmed:true,policy:'unlimited'});await api('/api/workflows/'+id+'/retry',{});loadedResults=false;await poll();},'primary'));
         }
-        if(!active&&!['COMPLETED','CANCELLED','FAILED'].includes(w.status)&&!(w.status==='BUDGET_EXHAUSTED'&&w.budget_policy!=='unlimited'&&!arr(w.pending_actions).length))requests.append(el('p',{class:'hint'},'Inspect changes before continuing. Unknown effects are never retried automatically.'),button('Resume task',async()=>{try{await api('/api/workflows/'+id+'/retry',{});}catch(error){notice('Inspect the interrupted action before approving a retry.',true);}loadedResults=false;await poll();},'primary'),el('details',{},el('summary',{},'Permission details'),approvalForm(id,poll)));
+        if(!active&&!queued&&!['COMPLETED','CANCELLED','FAILED'].includes(w.status)&&!(w.status==='BUDGET_EXHAUSTED'&&w.budget_policy!=='unlimited'&&!arr(w.pending_actions).length))requests.append(el('p',{class:'hint'},'Inspect changes before continuing. Unknown effects are never retried automatically.'),button('Resume task',async()=>{try{await api('/api/workflows/'+id+'/retry',{});}catch(error){notice(error.message,true);}loadedResults=false;await poll();},'primary'),el('details',{},el('summary',{},'Permission details'),approvalForm(id,poll)));
       }
       if((!active&&!loadedResults)||(active&&Date.now()-lastResultsAt>3000)){
         const comparison=await api('/api/tasks/'+id+'/results');if(!alive())return;loadedResults=!active;lastResultsAt=Date.now();
         const openDiff=new Set(Array.from(result.querySelectorAll('details[open]')).map(d=>d.querySelector('summary')?.textContent));
         result.replaceChildren(panel(active?'Changes so far':'Results',el('p',{},w.status==='COMPLETED'?(arr(w.tasks).some(t=>t.evidence?.tests?.verification_mode==='review_only')?'Files were independently reviewed. Some steps had no automated tests; see the verification evidence.':'Requested work passed the recorded tests and separate review.'):active?'Work is in progress. Changes below refresh while the agent works.':'Work is not verified complete.'),el('p',{class:'hint'},comparison.notice),comparison.launch_error?el('p',{class:'error'},comparison.launch_error):null,
-          el('h3',{},'Files changed since start'),comparison.files?.length?el('ul',{},comparison.files.map(f=>el('li',{},f))):el('p',{},'No recorded changes.'),
+          ...(comparison.summary?[el('h3',{},'Agent summary'),chatMarkdown(comparison.summary)]:[]),el('h3',{},'Files changed since start'),comparison.files?.length?el('ul',{},comparison.files.map(f=>el('li',{},f))):el('p',{},'No recorded changes.'),
           el('details',{},el('summary',{},'Existing changes before this task'),pre(comparison.preexisting||[])),
           el('details',{},el('summary',{},'View diff'),pre(comparison.diff||'No displayable text diff.')),
           ...arr(w.tasks).map(t=>el('details',{},el('summary',{},t.title+' · test and review evidence'),pre(t.evidence||{})))));
         if(active){const content=result.firstElementChild;result.replaceChildren(el('details',{},el('summary',{},'Live file changes'),content));}
         for(const d of result.querySelectorAll('details'))if(openDiff.has(d.querySelector('summary')?.textContent))d.open=true;
       }
-      if(follow)container.scrollTop=container.scrollHeight;else container.scrollTop=scrollTop;
+      if(follow)scroll.scrollTop=scroll.scrollHeight;else scroll.scrollTop=scrollTop;
       firstRender=false;
-      if(active)timer=setTimeout(poll,350);
+      if(active||queued||update.more)timer=setTimeout(poll,update.more?0:active?350:1000);
     }catch(error){if(alive()){status.textContent='Connection interrupted. Saved task state will be checked; no work is repeated.';timer=setTimeout(poll,3000);}}
   }
   await poll();

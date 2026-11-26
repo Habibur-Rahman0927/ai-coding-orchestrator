@@ -79,7 +79,7 @@ class Tasks:
 
     def preview(self, body):
         permitted = {'project_id', 'provider', 'partner', 'instruction', 'criteria', 'commands',
-                     'max_cost', 'max_call_cost', 'max_tokens', 'planning', 'model_overrides', 'budget_policy', 'max_seconds', 'command_mode'}
+                     'max_cost', 'max_call_cost', 'max_tokens', 'planning', 'model_overrides', 'budget_policy', 'max_seconds', 'command_mode', 'effort_overrides', 'chat_id'}
         if set(body) - permitted:
             raise TaskError('Unknown task field')
         project = self.store.project(body.get('project_id'))
@@ -104,6 +104,13 @@ class Tasks:
         except ValueError:
             raise TaskError('Use valid model identifiers for the selected agents')
         plan['workflow']['model_overrides'] = dict(overrides)
+        efforts = body.get('effort_overrides', {})
+        from .providers import validate_chat_options
+        if not isinstance(efforts, dict) or set(efforts) - {'planner', 'executor', 'reviewer'}:
+            raise TaskError('Invalid effort roles')
+        for role, effort in efforts.items():
+            validate_chat_options(partner if role == 'reviewer' else provider, None, effort)
+        plan['workflow']['effort_overrides'] = efforts
         saved = setting(self.store, 'task_preferences', {}).get(project['id'], {})
         command_mode = body.get('command_mode', 'manual' if 'commands' in body else 'agent')
         if command_mode not in ('manual', 'agent'): raise TaskError('Invalid command mode')
@@ -159,7 +166,11 @@ class Tasks:
         for approval in approvals:
             self.engine._approval_scope(approval['kind'], approval['scope'])
         baseline = snapshot(project['path'], json.loads(project['exclusions']))
-        payload = {'workflow': plan['workflow'], 'approvals': approvals, 'commands': normalized,
+        if body.get('chat_id'):
+            chat = self.app.chat.status(body['chat_id'])
+            if chat['project_id'] != project['id']:
+                raise TaskError('Conversation belongs to another project')
+        payload = {'link_chat': 'chat_id' in body, 'chat_id': body.get('chat_id'), 'workflow': plan['workflow'], 'approvals': approvals, 'commands': normalized,
                    'blockers': blockers, 'project_path': project['path'], 'project_exclusions': project['exclusions'],
                    'baseline': baseline, 'configuration': self.configuration(names),
                    'providers': names, 'max_call_cost': per_call}
@@ -212,7 +223,7 @@ class Tasks:
                 skip = True
         return {'files': baseline['files'], 'texts': texts, 'preexisting': dirty}
 
-    def start(self, body):
+    def start(self, body, delivery=None):
         if set(body) != {'proposal_id', 'revision', 'confirmed', 'idempotency_key'} or body['confirmed'] is not True:
             raise TaskPermissionError('Review the task and explicitly approve it first')
         key = identifier(body['idempotency_key'])
@@ -236,12 +247,20 @@ class Tasks:
             self.available(payload['providers'])
             if (project['path'] != payload['project_path'] or project['exclusions'] != payload['project_exclusions']
                     or self.configuration(payload['providers']) != payload['configuration']
-                    or snapshot(project['path'], json.loads(project['exclusions']))['hash'] != payload['baseline']['hash']):
+                    or (delivery is None and snapshot(project['path'], json.loads(project['exclusions']))['hash'] != payload['baseline']['hash'])):
                 raise TaskError('Project or provider configuration changed. Review the task again.')
-            before = self._before(project, payload['baseline'])
+            before = self._before(project, payload['baseline']) if delivery is None else {}
             value = self.engine.create(**workflow, transaction=db)
             for approval in payload['approvals']:
                 self.engine.approve(value['id'], approval['kind'], approval['scope'], transaction=db)
+            if not delivery and payload.get('link_chat'):
+                chat_id = payload.get('chat_id') or uuid.uuid4().hex
+                if not payload.get('chat_id'):
+                    db.execute('INSERT INTO chats(id,project_id,provider,title,status,updated_at) VALUES(?,?,?,?,?,?)',
+                               (chat_id, workflow['project_id'], workflow['providers']['executor'], workflow['objective'][:80], 'IDLE', time.time()))
+                delivery = {'key':key,'digest':_hash(body),'chat_id':chat_id,'revision':None,'content':workflow['objective']}
+            if delivery:
+                self.app.delivery.record(db, value, delivery)
             payload['before'] = before
             db.execute('UPDATE task_proposals SET workflow_id=?,submission_key=?,payload=? WHERE id=?',
                        (value['id'], key, json.dumps(payload), body['proposal_id']))
@@ -297,8 +316,14 @@ class Tasks:
                 chat_id = body.get('chat_id')
                 if chat_id:
                     chat = db.execute('SELECT * FROM chats WHERE id=?', (chat_id,)).fetchone()
-                    if not chat or chat['project_id'] != project or chat['provider'] != provider:
-                        raise TaskError('Conversation belongs to a different project or agent')
+                    if not chat or chat['project_id'] != project:
+                        raise TaskError('Conversation belongs to a different project')
+                    if chat['provider'] != provider:
+                        if chat['status'] == 'RUNNING':
+                            raise TaskError('Wait for the current response before switching agents')
+                        db.execute('INSERT OR REPLACE INTO chat_provider_state VALUES(?,?,?,?)', (chat_id,chat['provider'],chat['session_id'],chat['history']))
+                        saved = db.execute('SELECT * FROM chat_provider_state WHERE chat_id=? AND provider=?',(chat_id,provider)).fetchone()
+                        db.execute('UPDATE chats SET provider=?,session_id=?,history=? WHERE id=?', (provider,saved['session_id'] if saved else None,saved['history'] if saved else '[]',chat_id))
                 else:
                     chat_id = str(uuid.uuid4())
                     db.execute('INSERT INTO chats(id,project_id,provider,title,status,updated_at) VALUES(?,?,?,?,?,?)',
@@ -312,6 +337,9 @@ class Tasks:
     def submission(self, key):
         key = identifier(key)
         with self.store.connect() as db:
+            linked = db.execute('SELECT workflow_id,chat_id FROM delivery_submissions WHERE key=?', (key,)).fetchone()
+            if linked:
+                return dict(linked, submitted=True)
             row = db.execute('SELECT chat_id FROM task_conversations WHERE key=?', (key,)).fetchone()
             if row:
                 submitted = db.execute('SELECT key FROM chat_submissions WHERE key=?', (key,)).fetchone()
@@ -321,10 +349,22 @@ class Tasks:
 
     def results(self, workflow_id):
         with self.store.connect() as db:
+            cached = db.execute('SELECT payload FROM delivery_results WHERE workflow_id=?', (workflow_id,)).fetchone()
+            if cached:
+                result = json.loads(cached['payload'])
+                scope = result.pop('_scope', None)
+                project_id = self.engine.status(workflow_id)['project_id']
+                if scope != self.app.delivery.identity(project_id)[1]:
+                    return {'files': [], 'preexisting': [], 'diff': '', 'summary': '',
+                            'notice': 'Project scope changed. Saved comparison is hidden under the new exclusions.'}
+                return result
             row = db.execute('SELECT payload,launch_error FROM task_proposals WHERE workflow_id=?', (workflow_id,)).fetchone()
         if not row:
             return {'notice': 'No task baseline recorded for this older workflow.', 'files': [], 'diff': ''}
         payload = json.loads(row['payload'])
+        workflow = self.engine.status(workflow_id)
+        if not workflow.get('started_at') and self.app.delivery.describe(workflow_id):
+            return {'files': [], 'preexisting': [], 'diff': '', 'summary': '', 'notice': 'No work has started. No task changes are recorded; the baseline is captured when execution begins.'}
         project = self.store.project(payload['workflow']['project_id'])
         before = payload.get('before', {})
         current = snapshot(project['path'], json.loads(project['exclusions']))
@@ -349,5 +389,17 @@ class Tasks:
                                      for line in lines))
             except (OSError, UnicodeError, ValueError, PermissionError):
                 continue
-        return {'files': changed, 'preexisting': [name for name in before.get('preexisting', []) if allowed(name, exclusions)], 'diff': ''.join(diffs)[:65536],
+        summary = ''
+        for action in reversed(self.engine.action_results(workflow_id)):
+            output = action['result'].get('output', '')
+            if action['role'] == 'executor' and isinstance(output,str) and output.strip():
+                try:
+                    value = json.loads(output)
+                    output = value.get('summary', '') if isinstance(value,dict) else ''
+                except ValueError:
+                    pass
+                if isinstance(output,str) and not sensitive_content(output):
+                    summary = output[:5000]
+                break
+        return {'summary': summary, 'files': changed, 'preexisting': [name for name in before.get('preexisting', []) if allowed(name, exclusions)], 'diff': ''.join(diffs)[:65536],
                 'launch_error': row['launch_error'], 'notice': 'Changes since approved start, not proof of agent authorship. External edits may be included. Diffs are bounded; sensitive/binary/oversized files are omitted.'}

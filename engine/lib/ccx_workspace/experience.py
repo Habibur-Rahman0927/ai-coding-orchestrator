@@ -85,7 +85,7 @@ def propose(store, registry, body):
     instruction = body.get('instruction', '')
     if not isinstance(instruction, str) or not instruction.strip() or len(instruction) > 16000:
         raise ValueError('Describe a task in at most 16000 characters')
-    if re.fullmatch(r'\s*continue (?:the )?previous (?:task|work)\.?\s*', instruction, re.I):
+    if body.get('mode') != 'build' and re.fullmatch(r'\s*continue (?:the )?previous (?:task|work)\.?\s*', instruction, re.I):
         from .workflows import WorkflowEngine
         workflows = [w for w in WorkflowEngine(store).list() if w['project_id'] == project]
         unfinished = [w for w in workflows if w['status'] not in ('COMPLETED', 'CANCELLED')]

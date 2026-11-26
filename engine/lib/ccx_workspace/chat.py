@@ -26,6 +26,7 @@ class Chat:
               CREATE TABLE IF NOT EXISTS chat_messages(
               id TEXT PRIMARY KEY,chat_id TEXT NOT NULL,role TEXT NOT NULL,content TEXT NOT NULL,
               usage TEXT NOT NULL DEFAULT '{}',created_at REAL NOT NULL);
+              CREATE TABLE IF NOT EXISTS chat_provider_state(chat_id TEXT NOT NULL,provider TEXT NOT NULL,session_id TEXT,history TEXT NOT NULL,PRIMARY KEY(chat_id,provider));
               CREATE TABLE IF NOT EXISTS chat_submissions(
                 key TEXT PRIMARY KEY, digest TEXT NOT NULL, chat_id TEXT NOT NULL, created_at REAL NOT NULL);''')
             for table, column, definition in [('chats','model','TEXT'), ('chats','effort','TEXT'),
@@ -96,7 +97,8 @@ class Chat:
             other=db.execute('SELECT id FROM chats WHERE provider=? AND session_id=? AND id!=?',(provider,session,identifier)).fetchone()
             workflows_exist=db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='w5_sessions'").fetchone()
             workflow=db.execute('SELECT workflow_id FROM w5_sessions WHERE provider=? AND session_id=?',(provider,session)).fetchone() if workflows_exist else None
-            if other or workflow:raise PermissionError('Provider session belongs to another conversation or workflow')
+            archived=db.execute('SELECT chat_id FROM chat_provider_state WHERE provider=? AND session_id=? AND chat_id!=?',(provider,session,identifier)).fetchone()
+            if other or workflow or archived:raise PermissionError('Provider session belongs to another conversation or workflow')
             db.execute('UPDATE chats SET session_id=? WHERE id=?',(session,identifier))
         return session
 
@@ -169,7 +171,7 @@ class Chat:
     def _execute(self, record, content, maximum, timeout, cancellation):
         identifier=record['id'];message_id=str(uuid.uuid4());output='';usage={};state='FAILED'
         session=record['session_id'];history=json.loads(record['history']);last_flush=0
-        metadata={'activity':[], 'requested_model':record.get('model'), 'requested_effort':record.get('effort')}
+        metadata={'provider':record['provider'], 'activity':[], 'requested_model':record.get('model'), 'requested_effort':record.get('effort')}
         def activity(label, phase='completed', detail='', command_output=''):
             if sensitive_content(detail): detail='[Sensitive details withheld]'
             if sensitive_content(command_output): command_output='[Sensitive output withheld]'
@@ -189,7 +191,13 @@ class Chat:
             activity('Selecting project context', 'running')
             context=self.store.context(record['project_id'],content,budget=2000)
             evidence=self.project_evidence(record['project_id'])
-            prompt=json.dumps({'mode':'standalone_read_only','instruction':content,
+            task_context = []
+            conversation_reference = []
+            with self.store.connect() as db:
+                conversation_reference=[dict(r) for r in db.execute('SELECT role,content FROM chat_messages WHERE chat_id=? AND id!=? ORDER BY created_at DESC LIMIT 10',(identifier,message_id))]
+                if db.execute("SELECT name FROM sqlite_master WHERE name='delivery_jobs'").fetchone():
+                    task_context = [dict(r) for r in db.execute('SELECT w.objective,w.status,t.evidence FROM delivery_jobs j JOIN w5_workflows w ON w.id=j.workflow_id LEFT JOIN w5_tasks t ON t.workflow_id=w.id WHERE j.chat_id=? ORDER BY j.created DESC LIMIT 5', (identifier,))]
+            prompt=json.dumps({'conversation_reference_untrusted': json.dumps(list(reversed(conversation_reference)))[:10000], 'task_reference_untrusted': json.dumps(task_context)[:10000], 'mode':'standalone_read_only','instruction':content,
                 'project': {'name': Path(self.store.project(record['project_id'])['path']).name},
                 'project_evidence': evidence, 'context':context['content'],
                 'rules': ('Answer the current question directly in the language used by the user; Bangla or Banglish when used. '
