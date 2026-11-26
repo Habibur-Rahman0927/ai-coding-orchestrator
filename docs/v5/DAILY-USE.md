@@ -225,3 +225,17 @@ Tool inputs and outputs and reasoning blocks are omitted. Recognizable sensitive
 command details are withheld. Activity visibility does not grant additional tools
 or permissions. Updates use the existing polling interval, rather than an exact
 mirror of a provider's extension.
+
+## Chat and task views
+
+Chat shows the selected conversation. Project tasks are available through the
+compact **Tasks** menu in the toolbar; old, active or cancelled tasks never
+automatically replace the conversation. Starting an approved Build or recovering
+its accepted request opens that specific task. **Back to chat** returns to the
+conversation without cancelling any background work.
+
+New chat, project changes, agent changes and conversation-history selection clear
+the task panel selection. The Advanced workflow browser has separate selection
+state. Cancelled and completed workflow states take priority over unfinished task
+steps when showing progress. Markdown pipe tables render as horizontally scrollable
+tables with text-only cells; raw HTML remains inert.

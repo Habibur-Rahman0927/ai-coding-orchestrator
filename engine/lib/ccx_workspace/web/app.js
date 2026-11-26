@@ -1,6 +1,6 @@
 'use strict';
 let fieldSequence = 0, workflowViewVersion = 0, workflowPollTimer = null;
-let token = '', csrf = sessionStorage.getItem('ccx-session-proof') || '', authenticated = false, state = {}, setupState = {}, experience = {}, page = 'chat', selectedProject = '', selectedWorkflow = '', selectedChat = '';
+let token = '', csrf = sessionStorage.getItem('ccx-session-proof') || '', authenticated = false, state = {}, setupState = {}, experience = {}, page = 'chat', selectedProject = '', selectedWorkflow = '', selectedChat = '', selectedChatTask = '';
 // Consume the fragment before any network request; a bootstrap secret never remains in history.
 let bootstrapCredential = new URLSearchParams(location.hash.slice(1)).get('bootstrap');
 if (bootstrapCredential) history.replaceState(null, '', location.pathname);
@@ -43,7 +43,7 @@ function field(label,name,options={}) {const id='field-'+(++fieldSequence);const
 function form(children, label, action) {const f=el('form',{},...children,el('button',{type:'submit',class:'primary'},label));f.addEventListener('submit',async event=>{event.preventDefault();const submit=f.querySelector('[type=submit]');submit.disabled=true;try{await action(Object.fromEntries(new FormData(f)));}catch(error){notice(error.message,true);}finally{submit.disabled=false;}});return f;}
 function heading(title,description,actions) {return el('div',{class:'page-head'},el('div',{},el('p',{class:'eyebrow'},'ORCHESTRATOR WORKSPACE'),el('h1',{},title),el('p',{},description)),actions?el('div',{class:'actions'},actions):null);}
 function projectOptions(){return arr(state.projects).map(p=>({value:p.id,label:projectName(p)}));}
-function projectPicker(action){const f=field('Project','active-project',{options:projectOptions(),value:selectedProject});f.querySelector('select').addEventListener('change',async event=>{selectedProject=event.target.value;selectedChat='';selectedWorkflow='';try{experience=await api('/api/experience',{project:selectedProject});await action();}catch(error){notice(error.message,true);}});return f;}
+function projectPicker(action){const f=field('Project','active-project',{options:projectOptions(),value:selectedProject});f.querySelector('select').addEventListener('change',async event=>{selectedProject=event.target.value;selectedChat='';selectedWorkflow='';selectedChatTask='';try{experience=await api('/api/experience',{project:selectedProject});await action();}catch(error){notice(error.message,true);}});return f;}
 function projectNeeded(){if(!arr(state.projects).length){main.append(empty('Start with a project','Choose an approved repository to keep its conversations and context together.'),button('Choose a project',()=>go('projects'),'primary'));return true;}if(!selectedProject||!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;return false;}
 async function refresh(render=true){[state,setupState,experience]=await Promise.all([api('/api/state'),api('/api/setup'),api('/api/experience')]);if(!selectedProject)selectedProject=experience.project||'';applyAppearance();document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});if(render)await renderPage();}
 function go(name){if(location.hash==='#'+name)renderPage().catch(error=>notice(error.message,true));else location.hash=name;}
@@ -321,7 +321,7 @@ function projects(){
   const render=()=>{const query=search.querySelector('input').value.toLowerCase();const favorites=experience.favorites||[],recent=experience.recent||[];
     const sorted=arr(state.projects).slice().sort((a,b)=>Number(favorites.includes(b.id))-Number(favorites.includes(a.id))||(recent.indexOf(a.id)<0?999:recent.indexOf(a.id))-(recent.indexOf(b.id)<0?999:recent.indexOf(b.id)));
     list.replaceChildren(...sorted.filter(p=>(projectName(p)+' '+p.path).toLowerCase().includes(query)).map(p=>el('article',{class:'item'},el('h3',{},projectName(p)),el('p',{class:'path'},p.path),el('p',{class:'hint'},(p.id===experience.project?'Last active project · ':'')+arr(state.workflows).filter(w=>w.project_id===p.id&&!['COMPLETED','CANCELLED'].includes(w.status)).length+' unfinished workflows'),
-      el('div',{class:'actions'},button('Open '+projectName(p),async()=>{selectedProject=p.id;selectedChat='';selectedWorkflow='';experience=await api('/api/experience',{project:p.id});go('chat');},'primary'),button(favorites.includes(p.id)?'Remove favorite':'Add favorite',async()=>{experience=await api('/api/experience',{favorite:p.id});render();},'quiet'),button('Refresh context',async()=>{notice('Updating project context…');const result=await api('/api/projects/'+p.id+'/index',{});preview.replaceChildren(panel('Project knowledge ready',pre(result)));notice('Project knowledge updated.');},'quiet')))));
+      el('div',{class:'actions'},button('Open '+projectName(p),async()=>{selectedProject=p.id;selectedChat='';selectedWorkflow='';selectedChatTask='';experience=await api('/api/experience',{project:p.id});go('chat');},'primary'),button(favorites.includes(p.id)?'Remove favorite':'Add favorite',async()=>{experience=await api('/api/experience',{favorite:p.id});render();},'quiet'),button('Refresh context',async()=>{notice('Updating project context…');const result=await api('/api/projects/'+p.id+'/index',{});preview.replaceChildren(panel('Project knowledge ready',pre(result)));notice('Project knowledge updated.');},'quiet')))));
     if(!list.childElementCount)list.append(empty('No matching projects','Register a repository below or change your search.'));
   };search.querySelector('input').addEventListener('input',render);render();
   main.append(panel('Recent and favorite projects',search,list),el('details',{open:!arr(state.projects).length},el('summary',{},'Register a project'),projectRegistrationForm(preview)),preview);
@@ -428,12 +428,26 @@ function chatMarkdown(value){
   }
   let paragraph=[],list=null,code=null;
   const flush=()=>{if(paragraph.length){const p=el('p',{});inline(p,paragraph.join('\n'));root.append(p);paragraph=[];}list=null;};
-  for(const line of String(value||'').split('\n')){
+  const lines=String(value||'').split('\n');
+  const cells=line=>line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell=>cell.trim());
+  for(let index=0;index<lines.length;index++){
+    const line=lines[index];
     if(/^\s*```/.test(line)){
       flush();if(code!==null){root.append(el('pre',{},el('code',{},code.join('\n'))));code=null;}else code=[];continue;
     }
     if(code!==null){code.push(line);continue;}
     if(!line.trim()){flush();continue;}
+    if(line.includes('|')&&index+1<lines.length&&cells(lines[index+1]).length>1&&cells(lines[index+1]).every(cell=>/^:?-{3,}:?$/.test(cell))){
+      flush();const headers=cells(line),table=el('table',{}),head=el('tr',{}),body=el('tbody',{});
+      for(const title of headers){const cell=el('th',{scope:'col'});inline(cell,title);head.append(cell);}
+      table.append(el('thead',{},head),body);index++;
+      while(index+1<lines.length&&lines[index+1].includes('|')&&lines[index+1].trim()){
+        const values=cells(lines[++index]),row=el('tr',{});
+        for(let column=0;column<headers.length;column++){const cell=el('td',{});inline(cell,values[column]||'');row.append(cell);}body.append(row);
+      }
+      root.append(el('div',{class:'chat-table'},table));continue;
+    }
+
     const heading=line.match(/^#{1,6}\s+(.+)$/),item=line.match(/^\s*(?:([-*+])|\d+\.)\s+(.+)$/);
     if(heading){flush();const h=el('h3',{});inline(h,heading[1]);root.append(h);}
     else if(item){if(paragraph.length)flush();const tag=item[1]?'ul':'ol';if(!list||list.tagName.toLowerCase()!==tag){list=el(tag,{});root.append(list);}const li=el('li',{});inline(li,item[2]);list.append(li);}
@@ -472,6 +486,7 @@ async function chat(){
   if(!state.projects.some(p=>p.id===selectedProject))selectedProject=experience.project||state.projects[0].id;
   if(!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;
   const project=selectedProject,draft=taskDraft(project);
+  if(selectedChatTask&&!arr(state.workflows).some(w=>w.id===selectedChatTask&&w.project_id===project))selectedChatTask='';
   const current=()=>workflowViewVersion===version&&selectedProject===project;
   let agent=experience.agents?.[project]||defaults().executor||'codex';
   const agentField=field('Agent','task-agent',{options:providerOptions(),value:agent});
@@ -480,12 +495,12 @@ async function chat(){
   if(pending&&!draft.messageRequest){
     try{const recovered=await api('/api/tasks/submission/'+encodeURIComponent(pending.key));if(!current())return;
       if(recovered.chat_id&&recovered.submitted){selectedChat=recovered.chat_id;draft.newConversation=false;pendingSubmission(project,null);}
-      else if(recovered.workflow_id){selectedWorkflow=recovered.workflow_id;pendingSubmission(project,null);}
+      else if(recovered.workflow_id){selectedChatTask=recovered.workflow_id;pendingSubmission(project,null);}
       else unresolvedSubmission=true;
     }catch{unresolvedSubmission=true;}
   }
   if(unresolvedSubmission)main.append(panel('Previous submission needs inspection',el('p',{},'The previous request may have reached the server. No work has been resent. Inspect recent work before starting another request.'),button('Check saved state',()=>renderPage(),'primary'),button('I inspected; start a new request',()=>{pendingSubmission(project,null);return renderPage();},'quiet')));
-  const controls=el('div',{class:'chat-top-toolbar'},projectPicker(()=>renderPage()),agentField,button('New chat',()=>{selectedChat='';selectedWorkflow='';draft.newConversation=true;draft.content='';return renderPage();},'quiet'));
+  const controls=el('div',{class:'chat-top-toolbar'},projectPicker(()=>renderPage()),agentField,button('New chat',()=>{selectedChat='';selectedChatTask='';draft.newConversation=true;draft.content='';return renderPage();},'quiet'));
   main.append(controls);
   const choices=arr(await api('/api/chats')).filter(c=>c.project_id===project&&c.provider===agent);
   if(!current())return;
@@ -493,7 +508,7 @@ async function chat(){
   if(!draft.newConversation&&!choices.some(c=>c.id===selectedChat))selectedChat=choices.find(c=>c.id===saved)?.id||choices[0]?.id||'';
   if(draft.newConversation)selectedChat='';
   agentField.querySelector('select').addEventListener('change',async event=>{
-    try{experience=await api('/api/experience',{project,agent:event.target.value});selectedChat='';draft.newConversation=false;await renderPage();}catch(error){notice(error.message,true);}
+    try{experience=await api('/api/experience',{project,agent:event.target.value});selectedChat='';selectedChatTask='';draft.newConversation=false;await renderPage();}catch(error){notice(error.message,true);}
   });
   const provider=arr(state.providers).find(p=>p.id===agent);
   controls.append(el('span',{class:'chat-connection',title:providerStatus(provider||{})},provider?.available?'● Agent available':'○ Connect agent'));
@@ -502,7 +517,7 @@ async function chat(){
   if(choices.length){
     const selector=field('Conversation','task-conversation',{options:[{value:'',label:'New conversation'},...choices.map(c=>({value:c.id,label:c.title||c.id}))],value:selectedChat});
     selector.querySelector('select').addEventListener('change',async event=>{
-      try{selectedChat=event.target.value;draft.newConversation=!selectedChat;if(selectedChat)experience=await api('/api/experience',{project,agent,conversation:selectedChat});await renderPage();}catch(error){notice(error.message,true);}
+      try{selectedChatTask='';selectedChat=event.target.value;draft.newConversation=!selectedChat;if(selectedChat)experience=await api('/api/experience',{project,agent,conversation:selectedChat});await renderPage();}catch(error){notice(error.message,true);}
     });controls.append(el('details',{class:'chat-history'},el('summary',{},'History'),selector));
   }
   const available=await api('/api/chat/options/'+agent);if(!current())return;
@@ -564,7 +579,7 @@ async function chat(){
       pendingSubmission(project,{key:draft.messageRequest.key});
       const reply=await api('/api/tasks/message',{...draft.messageRequest.input,idempotency_key:draft.messageRequest.key});
       if(!current())return;
-      pendingSubmission(project,null);selectedChat=reply.chat_id;draft.newConversation=false;draft.content='';draft.messageRequest=null;
+      pendingSubmission(project,null);selectedChatTask='';selectedChat=reply.chat_id;draft.newConversation=false;draft.content='';draft.messageRequest=null;
       await refresh(false);if(current())await renderPage();
     }else{
       const input={project_id:project,provider:agent,instruction:data.content,...teamInput()};
@@ -587,12 +602,12 @@ async function chat(){
     consent.textContent=draft.mode==='ask'?'Send authorizes this message and relevant project context to '+agent+', using your subscription allowance or API credits. This is a read-only conversation; native CLI access can be broader than filtered context.':'Review task prepares a local approval card. No agent runs until you approve it. Tests and a separate review session are included.';
     reviewArea.replaceChildren();
   }
-  modeField.querySelector('select').addEventListener('change',updateMode);updateMode();
+  modeField.querySelector('select').addEventListener('change',()=>{if(modeField.querySelector('select').value==='ask'){selectedChatTask='';const pane=main.querySelector('.chat-task-results');if(pane)pane.hidden=true;transcript.hidden=false;responseStatus.hidden=false;pollConversation();}updateMode();});updateMode();
   messageField.querySelector('textarea').addEventListener('input',event=>{draft.content=event.target.value;reviewArea.replaceChildren();});
   const dock=el('div',{class:'chat-dock'},composer);main.append(dock,reviewArea);
   const cancel=button('Cancel response',async()=>{if(selectedChat)await api('/api/chats/'+selectedChat+'/cancel',{});await pollConversation();},'quiet');cancel.hidden=true;main.append(cancel);
   async function pollConversation(){
-    if(!current()||!selectedChat)return;
+    if(!current()||!selectedChat||selectedChatTask)return;
     try{
       const value=await api('/api/chats/'+selectedChat);if(!current())return;
       const followLatest=!transcriptLoaded||(transcript.closest('.chat-stream')||transcript).scrollHeight-(transcript.closest('.chat-stream')||transcript).scrollTop-(transcript.closest('.chat-stream')||transcript).clientHeight<80;
@@ -606,15 +621,20 @@ async function chat(){
   }
   await pollConversation();
   const flows=arr(state.workflows).filter(w=>w.project_id===project);
-  const recent=el('details',{open:flows.some(w=>!['COMPLETED','CANCELLED'].includes(w.status))},el('summary',{},'Recent tasks ('+flows.length+')'));
-  recent.hidden=!flows.length;
-  for(const w of flows.slice(0,10)){const item=button((w.objective||'Task').slice(0,90)+' · '+w.status,()=>{selectedWorkflow=w.id;taskView.replaceChildren();return inlineTask(taskView,w.id,current);},'quiet');item.dataset.workflowId=w.id;recent.append(item);}
+  if(!flows.some(w=>w.id===selectedChatTask))selectedChatTask='';
+  const recent=el('details',{class:'project-tasks'},el('summary',{},'Tasks ('+flows.length+')'));
+  recent.hidden=!flows.length;controls.append(recent);
   const taskView=el('div',{'data-task-progress':''});
-  const taskResults=el('details',{class:'chat-task-results',open:Boolean(selectedWorkflow)||flows.some(w=>!['COMPLETED','CANCELLED'].includes(w.status)),hidden:!flows.length},el('summary',{},'Task results & progress'),taskView);
-  const stream=el('section',{class:'chat-stream','aria-label':'Chat and task activity'},transcript,responseStatus,reviewArea,recent,taskResults);
+  const taskResults=el('section',{class:'chat-task-results',hidden:!selectedChatTask},
+    button('Back to chat',()=>{selectedChatTask='';return renderPage();},'quiet'),taskView);
+  for(const w of flows.slice(0,30)){const item=button((w.objective||'Task').slice(0,90)+' · '+w.status,()=>{
+    selectedChatTask=w.id;recent.open=false;transcript.hidden=true;responseStatus.hidden=true;cancel.hidden=true;
+    clearTimeout(workflowPollTimer);taskResults.hidden=false;taskView.replaceChildren();return inlineTask(taskView,w.id,current);
+  },'quiet');item.dataset.workflowId=w.id;recent.append(item);}
+  const stream=el('section',{class:'chat-stream','aria-label':'Chat and task activity'},transcript,responseStatus,reviewArea,taskResults);
   main.insertBefore(stream,dock);dock.append(cancel);
-  if(selectedWorkflow&&flows.some(w=>w.id===selectedWorkflow))await inlineTask(taskView,selectedWorkflow,current);
-  else if(flows.find(w=>!['COMPLETED','CANCELLED'].includes(w.status))){selectedWorkflow=flows.find(w=>!['COMPLETED','CANCELLED'].includes(w.status)).id;await inlineTask(taskView,selectedWorkflow,current);}
+  if(selectedChatTask){transcript.hidden=true;responseStatus.hidden=true;cancel.hidden=true;await inlineTask(taskView,selectedChatTask,current);}
+
 }
 function renderTaskApproval(container,initial,input,current){
   let proposal=initial,version=0,key=submissionKey(),timer;
@@ -639,7 +659,7 @@ function renderTaskApproval(container,initial,input,current){
     pendingSubmission(input.project_id,{key});
     const result=await api('/api/tasks/start',{proposal_id:proposal.proposal_id,revision:proposal.revision,confirmed:true,idempotency_key:key});
     if(!current())return;
-    pendingSubmission(input.project_id,null);selectedWorkflow=result.workflow_id;taskDraft(input.project_id).content='';await refresh(false);if(current())await renderPage();
+    pendingSubmission(input.project_id,null);selectedChatTask=result.workflow_id;taskDraft(input.project_id).content='';await refresh(false);if(current())await renderPage();
     if(result.notice)notice(result.notice);
   },'primary');
   const read=()=>({...input,criteria:criteria.querySelector('textarea').value,
@@ -691,7 +711,7 @@ async function inlineTask(container,id,current){
   let timer,signature='',loadedResults=false;
   const controls=el('div',{class:'actions'},button('Pause task',async()=>{await api('/api/workflows/'+id+'/pause',{});await poll();},'quiet'),button('Cancel task',async()=>{await api('/api/workflows/'+id+'/cancel',{});await poll();},'danger'));
   card.append(status,details,controls,requests,result);container.replaceChildren(card);
-  const alive=()=>current()&&card.isConnected;
+  const alive=()=>current()&&card.isConnected&&!container.closest('[hidden]');
   async function poll(){
     clearTimeout(timer);if(!alive())return;
     try{
@@ -699,7 +719,7 @@ async function inlineTask(container,id,current){
       const active=w.runner_active||w.status==='RUNNING';
       for(const item of main.querySelectorAll('[data-workflow-id]'))if(item.dataset.workflowId===id)item.textContent=(w.objective||'Task').slice(0,90)+' · '+w.status;
       const phases=arr(w.tasks).map(t=>t.status);
-      const stage=w.status==='COMPLETED'?'Done · tests and review verified':phases.includes('REVIEWING')?'Reviewing':phases.includes('TESTING')?'Testing':w.status==='RUNNING'?'Working':w.status==='CANCELLED'?'Cancelled':'Needs attention · '+w.status.toLowerCase().replaceAll('_',' ');
+      const stage=w.status==='COMPLETED'?'Done · tests and review verified':w.status==='CANCELLED'?'Cancelled':w.status!=='RUNNING'?'Needs attention · '+w.status.toLowerCase().replaceAll('_',' '):phases.includes('REVIEWING')?'Reviewing':phases.includes('TESTING')?'Testing':'Working';
       status.textContent=stage+(w.reason?' — '+w.reason:'');controls.hidden=['COMPLETED','CANCELLED'].includes(w.status);
       const next=JSON.stringify([w.status,w.reason,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events?.length]);
       if(next!==signature){

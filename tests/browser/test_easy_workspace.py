@@ -54,6 +54,47 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_label('Action',exact=True).select_option('build')
         expect(self.page.locator('[data-chat-settings]')).to_be_hidden()
 
+    def test_old_cancelled_task_never_replaces_new_chat(self):
+        self.ready()
+        engine=self.server.application.engine
+        flow=engine.create(self.pid,'Old cancelled task',['done'])
+        task=engine.create_task(flow['id'],'Old testing step')
+        engine.cancel(flow['id'])
+        with self.store.connect() as db:
+            db.execute("UPDATE w5_tasks SET status='TESTING' WHERE id=?",(task['id'],))
+        self.page.reload()
+        expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
+        expect(self.page.locator('[data-task-progress]')).to_be_hidden()
+        self.page.get_by_label('Your task',exact=True).fill('Explain current project')
+        self.page.get_by_role('button',name='Send',exact=True).click()
+        expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply',timeout=15000)
+        expect(self.page.locator('[data-task-progress]')).to_be_hidden()
+        self.page.get_by_text('Tasks (1)',exact=True).click()
+        self.page.get_by_role('button',name='Old cancelled task · CANCELLED',exact=True).click()
+        expect(self.page.locator('[data-task-progress] [role=status]')).to_contain_text('Cancelled')
+        expect(self.page.locator('[data-task-progress] [role=status]')).not_to_contain_text('Testing')
+        expect(self.page.locator('.chat-messages')).to_be_hidden()
+        self.page.get_by_role('button',name='Back to chat',exact=True).click()
+        expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply')
+        expect(self.page.locator('[data-task-progress]')).to_be_hidden()
+        self.page.get_by_role('button',name='New chat',exact=True).click()
+        expect(self.page.get_by_label('Your task',exact=True)).to_have_value('')
+        expect(self.page.locator('.chat-message')).to_have_count(0)
+        expect(self.page.locator('[data-task-progress]')).to_be_hidden()
+
+    def test_markdown_tables_are_safe_and_readable(self):
+        self.ready()
+        expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
+        self.page.evaluate(r"""() => {
+          const node=chatMarkdown('| Area | Status |\n| --- | --- |\n| **API** | Done |\n| UI | <img src=x onerror=alert(1)> |');
+          node.id='table-check';document.querySelector('.chat-transcript').append(node);
+        }""")
+        table=self.page.locator('#table-check table')
+        expect(table.locator('th')).to_have_count(2)
+        expect(table.locator('tbody tr')).to_have_count(2)
+        expect(table.locator('strong')).to_have_text('API')
+        expect(table.locator('img')).to_have_count(0)
+
     def test_live_activity_is_visible_and_survives_reload(self):
         self.ready()
         self.page.get_by_label('Your task',exact=True).fill('Explain the project')
