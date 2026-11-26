@@ -69,7 +69,7 @@ class Tasks:
 
     def preview(self, body):
         permitted = {'project_id', 'provider', 'partner', 'instruction', 'criteria', 'commands',
-                     'max_cost', 'max_call_cost', 'max_tokens', 'planning'}
+                     'max_cost', 'max_call_cost', 'max_tokens', 'planning', 'model_overrides'}
         if set(body) - permitted:
             raise TaskError('Unknown task field')
         project = self.store.project(body.get('project_id'))
@@ -85,6 +85,15 @@ class Tasks:
             'preset': 'feature' if body.get('planning') is True else 'quick_fix'})
         if plan['kind'] != 'workflow':
             raise TaskError('Open the saved task from recent work to continue it.')
+        overrides = body.get('model_overrides', {})
+        if not isinstance(overrides, dict) or set(overrides) - {'planner', 'executor', 'reviewer'}:
+            raise TaskError('Choose models only for planner, executor and reviewer')
+        from .providers import validate_model
+        try:
+            for model in overrides.values(): validate_model(model)
+        except ValueError:
+            raise TaskError('Use valid model identifiers for the selected agents')
+        plan['workflow']['model_overrides'] = dict(overrides)
         saved = setting(self.store, 'task_preferences', {}).get(project['id'], {})
         commands = body.get('commands', self.suggestions(project))
         if not isinstance(commands, list) or len(commands) > 10:

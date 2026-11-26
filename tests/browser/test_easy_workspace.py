@@ -54,6 +54,42 @@ class EasyWorkspace(unittest.TestCase):
         self.page.get_by_label('Action',exact=True).select_option('build')
         expect(self.page.locator('[data-chat-settings]')).to_be_hidden()
 
+    def test_build_custom_team_and_models_in_review_card(self):
+        self.ready()
+        self.page.get_by_label('Action',exact=True).select_option('build')
+        self.page.get_by_label('Build team',exact=True).click()
+        self.page.get_by_label('Team mode',exact=True).select_option('custom')
+        self.page.get_by_label('Review agent',exact=True).select_option('minimax')
+        self.page.get_by_label('Implementation model',exact=True).fill('worker-model')
+        self.page.get_by_label('Review model',exact=True).fill('review-model')
+        self.page.get_by_label('Task planning',exact=True).select_option('subtasks')
+        self.page.get_by_role('button',name='Done',exact=True).click()
+        self.page.get_by_label('Your task',exact=True).fill('Implement and review this change')
+        self.page.get_by_role('button',name='Review task',exact=True).click()
+        expect(self.page.locator('[data-task-review]')).to_contain_text('Separate minimax review session')
+        expect(self.page.locator('[data-task-review]')).to_contain_text('executor = worker-model')
+        expect(self.page.locator('[data-task-review]')).to_contain_text('reviewer = review-model')
+        self.page.get_by_label('Total usage reservation',exact=True).fill('1')
+        expect(self.page.locator('[data-task-review]')).to_contain_text('reviewer = review-model')
+        self.assertEqual(self.registry.calls,[])
+
+    def test_chat_composer_stays_visible_with_long_history(self):
+        self.ready()
+        expect(self.page.get_by_label('Your task',exact=True)).to_be_visible()
+        self.page.evaluate("""() => {const t=document.querySelector('.chat-transcript');
+          for(let i=0;i<100;i++)t.append(chatMessage({role:'assistant',content:'Long history '+i},'codex'));
+          document.querySelector('.chat-stream').scrollTop=500;}""")
+        box=self.page.get_by_label('Your task',exact=True).bounding_box()
+        self.assertGreaterEqual(box['y'],0)
+        self.assertLessEqual(box['y']+box['height'],1000)
+        self.page.get_by_role('button',name='New chat',exact=True).click()
+        expect(self.page.locator('.chat-message')).to_have_count(0)
+        self.page.set_viewport_size({'width':390,'height':844})
+        expect(self.page.get_by_role('button',name='Send',exact=True)).to_be_visible()
+        box=self.page.get_by_role('button',name='Send',exact=True).bounding_box()
+        self.assertLessEqual(box['y']+box['height'],844)
+        self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'),390)
+
     def test_markdown_renders_without_executing_html_or_unsafe_links(self):
         self.ready()
         self.page.evaluate(r"""() => {
@@ -141,9 +177,7 @@ class EasyWorkspace(unittest.TestCase):
         self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'),390)
         self.page.get_by_label('Your task',exact=True).focus()
         self.page.keyboard.type('Read only')
-        self.page.keyboard.press('Tab')
-        expect(self.page.get_by_role('button',name='Send',exact=True)).to_be_focused()
-        self.page.keyboard.press('Enter')
+        self.page.keyboard.press('Control+Enter')
         expect(self.page.locator('.chat-message.assistant')).to_contain_text('standalone reply',timeout=15000)
 
     def test_duplicate_transport_retry_does_not_repeat_provider(self):

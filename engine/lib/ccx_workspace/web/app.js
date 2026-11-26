@@ -47,7 +47,7 @@ function projectPicker(action){const f=field('Project','active-project',{options
 function projectNeeded(){if(!arr(state.projects).length){main.append(empty('Start with a project','Choose an approved repository to keep its conversations and context together.'),button('Choose a project',()=>go('projects'),'primary'));return true;}if(!selectedProject||!state.projects.some(p=>p.id===selectedProject))selectedProject=state.projects[0].id;return false;}
 async function refresh(render=true){[state,setupState,experience]=await Promise.all([api('/api/state'),api('/api/setup'),api('/api/experience')]);if(!selectedProject)selectedProject=experience.project||'';applyAppearance();document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});if(render)await renderPage();}
 function go(name){if(location.hash==='#'+name)renderPage().catch(error=>notice(error.message,true));else location.hash=name;}
-async function renderPage(){document.getElementById('notice').hidden=true;clearTimeout(workflowPollTimer);workflowViewVersion++;page=location.hash.slice(1)||'chat';if(!pages.some(x=>x[0]===page)&&page!=='setup')page='chat';document.getElementById('breadcrumb').textContent='Workspace / '+(page==='setup'?'Setup':pages.find(x=>x[0]===page)[1]);for(const a of document.querySelectorAll('nav a'))a.setAttribute('aria-current',a.hash==='#'+page?'page':'false');main.replaceChildren();await ({overview,projects,memory,context,workflows,providers,activity,settings,setup,chat,sessions,approvals,help}[page])();}
+async function renderPage(){document.body.classList.remove('extension-chat');document.getElementById('notice').hidden=true;clearTimeout(workflowPollTimer);workflowViewVersion++;page=location.hash.slice(1)||'chat';if(!pages.some(x=>x[0]===page)&&page!=='setup')page='chat';document.getElementById('breadcrumb').textContent='Workspace / '+(page==='setup'?'Setup':pages.find(x=>x[0]===page)[1]);for(const a of document.querySelectorAll('nav a'))a.setAttribute('aria-current',a.hash==='#'+page?'page':'false');main.replaceChildren();await ({overview,projects,memory,context,workflows,providers,activity,settings,setup,chat,sessions,approvals,help}[page])();}
 function overview(){const projects=arr(state.projects),flows=arr(state.workflows),available=arr(state.providers).filter(p=>p.available);main.append(heading('Your work, in view.','Keep project knowledge close and coordinate agent work with explicit boundaries.'),el('div',{class:'metrics'},...[[projects.length,'Registered projects'],[flows.length,'Workflows'],[arr(state.running).length,'Active runners'],[available.length,'Locally available providers']].map(([n,label])=>el('div',{class:'metric'},el('p',{},label),el('strong',{class:'number'},n)))));const recent=panel('Projects',projects.length?projects.slice(0,4).map(p=>el('div',{class:'item'},el('h3',{},projectName(p)),el('p',{class:'path'},p.path||p.root),button('Open project',()=>{selectedProject=p.id;go('memory');},'quiet'))):empty('A clear place to begin','Register a local repository to build its project index.'),el('div',{class:'actions'},button('Manage projects',()=>go('projects'),'primary')));const flowsPanel=panel('Workflow queue',flows.length?flows.slice(0,4).map(w=>el('div',{class:'item'},el('h3',{},w.objective||w.id),statusTag(w.status||w.state),el('div',{class:'actions'},button('View workflow',()=>{selectedWorkflow=w.id;go('workflows');},'quiet')))):empty('No workflows yet','Define an objective and success criteria. Agent execution starts only when you run it.'));main.append(el('div',{class:'grid'},recent,flowsPanel),panel('This machine',el('p',{class:'muted'},'Machine information is local context. Refresh it when tools or the environment change.'),machineSummary(state.machine)));}
 async function memory(){main.append(heading('Project memory','Inspect stored knowledge, search the project index, and remove records you no longer want.'));if(projectNeeded())return;main.append(projectPicker(memoryReload));await memoryReload();}
 async function memoryReload(){document.getElementById('memory-content')?.remove();const container=el('div',{id:'memory-content'});main.append(container);const rows=arr(await api('/api/projects/'+selectedProject+'/memories'));const result=el('div',{});container.append(panel('Add a memory',form([field('Title','title',{required:true}),field('Instruction or note','body',{required:true,multiline:true}),field('Scope','scope',{options:['project','workflow','session','error','verification','skills','temporary']})],'Save memory',async data=>{await api('/api/projects/'+selectedProject+'/remember',data);await memoryReload();notice('Memory saved as a user instruction.');})),panel('Search knowledge',form([field('Search query','query',{required:true,placeholder:'Where is authentication configured?'}),field('Scope','scope',{placeholder:'Optional scope'})],'Search',async data=>{const found=await api('/api/projects/'+selectedProject+'/search',{query:data.query,scope:data.scope||null,limit:20});result.replaceChildren(pre(found));}),result),panel('Stored records',el('div',{class:'section-head'},el('p',{class:'muted'},rows.length+' memory records'),button('Export project memory',async()=>download(await api('/api/projects/'+selectedProject+'/export'),'project-memory.json'))),rows.length?rows.map(row=>el('article',{class:'item'},el('h3',{},row.title||row.key||row.kind||row.id),el('p',{class:'hint'},row.scope||row.source||'Project memory'),pre(row.body||row.content||row.value||row),button('Delete record',async()=>{if(!confirm('Delete this memory record? This cannot be undone here.'))return;await api('/api/projects/'+selectedProject+'/delete-memory',{id:row.id});await memoryReload();notice('Memory record deleted.');},'danger'))):empty('No memory records','Indexing and workflow activity can provide project knowledge. Search the index above.')));}
@@ -453,7 +453,8 @@ function chatMessage(message,agent){
 }
 async function chat(){
   const version=workflowViewVersion;
-  main.append(heading('What would you like to work on?','Ask a question or build something in your project.'));
+  if(!arr(state.projects).length)main.append(heading('Open your project','Connect an agent and choose a local project to begin.'));
+  else document.body.classList.add('extension-chat');
   if(!arr(state.projects).length){
     const pick=field('Agent','first-agent',{options:providerOptions(),value:defaults().executor||'codex'}),connection=el('div',{});
     const draw=()=>{connection.replaceChildren();connectAgent(connection,pick.querySelector('select').value);};
@@ -478,7 +479,7 @@ async function chat(){
     }catch{unresolvedSubmission=true;}
   }
   if(unresolvedSubmission)main.append(panel('Previous submission needs inspection',el('p',{},'The previous request may have reached the server. No work has been resent. Inspect recent work before starting another request.'),button('Check saved state',()=>renderPage(),'primary'),button('I inspected; start a new request',()=>{pendingSubmission(project,null);return renderPage();},'quiet')));
-  const controls=el('div',{class:'form-row'},projectPicker(()=>renderPage()),agentField);
+  const controls=el('div',{class:'chat-top-toolbar'},projectPicker(()=>renderPage()),agentField,button('New chat',()=>{selectedChat='';selectedWorkflow='';draft.newConversation=true;draft.content='';return renderPage();},'quiet'));
   main.append(controls);
   const choices=arr(await api('/api/chats')).filter(c=>c.project_id===project&&c.provider===agent);
   if(!current())return;
@@ -489,14 +490,14 @@ async function chat(){
     try{experience=await api('/api/experience',{project,agent:event.target.value});selectedChat='';draft.newConversation=false;await renderPage();}catch(error){notice(error.message,true);}
   });
   const provider=arr(state.providers).find(p=>p.id===agent);
-  main.append(el('p',{class:'hint'},agent+' · '+providerStatus(provider||{})));
-  if(!provider?.available){connectAgent(main,agent);return;}
-  const connection=el('details',{},el('summary',{},'Connection help'));connectAgent(connection,agent);main.append(connection);
+  controls.append(el('span',{class:'chat-connection',title:providerStatus(provider||{})},provider?.available?'● Agent available':'○ Connect agent'));
+  if(!provider?.available){document.body.classList.remove('extension-chat');connectAgent(main,agent);return;}
+  const connection=el('details',{},el('summary',{},'Connection help'));connectAgent(connection,agent);controls.append(connection);
   if(choices.length){
     const selector=field('Conversation','task-conversation',{options:[{value:'',label:'New conversation'},...choices.map(c=>({value:c.id,label:c.title||c.id}))],value:selectedChat});
     selector.querySelector('select').addEventListener('change',async event=>{
       try{selectedChat=event.target.value;draft.newConversation=!selectedChat;if(selectedChat)experience=await api('/api/experience',{project,agent,conversation:selectedChat});await renderPage();}catch(error){notice(error.message,true);}
-    });main.append(selector);
+    });controls.append(el('details',{class:'chat-history'},el('summary',{},'History'),selector));
   }
   const available=await api('/api/chat/options/'+agent);if(!current())return;
   const savedChoice=choices.find(c=>c.id===selectedChat)||{};
@@ -520,9 +521,35 @@ async function chat(){
   main.append(transcript,responseStatus);
   const messageField=field('Your task','content',{multiline:true,required:true,value:draft.content,placeholder:'Explain this project, fix a bug, or describe what you want to build.'});
   const modeField=field('Action','action',{options:[{value:'ask',label:'Ask · read-only'},{value:'build',label:'Build · implement, test and review'}],value:draft.mode});
-  const consent=el('p',{class:'hint'}),reviewArea=el('div',{'data-task-review':''});
+  draft.teams=draft.teams||{};
+  const team=draft.teams[agent]||(draft.teams[agent]={mode:'auto',partner:agent,executor_model:'',reviewer_model:'',planning:false});
+  const teamMode=field('Team mode','team-mode',{options:[{value:'auto',label:'Auto · selected agent + separate review'},{value:'custom',label:'Custom team'}],value:team.mode});
+  const reviewer=field('Review agent','review-agent',{options:providerOptions(),value:team.partner});
+  const implementModel=field('Implementation model','implementation-model',{value:team.executor_model,placeholder:'Provider default'});
+  const reviewModel=field('Review model','review-model',{value:team.reviewer_model,placeholder:'Provider default'});
+  const modelList=el('datalist',{id:'implementation-models'},...arr(available.models).map(name=>el('option',{value:name})));
+  implementModel.querySelector('input').setAttribute('list','implementation-models');
+  const reviewList=el('datalist',{id:'review-models'});reviewModel.querySelector('input').setAttribute('list','review-models');
+  let reviewOptionsVersion=0;
+  async function loadReviewModels(){const version=++reviewOptionsVersion;try{const value=await api('/api/chat/options/'+team.partner);if(current()&&version===reviewOptionsVersion)reviewList.replaceChildren(...arr(value.models).map(name=>el('option',{value:name})));}catch(error){if(current())notice(error.message,true);}}
+  const customTeam=el('div',{class:'team-fields'},el('p',{class:'hint'},'Implement with '+agent+'. Review uses a separate session, even with the same agent.'),reviewer,implementModel,reviewModel,modelList,reviewList);
+  const planning=field('Task planning','task-planning',{options:[{value:'direct',label:'Direct · implement, test, review'},{value:'subtasks',label:'Plan subtasks · run each with separate sessions'}],value:team.planning?'subtasks':'direct'});
+  const teamSummary=el('summary',{'aria-label':'Build team'},'Auto team');
+  const teamSettings=el('details',{class:'chat-settings build-team'},teamSummary,teamMode,customTeam,planning,el('p',{class:'hint'},'After approval, the engine runs the selected team within task and usage limits. Subtasks run sequentially; this does not enable native CLI sub-agents.'));
+  const teamDescription=()=>team.mode==='auto'?agent+' → '+agent+' review':agent+(team.executor_model?' / '+team.executor_model:'')+' → '+team.partner+(team.reviewer_model?' / '+team.reviewer_model:'');
+  function updateTeam(){teamSummary.textContent=(team.mode==='auto'?'Auto team · ':'Team · ')+teamDescription();customTeam.hidden=team.mode!=='custom';}
+  teamMode.querySelector('select').addEventListener('change',event=>{team.mode=event.target.value;updateTeam();});
+  reviewer.querySelector('select').addEventListener('change',event=>{team.partner=event.target.value;team.reviewer_model='';reviewModel.querySelector('input').value='';updateTeam();loadReviewModels();});
+  implementModel.querySelector('input').addEventListener('input',event=>{team.executor_model=event.target.value.trim();updateTeam();});
+  reviewModel.querySelector('input').addEventListener('input',event=>{team.reviewer_model=event.target.value.trim();updateTeam();});
+  planning.querySelector('select').addEventListener('change',event=>{team.planning=event.target.value==='subtasks';});
+  updateTeam();await loadReviewModels();if(!current())return;
+  const teamInput=()=>({partner:team.mode==='custom'?team.partner:agent,planning:team.planning,model_overrides:team.mode==='custom'?{...(team.executor_model?{executor:team.executor_model,planner:team.executor_model}:{}),...(team.reviewer_model?{reviewer:team.reviewer_model}:{})}:{}});
+  const consent=el('p',{class:'hint chat-consent'}),reviewArea=el('div',{'data-task-review':''});
+  const toolbar=el('div',{class:'chat-composer-toolbar'},modeField,chatSettings,teamSettings);
+
   let responseRunning=false,transcriptLoaded=false;
-  const composer=form([el('div',{class:'chat-composer-toolbar'},modeField,chatSettings),messageField,consent],draft.mode==='ask'?'Send':'Review task',async data=>{
+  const composer=form([messageField,toolbar,el('details',{class:'chat-access'},el('summary',{},'Access & usage · sends context using your provider allowance'),consent)],draft.mode==='ask'?'Send':'Review task',async data=>{
     draft.content=data.content;draft.mode=data.action;
     if(data.action==='ask'){
       const requested={project_id:project,provider:agent,content:data.content,chat_id:selectedChat||null,confirmed:true,model:options.model||null,effort:options.effort||null};
@@ -534,32 +561,37 @@ async function chat(){
       pendingSubmission(project,null);selectedChat=reply.chat_id;draft.newConversation=false;draft.content='';draft.messageRequest=null;
       await refresh(false);if(current())await renderPage();
     }else{
-      const proposal=await api('/api/tasks/preview',{project_id:project,provider:agent,instruction:data.content});
-      if(current())renderTaskApproval(reviewArea,proposal,{project_id:project,provider:agent,instruction:data.content},current);
+      const input={project_id:project,provider:agent,instruction:data.content,...teamInput()};
+      const proposal=await api('/api/tasks/preview',input);
+      if(current()){renderTaskApproval(reviewArea,proposal,input,current);reviewArea.scrollIntoView({block:'nearest'});}
     }
   });
   composer.classList.add('chat-composer');
+  messageField.querySelector('textarea').addEventListener('keydown',event=>{if((event.metaKey||event.ctrlKey)&&event.key==='Enter'&&!event.isComposing){event.preventDefault();if(!composer.querySelector('[type=submit]').disabled)composer.requestSubmit();}});
+  teamSettings.append(button('Done',()=>{teamSettings.open=false;messageField.querySelector('textarea').focus();},'quiet'));
   chatSettings.append(button('Done',()=>{chatSettings.open=false;messageField.querySelector('textarea').focus();},'quiet'));
   customModel.querySelector('input').addEventListener('invalid',()=>{chatSettings.open=true;});
-  const submit=composer.querySelector('[type=submit]');submit.disabled=unresolvedSubmission;
+  const submit=composer.querySelector('[type=submit]');submit.disabled=unresolvedSubmission;toolbar.append(submit);
+  teamSettings.addEventListener('input',()=>reviewArea.replaceChildren());teamSettings.addEventListener('change',()=>reviewArea.replaceChildren());
   function updateMode(){
     draft.mode=modeField.querySelector('select').value;
-    chatSettings.hidden=draft.mode!=='ask';customModel.querySelector('input').required=draft.mode==='ask'&&!customModel.hidden;
+    teamSettings.hidden=draft.mode!=='build';chatSettings.hidden=draft.mode!=='ask';customModel.querySelector('input').required=draft.mode==='ask'&&!customModel.hidden;
     submit.textContent=draft.mode==='ask'?'Send':'Review task';
+    composer.querySelector('.chat-access summary').textContent=draft.mode==='ask'?'Access & usage · sends context using your provider allowance':'Access & usage · no agent runs until you approve';
     consent.textContent=draft.mode==='ask'?'Send authorizes this message and relevant project context to '+agent+', using your subscription allowance or API credits. This is a read-only conversation; native CLI access can be broader than filtered context.':'Review task prepares a local approval card. No agent runs until you approve it. Tests and a separate review session are included.';
     reviewArea.replaceChildren();
   }
   modeField.querySelector('select').addEventListener('change',updateMode);updateMode();
   messageField.querySelector('textarea').addEventListener('input',event=>{draft.content=event.target.value;reviewArea.replaceChildren();});
-  main.append(panel('',composer),reviewArea);
+  const dock=el('div',{class:'chat-dock'},composer);main.append(dock,reviewArea);
   const cancel=button('Cancel response',async()=>{if(selectedChat)await api('/api/chats/'+selectedChat+'/cancel',{});await pollConversation();},'quiet');cancel.hidden=true;main.append(cancel);
   async function pollConversation(){
     if(!current()||!selectedChat)return;
     try{
       const value=await api('/api/chats/'+selectedChat);if(!current())return;
-      const followLatest=!transcriptLoaded||transcript.scrollHeight-transcript.scrollTop-transcript.clientHeight<80;
+      const followLatest=!transcriptLoaded||(transcript.closest('.chat-stream')||transcript).scrollHeight-(transcript.closest('.chat-stream')||transcript).scrollTop-(transcript.closest('.chat-stream')||transcript).clientHeight<80;
       transcript.replaceChildren(...arr(value.messages).map(m=>chatMessage(m,agent)));
-      if(followLatest)transcript.scrollTop=transcript.scrollHeight;
+      if(followLatest){const scroll=transcript.closest('.chat-stream')||transcript;scroll.scrollTop=scroll.scrollHeight;}
       transcriptLoaded=true;
       responseRunning=value.running;submit.disabled=responseRunning||unresolvedSubmission;cancel.hidden=!responseRunning;
       responseStatus.textContent=responseRunning?'Responding…':(['FAILED','TIMEOUT','INTERRUPTED','OUTPUT_LIMIT'].includes(value.status)?'Response '+value.status.toLowerCase()+'. Your conversation is saved. Inspect it before sending again.':'Conversation saved.');
@@ -569,8 +601,12 @@ async function chat(){
   await pollConversation();
   const flows=arr(state.workflows).filter(w=>w.project_id===project);
   const recent=el('details',{open:flows.some(w=>!['COMPLETED','CANCELLED'].includes(w.status))},el('summary',{},'Recent tasks ('+flows.length+')'));
+  recent.hidden=!flows.length;
   for(const w of flows.slice(0,10)){const item=button((w.objective||'Task').slice(0,90)+' · '+w.status,()=>{selectedWorkflow=w.id;taskView.replaceChildren();return inlineTask(taskView,w.id,current);},'quiet');item.dataset.workflowId=w.id;recent.append(item);}
-  const taskView=el('div',{'data-task-progress':''});main.append(recent,taskView);
+  const taskView=el('div',{'data-task-progress':''});
+  const taskResults=el('details',{class:'chat-task-results',open:Boolean(selectedWorkflow)||flows.some(w=>!['COMPLETED','CANCELLED'].includes(w.status)),hidden:!flows.length},el('summary',{},'Task results & progress'),taskView);
+  const stream=el('section',{class:'chat-stream','aria-label':'Chat and task activity'},transcript,responseStatus,reviewArea,recent,taskResults);
+  main.insertBefore(stream,dock);dock.append(cancel);
   if(selectedWorkflow&&flows.some(w=>w.id===selectedWorkflow))await inlineTask(taskView,selectedWorkflow,current);
   else if(flows.find(w=>!['COMPLETED','CANCELLED'].includes(w.status))){selectedWorkflow=flows.find(w=>!['COMPLETED','CANCELLED'].includes(w.status)).id;await inlineTask(taskView,selectedWorkflow,current);}
 }
@@ -581,8 +617,8 @@ function renderTaskApproval(container,initial,input,current){
   const total=field('Total usage reservation','max_cost',{type:'number',min:0,step:.01,value:initial.workflow.budgets.max_cost});
   const perCall=field('Per-call reservation','max_call_cost',{type:'number',min:0,step:.01,value:initial.max_call_cost});
   const advanced=el('details',{},el('summary',{},'Advanced task options'),
-    field('Reviewer','partner',{options:providerOptions(),value:input.provider}),
-    field('Planning','planning',{options:[{value:'no',label:'Direct implementation'},{value:'yes',label:'Plan multiple steps first'}]}),
+    field('Reviewer','partner',{options:providerOptions(),value:input.partner||input.provider}),
+    field('Planning','planning',{options:[{value:'no',label:'Direct implementation'},{value:'yes',label:'Plan multiple steps first'}],value:input.planning?'yes':'no'}),
     field('Token limit','max_tokens',{type:'number',min:128,max:1000000,value:initial.workflow.budgets.max_tokens}));
   function addCommand(command={name:'tests',argv:[],cwd:'.',timeout:120}){
     const row=el('div',{class:'command-editor'},field('Test name','name',{value:command.name}),
@@ -602,9 +638,9 @@ function renderTaskApproval(container,initial,input,current){
   },'primary');
   const read=()=>({...input,criteria:criteria.querySelector('textarea').value,
     max_cost:Number(total.querySelector('input').value),max_call_cost:Number(perCall.querySelector('input').value),
-    max_tokens:Number(advanced.querySelector('[name=max_tokens]').value),partner:advanced.querySelector('[name=partner]').value,planning:advanced.querySelector('[name=planning]').value==='yes',
+    max_tokens:Number(advanced.querySelector('[name=max_tokens]').value),partner:advanced.querySelector('[name=partner]').value,model_overrides:Object.fromEntries(Object.entries(input.model_overrides||{}).filter(([role])=>role!=='reviewer'||advanced.querySelector('[name=partner]').value===(input.partner||input.provider))),planning:advanced.querySelector('[name=planning]').value==='yes',
     commands:Array.from(commandRows.children).filter(row=>row.querySelector('[name=executable]').value.trim()).map(row=>({name:row.querySelector('[name=name]').value,argv:[row.querySelector('[name=executable]').value.trim(),...row.querySelector('[name=arguments]').value.split('\n').filter(Boolean)],cwd:row.querySelector('[name=cwd]').value,timeout:Number(row.querySelector('[name=timeout]').value)}))});
-  function show(){summary.replaceChildren(el('p',{},'Project: '+proposal.project_path),el('p',{},proposal.review),el('p',{class:'hint'},proposal.notice),el('details',{},el('summary',{},'Exact access and commands'),pre(proposal.approvals)));error.textContent=proposal.blockers.join(' ');start.disabled=Boolean(proposal.blockers.length);}
+  function show(){summary.replaceChildren(el('p',{},'Project: '+proposal.project_path),el('p',{},proposal.review),el('p',{class:'hint'},'Models: '+(Object.entries(proposal.workflow.model_overrides||{}).map(([role,model])=>role+' = '+model).join(' · ')||'Provider defaults')),el('p',{class:'hint'},proposal.notice),el('details',{},el('summary',{},'Exact access and commands'),pre(proposal.approvals)));error.textContent=proposal.blockers.join(' ');start.disabled=Boolean(proposal.blockers.length);}
   function schedule(){
     clearTimeout(timer);const revision=++version;proposal=null;start.disabled=true;error.textContent='Updating task preview…';
     timer=setTimeout(async()=>{try{const value=await api('/api/tasks/preview',read());if(!current()||!container.isConnected||revision!==version)return;proposal=value;key=submissionKey();show();}catch(err){if(current()&&revision===version){error.textContent=err.message;start.disabled=true;}}},250);
@@ -632,6 +668,7 @@ async function inlineTask(container,id,current){
       const next=JSON.stringify([w.status,w.reason,w.approval_requests,w.pending_actions,w.approvals,w.tasks,w.events?.length]);
       if(next!==signature){
         signature=next;details.replaceChildren(el('h3',{},w.objective),el('p',{class:'hint'},'Working → Testing → Reviewing → Done'));
+        details.append(el('details',{},el('summary',{},'Team & subtasks · '+arr(w.tasks).length),...arr(w.tasks).map(task=>el('div',{class:'item'},el('strong',{},task.title),el('p',{class:'hint'},task.executor+' / '+(w.model_overrides?.executor||'default model')+' → '+task.reviewer+' / '+(w.model_overrides?.reviewer||'default model')+' · '+task.status)))));
         const last=arr(w.events).slice(-3);for(const e of last)details.append(el('p',{class:'hint'},String(e.event||e.kind||'Progress').replaceAll('_',' ').toLowerCase()));
         requests.replaceChildren();
         for(const request of arr(w.approval_requests).filter(r=>r.status==='PENDING'))requests.append(panel('Additional permission',el('p',{},request.reason),pre(request.scope),button('Approve this scope',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'approve'});await poll();},'primary'),button('Deny',async()=>{await api('/api/workflows/'+id+'/resolve-request',{request_id:request.id,decision:'deny'});await poll();},'quiet')));

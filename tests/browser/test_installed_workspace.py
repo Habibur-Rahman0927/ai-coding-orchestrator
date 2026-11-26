@@ -48,7 +48,7 @@ class InstalledWorkspace(unittest.TestCase):
                     page.get_by_role('button',name='Preview project').click()
                     expect(page.get_by_role('heading',name='Indexing preview')).to_be_visible()
                     page.get_by_role('button',name='Register this project').click()
-                    expect(page.get_by_role('heading',name='What would you like to work on?')).to_be_visible()
+                    expect(page.get_by_role('button',name='New chat',exact=True)).to_be_visible()
                     expect(page.get_by_label('Project',exact=True)).to_be_visible()
                     page.reload();expect(page.get_by_label('Project',exact=True)).to_be_visible()
                     self.assertEqual(len(store.projects()),1)

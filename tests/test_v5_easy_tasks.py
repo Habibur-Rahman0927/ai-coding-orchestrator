@@ -62,6 +62,46 @@ class EasyTasks(unittest.TestCase):
         self.assertNotIn(workflow, self.app.jobs)
         return self.app.engine.status(workflow)
 
+    def test_custom_team_models_reach_separate_role_sessions(self):
+        for reviewer in ('codex', 'minimax'):
+            with self.subTest(reviewer=reviewer):
+                self.file('app.txt','bad');self.registry.executions=0
+                models={'executor':'implementation-model','reviewer':'review-model','planner':'implementation-model'}
+                proposal=self.preview(partner=reviewer,model_overrides=models)
+                with mock.patch.object(self.registry,'invoke',wraps=self.registry.invoke) as invoke:
+                    started=self.app.tasks.start(self.start_body(proposal))
+                    status=self.wait(started['workflow_id'])
+                self.assertEqual(status['status'],'COMPLETED',status.get('reason'))
+                self.assertEqual(status['model_overrides'],models)
+                work=[c.args for c in invoke.call_args_list if c.args[1]['role']=='executor']
+                review=[c.args for c in invoke.call_args_list if c.args[1]['role']=='reviewer']
+                self.assertEqual(work[0][0],'codex');self.assertEqual(review[0][0],reviewer)
+                self.assertEqual(work[0][1]['model'],'implementation-model')
+                self.assertEqual(review[0][1]['model'],'review-model')
+                with self.store.connect() as db:
+                    sessions=db.execute('SELECT session_id FROM w5_sessions WHERE workflow_id=?',(status['id'],)).fetchall()
+                self.assertGreaterEqual(len({row[0] for row in sessions}),2)
+
+    def test_planned_subtasks_run_with_approved_team(self):
+        original=self.registry.invoke
+        def plan(provider,request):
+            result=original(provider,request)
+            if request['role']=='planner':
+                result['output']=json.dumps({'tasks':[{'title':'Implement change'},{'title':'Check the result'}]})
+            return result
+        proposal=self.preview(partner='minimax',planning=True,model_overrides={'executor':'worker','reviewer':'checker'})
+        with mock.patch.object(self.registry,'invoke',side_effect=plan):
+            status=self.wait(self.app.tasks.start(self.start_body(proposal))['workflow_id'])
+        self.assertEqual(status['status'],'COMPLETED',status.get('reason'))
+        self.assertEqual(len(status['tasks']),2)
+        self.assertTrue(all(t['executor']=='codex' and t['reviewer']=='minimax' for t in status['tasks']))
+
+    def test_reject_invalid_team_models_before_any_execution(self):
+        for overrides in ({'unknown':'model'},{'executor':'--unsafe'},['model']):
+            with self.assertRaises(ValueError):self.app.tasks.preview(dict(self.data,model_overrides=overrides))
+        self.assertEqual(self.registry.calls,[])
+        self.assertEqual(self.app.engine.list(),[])
+
     def test_concurrent_sqlite_sidecar_removal_is_harmless(self):
         from ccx_workspace import store as store_module
         sidecar = Path(str(self.store.path) + '-journal')

@@ -161,3 +161,32 @@ feedback or real token savings have been measured.
 macOS/Windows launcher code exists; current native acceptance remains pending.
 Use [Cross-platform guidance](../CROSS-PLATFORM.md) for paths and PowerShell syntax.
 Documented commands are not proof those hosts were tested.
+
+## Extension-style chat and task teams
+
+The Chat page has a compact project/agent toolbar, New chat and History, one
+scrolling conversation/activity pane, and a persistent composer at the bottom.
+Cmd+Enter (Mac) or Ctrl+Enter sends the current composer; Enter inserts a newline.
+Model and effort stay in Settings. Access details and task results can be expanded.
+
+For implementation, choose Build and describe the outcome in the same composer:
+
+- **Auto team** uses the selected agent to implement, run approved tests and review
+  in a separate session. After approval, the engine advances the steps itself.
+- **Custom team** selects a review agent and optional implementation/review models.
+  For example, Codex can implement and MiniMax review, or two different Codex models
+  can implement/review. Blank model fields keep provider defaults. Custom model
+  access must be supported by the selected provider/account.
+- **Plan subtasks** adds a planner that divides the objective into bounded tasks.
+  The engine runs each task sequentially with the approved team and separate
+  sessions. The implementation model is also used for planning when explicitly set.
+
+Review task displays the chosen team, models, tests and permissions before
+Approve & start. Editing the team invalidates that preview. Additional permissions
+and unknown execution outcomes still require inspection. This is engine-managed
+planning/execution/review, not unrestricted recursive or parallel native CLI
+sub-agent spawning. Native provider capabilities and limits still apply.
+
+Team choices stay in the current tab; the accepted workflow records the exact
+providers and model overrides durably. Existing Ask model/effort preferences remain
+scoped to chat and are not silently reused as Build permissions or settings.
